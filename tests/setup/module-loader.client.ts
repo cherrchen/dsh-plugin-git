@@ -5,12 +5,19 @@ const nodeRequire = createRequire(import.meta.url)
 
 type Factory = (require: NodeRequire) => Record<string, unknown>
 
+type ModuleLoaderWindow = typeof globalThis & {
+  window?: ModuleLoaderWindow
+  __ModuleLoader__?: {
+    load(handoff: { id: string; factory: Factory }): void
+  }
+}
+
 const factories = new Map<string, Factory>()
 const materialized = new Map<string, Record<string, unknown>>()
 
-function ensureWindow(): Window & typeof globalThis {
-  const root = globalThis as typeof globalThis & { window?: Window }
-  if (root.window === undefined) root.window = root as unknown as Window
+function ensureWindow(): ModuleLoaderWindow {
+  const root = globalThis as ModuleLoaderWindow
+  if (root.window === undefined) root.window = root
   return root.window
 }
 

@@ -4,7 +4,7 @@ import { vi } from 'vitest'
 import { apply as applyDetailsHost, inject as injectDetailsHost } from '@dsh-electron/dsh-client-ui-details-host/client'
 import { apply as applyGit, inject as injectGit } from '../../src/client/index.ts'
 import { GIT_DETAILS_SURFACE_ID } from '../../src/client/contract.ts'
-import { materializeClientBundle } from '../setup/module-loader.ts'
+import { materializeClientBundle } from '../setup/module-loader.client.ts'
 
 const { SlotRegistry } = materializeClientBundle('@deepseek-ai/dsh-client-runtime') as {
   SlotRegistry: Parameters<Context['plugin']>[0]
@@ -22,7 +22,7 @@ export function fakeLayout() {
 }
 
 export function fakeSessions(current: string | undefined = 'session-a') {
-  let snapshot = { current }
+  let snapshot: { current: string | undefined } = { current }
   const listeners = new Set<() => void>()
   return {
     list: {
