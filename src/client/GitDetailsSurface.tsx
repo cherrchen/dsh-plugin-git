@@ -4,7 +4,7 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import { changedPathCount } from './changed-path-count.ts'
 import type { GitClientController } from './controller.ts'
-import type { GitDetailsTab } from './contract.ts'
+import type { GitDetailsTab, GitDetailsPayload } from './contract.ts'
 import { ChangesTab } from './details/ChangesTab.tsx'
 import { CommitTab } from './details/CommitTab.tsx'
 import { DiffTab } from './details/DiffTab.tsx'
@@ -24,12 +24,19 @@ const TAB_LABEL: Record<GitDetailsTab, GitLocaleKey> = {
 }
 
 /** Render the Git details surface body hosted by Details Host. */
-export function GitDetailsSurface({ controller, t }: GitDetailsSurfaceProps): ReactNode {
+export function GitDetailsSurface({ controller, t, detailsInstance }: GitDetailsSurfaceProps): ReactNode {
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
 
   useEffect(() => {
     void controller.refresh()
   }, [controller])
+
+  // Payload owns initial navigation for this Host open; live tab changes stay on the controller.
+  useEffect(() => {
+    const payload = detailsInstance.payload as GitDetailsPayload
+    const tab = payload.tab
+    if (tab !== undefined) controller.selectTab(tab)
+  }, [controller, detailsInstance.instanceId, detailsInstance.payload])
 
   const repository = state.repository
   const clean = repository !== undefined && repository !== null && changedPathCount(repository) === 0

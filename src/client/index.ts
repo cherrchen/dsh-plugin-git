@@ -26,7 +26,7 @@ declare module '@deepseek-ai/cordis' {
 }
 
 export { GitBranchControl, GitDetailsSurface, GitClientController }
-export { GIT_DETAILS_SURFACE_ID, type GitDetailsTab } from './contract.ts'
+export { GIT_DETAILS_SURFACE_ID, type GitDetailsTab, type GitDetailsPayload } from './contract.ts'
 export type { GitDesktopCapability } from './controller.ts'
 
 export const inject = ['slots', 'connection', 'locale', 'shellDetails']
@@ -36,8 +36,10 @@ export function apply(ctx: ClientContext): void {
   const connection = ctx.get('connection') as ConnectionHandle
   const controller = new GitClientController(connection.rpc)
   const openDetails = (tab: GitDetailsTab = 'changes'): void => {
-    controller.selectTab(tab)
-    ctx.shellDetails.open(GIT_DETAILS_SURFACE_ID)
+    ctx.shellDetails.open({
+      surfaceId: GIT_DETAILS_SURFACE_ID,
+      payload: { tab },
+    })
   }
   ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'git: dictionaries')
   ctx.slots.inject('conversation.input.left', () => ctx.slots.register({
