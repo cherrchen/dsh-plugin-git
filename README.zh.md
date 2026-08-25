@@ -17,10 +17,10 @@
 **DSH Web** — 先安装 Details Host，再安装 Git：
 
 ```sh
-# 1. Details Host（必需依赖）
+# 1. Details Host (required dependency)
 dsh plugin --profile web add github:cherrchen/dsh-client-ui-details-host
 
-# 2. Git 插件
+# 2. Git plugin
 dsh plugin --profile web add github:cherrchen/dsh-plugin-git
 ```
 
