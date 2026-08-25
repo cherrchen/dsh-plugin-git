@@ -1,7 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import { changedPathCount } from './changed-path-count.ts'
 import type { GitClientController } from './controller.ts'
 import type { GitDetailsTab, GitDetailsPayload } from './contract.ts'
@@ -50,14 +49,6 @@ export function GitDetailsSurface({ controller, t, detailsInstance }: GitDetails
         <div className={css.context}>
           <span className={css.repoName} title={repository.root}>{repoFolderName(repository.root)}</span>
           {branchLabel !== undefined && <span className={css.branchName}>{branchLabel}</span>}
-          <div className={css.actions}>
-            {state.desktopAvailable && (
-              <Button size="sm" variant="ghost" onClick={() => { void controller.reveal() }}>{t('details.reveal')}</Button>
-            )}
-            <Button size="sm" variant="outline" disabled={state.loading} onClick={() => { void controller.refresh() }}>
-              {t('details.refresh')}
-            </Button>
-          </div>
         </div>
       )}
       <nav className={css.tabs} aria-label={t('details.tabs')}>
