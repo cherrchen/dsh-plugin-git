@@ -2,10 +2,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import type { DetailsSurfaceInstance } from '@dsh-electron/dsh-client-ui-details-host/client'
 import type { GitRepositorySnapshot } from '../src/types.ts'
 import { GitDetailsSurface } from '../src/client/GitDetailsSurface.tsx'
 import type { GitDetailsSurfaceProps } from '../src/client/GitDetailsSurface.tsx'
 import type { GitClientController } from '../src/client/controller.ts'
+import { GIT_DETAILS_SURFACE_ID } from '../src/client/contract.ts'
+import type { GitDetailsPayload } from '../src/client/contract.ts'
 import { en } from '../src/client/locales.ts'
 
 function snapshot(overrides: Partial<GitRepositorySnapshot> = {}): GitRepositorySnapshot {
@@ -19,6 +22,16 @@ function snapshot(overrides: Partial<GitRepositorySnapshot> = {}): GitRepository
     untracked: [],
     branches: [{ name: 'main', head: 'abc123', current: true }],
     ...overrides,
+  }
+}
+
+function detailsInstanceOf(payload: GitDetailsPayload = {}): DetailsSurfaceInstance<GitDetailsPayload> {
+  return {
+    instanceId: 'details-instance-1',
+    surfaceId: GIT_DETAILS_SURFACE_ID,
+    payload,
+    label: 'Git',
+    sessionId: 'session-a',
   }
 }
 
@@ -48,8 +61,11 @@ describe('GitDetailsSurface', () => {
   afterEach(() => { cleanup() })
 
   const t = ((key: keyof typeof en) => en[key]) as PropsLocale<'git'>['t']
-  const surfaceProps = (controller: GitClientController): GitDetailsSurfaceProps =>
-    ({ controller, t }) as GitDetailsSurfaceProps
+  const surfaceProps = (
+    controller: GitClientController,
+    detailsInstance: DetailsSurfaceInstance<GitDetailsPayload> = detailsInstanceOf(),
+  ): GitDetailsSurfaceProps =>
+    ({ controller, t, detailsInstance }) as GitDetailsSurfaceProps
 
   it('refreshes on mount and renders repository metadata without a close button', async () => {
     const controller = controllerOf({
@@ -70,6 +86,21 @@ describe('GitDetailsSurface', () => {
     expect(container.querySelector('[data-git-details-surface]')).toBeTruthy()
     expect(container.querySelector('aside')).toBeNull()
     expect(screen.queryByRole('button', { name: /close/i })).toBeNull()
+  })
+
+  it('applies payload tab to the controller without assuming prior selectTab', () => {
+    const controller = controllerOf({
+      workspacePath: '/workspace',
+      repository: snapshot(),
+      activeTab: 'changes',
+      selectedDiff: undefined,
+      diff: undefined,
+      loading: false,
+      error: undefined,
+      desktopAvailable: false,
+    })
+    render(<GitDetailsSurface {...surfaceProps(controller, detailsInstanceOf({ tab: 'diff' }))} />)
+    expect(controller.selectTab).toHaveBeenCalledWith('diff')
   })
 
   it('hides Reveal without desktop and shows empty states', () => {

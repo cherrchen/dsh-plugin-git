@@ -9,12 +9,29 @@ function winner(slots: Awaited<ReturnType<typeof integrationBench>>['slots']): u
 describe('Git + Details Host integration', () => {
   it('materializes the Git surface when shellDetails opens git', async () => {
     const bench = await integrationBench()
-    bench.shellDetails.open(GIT_DETAILS_SURFACE_ID)
+    const instance = bench.shellDetails.open({
+      surfaceId: GIT_DETAILS_SURFACE_ID,
+      payload: { tab: 'commit' },
+    })
+    expect(instance.surfaceId).toBe(GIT_DETAILS_SURFACE_ID)
+    expect(instance.payload).toEqual({ tab: 'commit' })
     expect(bench.shellDetails.activeId).toBe(GIT_DETAILS_SURFACE_ID)
+    expect(bench.shellDetails.activeInstance?.payload).toEqual({ tab: 'commit' })
     expect(winner(bench.slots)).not.toBe(UpstreamDetailsPanel)
     expect((winner(bench.slots) as { name?: string }).name).toBe('DetailsHost')
     expect(bench.slots.entries('shell.details.surface').some(entry => entry.options.id === GIT_DETAILS_SURFACE_ID)).toBe(true)
     expect(bench.layout.openDetails).toHaveBeenCalledTimes(1)
+    await bench.gitFiber.dispose()
+    await bench.detailsFiber.dispose()
+    bench.disposeRoot()
+    bench.disposeUpstream()
+  })
+
+  it('keeps legacy string open compatible', async () => {
+    const bench = await integrationBench()
+    bench.shellDetails.open(GIT_DETAILS_SURFACE_ID)
+    expect(bench.shellDetails.activeId).toBe(GIT_DETAILS_SURFACE_ID)
+    expect(bench.shellDetails.activeInstance?.surfaceId).toBe(GIT_DETAILS_SURFACE_ID)
     await bench.gitFiber.dispose()
     await bench.detailsFiber.dispose()
     bench.disposeRoot()

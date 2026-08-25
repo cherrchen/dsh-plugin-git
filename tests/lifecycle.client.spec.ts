@@ -11,10 +11,32 @@ describe('Git client lifecycle', () => {
     const registrations: Array<{ name?: string; id?: string }> = []
     const shellDetails = {
       activeId: null as string | null,
-      open: vi.fn((id: string) => { shellDetails.activeId = id }),
-      close: vi.fn(() => { shellDetails.activeId = null }),
+      activeInstance: null as { surfaceId: string; payload?: unknown } | null,
+      open: vi.fn((idOrRequest: string | { surfaceId: string; payload?: unknown }) => {
+        if (typeof idOrRequest === 'string') {
+          shellDetails.activeId = idOrRequest
+          shellDetails.activeInstance = { surfaceId: idOrRequest }
+          return
+        }
+        shellDetails.activeId = idOrRequest.surfaceId
+        shellDetails.activeInstance = { surfaceId: idOrRequest.surfaceId, payload: idOrRequest.payload }
+        return shellDetails.activeInstance
+      }),
+      close: vi.fn(() => {
+        shellDetails.activeId = null
+        shellDetails.activeInstance = null
+      }),
       toggle: vi.fn(),
       isOpen: vi.fn((id?: string) => id === undefined ? shellDetails.activeId !== null : shellDetails.activeId === id),
+      getSnapshot: vi.fn(() => ({
+        open: shellDetails.activeId !== null,
+        activeId: shellDetails.activeId,
+        activeInstance: shellDetails.activeInstance,
+        label: null,
+        canGoBack: false,
+        historyDepth: 0,
+      })),
+      subscribe: vi.fn(() => () => {}),
     }
     ctx.provide('slots', {
       inject: (_name: string, callback: () => unknown) => ctx.effect(() => callback() as () => void),
@@ -43,6 +65,21 @@ describe('Git client lifecycle', () => {
     expect(controller.inject?.().controller.getSnapshot().desktopAvailable).toBe(true)
     await provider.dispose()
     expect(controller.inject?.().controller.getSnapshot().desktopAvailable).toBe(false)
+
+    const openDetails = (registrations[0] as { inject?: () => { openDetails: (tab?: string) => void; controller: GitClientController } })
+      .inject?.().openDetails
+    const controllerRef = (registrations[0] as { inject?: () => { controller: GitClientController } }).inject?.().controller
+    expect(openDetails).toBeTypeOf('function')
+    expect(controllerRef?.getSnapshot().activeTab).toBe('changes')
+    shellDetails.open.mockImplementationOnce(() => {
+      throw new Error('host open failed')
+    })
+    expect(() => { openDetails?.('diff') }).toThrow(/host open failed/)
+    expect(controllerRef?.getSnapshot().activeTab).toBe('changes')
+    expect(shellDetails.open).toHaveBeenCalledWith({
+      surfaceId: GIT_DETAILS_SURFACE_ID,
+      payload: { tab: 'diff' },
+    })
 
     await fiber.dispose()
   })
