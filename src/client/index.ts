@@ -5,9 +5,13 @@ import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client
 import type {} from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
-import { DETAILS_SURFACE_SLOT } from '@dsh-electron/dsh-client-ui-details-host/client'
+import {
+  DETAILS_HEADER_ACTIONS_SLOT,
+  DETAILS_SURFACE_SLOT,
+} from '@dsh-electron/dsh-client-ui-details-host/client'
 import type {} from '@dsh-electron/dsh-client-ui-details-host/client'
 import { GitBranchControl } from './GitBranchControl.tsx'
+import { GitDetailsHeaderActions } from './GitDetailsHeaderActions.tsx'
 import { GitDetailsSurface } from './GitDetailsSurface.tsx'
 import { GitClientController, type GitDesktopCapability } from './controller.ts'
 import { GIT_DETAILS_SURFACE_ID, type GitDetailsTab } from './contract.ts'
@@ -25,7 +29,7 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
-export { GitBranchControl, GitDetailsSurface, GitClientController }
+export { GitBranchControl, GitDetailsHeaderActions, GitDetailsSurface, GitClientController }
 export { GIT_DETAILS_SURFACE_ID, type GitDetailsTab, type GitDetailsPayload } from './contract.ts'
 export type { GitDesktopCapability } from './controller.ts'
 
@@ -42,6 +46,9 @@ export function apply(ctx: ClientContext): void {
     })
   }
   ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'git: dictionaries')
+  ctx.effect(() => ctx.shellDetails.registerSurface({
+    id: GIT_DETAILS_SURFACE_ID,
+  }), 'git: details descriptor')
   ctx.slots.inject('conversation.input.left', () => ctx.slots.register({
     name: 'conversation.input.left',
     id: 'git-context',
@@ -55,6 +62,12 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     inject: () => ({ controller }),
   }, GitDetailsSurface))
+  ctx.slots.inject(DETAILS_HEADER_ACTIONS_SLOT, () => ctx.slots.register({
+    name: DETAILS_HEADER_ACTIONS_SLOT,
+    id: GIT_DETAILS_SURFACE_ID,
+    locale: NS,
+    inject: () => ({ controller }),
+  }, GitDetailsHeaderActions))
   ctx.inject(['desktop'], (desktopCtx) => {
     controller.setDesktop(desktopCtx.desktop)
     return () => { controller.setDesktop(undefined) }
