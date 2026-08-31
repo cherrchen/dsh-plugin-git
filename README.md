@@ -10,9 +10,9 @@ Standard DSH/Cordis Git plugin with one portable Host service, one Client bundle
 
 ## DSH compatibility
 
-This `main` branch targets **DeepSeek Harness [`v0.1.1-rc.2`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/v0.1.1-rc.2)**.
+This `develop` branch targets **DeepSeek Harness `v0.1.2`** (including [`v0.1.2-alpha.2`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/v0.1.2-alpha.2)).
 
-If your DSH install is **`v0.1.2`** (including `v0.1.2-alpha.2`), use the [`develop`](https://github.com/cherrchen/dsh-plugin-git/tree/develop) branch instead.
+For **DeepSeek Harness [`v0.1.1-rc.2`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/v0.1.1-rc.2)**, use the [`main`](https://github.com/cherrchen/dsh-plugin-git/tree/main) branch instead.
 
 ## Installation
 
