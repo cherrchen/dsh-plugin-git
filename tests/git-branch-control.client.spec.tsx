@@ -42,8 +42,9 @@ const graphStateDefaults = {
 
 function controllerOf(state: Partial<GitClientState>): GitClientController {
   const listeners = new Set<() => void>()
+  const snapshot = { ...graphStateDefaults, ...state }
   return {
-    getSnapshot: () => ({ ...graphStateDefaults, ...state }),
+    getSnapshot: () => snapshot,
     subscribe: (listener: () => void) => {
       listeners.add(listener)
       return () => { listeners.delete(listener) }
