@@ -255,7 +255,7 @@ export class GitClientController {
    * @param path - Optional repository-relative tracked path.
    * @returns Completion after state refresh.
    */
-  discard(path?: string): Promise<void> { return this.mutate('discard', { path }) }
+  async discard(path?: string): Promise<void> { await this.mutate('discard', { path }) }
 
   /**
    * Load a graph page, replacing (reset) or appending to the loaded history.
@@ -397,25 +397,25 @@ export class GitClientController {
    * @param path - Optional repository-relative path.
    * @returns Completion after state refresh.
    */
-  stage(path?: string): Promise<void> { return this.mutate('stage', { path }) }
+  async stage(path?: string): Promise<void> { await this.mutate('stage', { path }) }
   /**
    * Unstage one path or the complete index.
    * @param path - Optional repository-relative path.
    * @returns Completion after state refresh.
    */
-  unstage(path?: string): Promise<void> { return this.mutate('unstage', { path }) }
+  async unstage(path?: string): Promise<void> { await this.mutate('unstage', { path }) }
   /**
    * Switch to an existing local branch.
    * @param branch - Local branch name.
    * @returns Completion after state refresh.
    */
-  switchBranch(branch: string): Promise<void> { return this.mutate('switch-branch', { branch }) }
+  async switchBranch(branch: string): Promise<void> { await this.mutate('switch-branch', { branch }) }
   /**
    * Create a local branch without switching to it.
    * @param branch - New local branch name.
    * @returns Completion after state refresh.
    */
-  createBranch(branch: string): Promise<void> { return this.mutate('create-branch', { branch }) }
+  async createBranch(branch: string): Promise<void> { await this.mutate('create-branch', { branch }) }
 
   /**
    * Commit the staged index and optionally show a native notification.
