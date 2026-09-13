@@ -43,6 +43,9 @@ jobs:
         run: pnpm pack --pack-destination dist
 
       - name: Publish to npm
+        # Skipped until the NPM_TOKEN secret is configured; the GitHub
+        # release below is the current publication channel.
+        if: ${{ secrets.NPM_TOKEN != '' }}
         run: pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
