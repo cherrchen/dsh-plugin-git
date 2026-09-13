@@ -52,11 +52,15 @@ describe('Git client lifecycle', () => {
       'sidebar.right.pane.tab',
       'sidebar.right.pane.tab',
       'sidebar.right.pane.tab',
+      'sidebar.right.pane.tab.title',
+      'sidebar.right.pane.tab.title',
     ])
     expect(registrations.map(entry => entry.key ?? entry.id)).toEqual([
       'git-context',
       GIT_CHANGES_ID,
       GIT_DIFF_ID,
+      GIT_GRAPH_ID,
+      GIT_CHANGES_ID,
       GIT_GRAPH_ID,
     ])
     expect(sidebar.sidebarRightTabs.register).toHaveBeenCalledTimes(3)

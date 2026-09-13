@@ -17,7 +17,8 @@ import type { GitGraphSurfaceProps } from '../src/client/surfaces/GitGraphSurfac
 import type { GitClientController } from '../src/client/controller.ts'
 import { layoutGitGraph } from '../src/client/graph/layout.ts'
 import { gitDiffAddress } from '../src/client/contract.ts'
-import { en } from '../src/client/locales.ts'
+import { GitPageTitle } from '../src/client/GitPageTitle.tsx'
+import { en, zh } from '../src/client/locales.ts'
 
 function snapshot(overrides: Partial<GitRepositorySnapshot> = {}): GitRepositorySnapshot {
   return {
@@ -475,3 +476,12 @@ describe('Git Changes button hover token', () => {
   })
 })
 
+describe('GitPageTitle', () => {
+  it('follows the active locale across switches instead of freezing at open time', () => {
+    const runtime = { hooks: { tabInfo: () => {} } } as never
+    const view = render(<GitPageTitle {...runtime} t={(key: keyof typeof en) => en[key]} labelKey="tab.changes" />)
+    expect(view.container.textContent).toBe(en['tab.changes'])
+    view.rerender(<GitPageTitle {...runtime} t={(key: keyof typeof zh) => zh[key]} labelKey="tab.changes" />)
+    expect(view.container.textContent).toBe(zh['tab.changes'])
+  })
+})

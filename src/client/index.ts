@@ -14,6 +14,7 @@ import { GitBranchControl } from './GitBranchControl.tsx'
 import { GitDetailsHeaderActions } from './GitDetailsHeaderActions.tsx'
 import { GitChangesSurface } from './surfaces/GitChangesSurface.tsx'
 import { GitDiffSurface } from './surfaces/GitDiffSurface.tsx'
+import { GitPageTitle } from './GitPageTitle.tsx'
 import { GitGraphSurface } from './surfaces/GitGraphSurface.tsx'
 import { GitClientController, type GitDesktopCapability } from './controller.ts'
 import {
@@ -110,6 +111,21 @@ export function apply(ctx: ClientContext): void {
       locale: NS,
       inject: () => ({ controller }),
     }, body.component)), `git: ${body.key} body`)
+  }
+
+  // Diff chips title themselves after the compared file — path text, language
+  // neutral — so only the two page types need a live-title registration.
+  const pageTitles: ReadonlyArray<{ key: string; label: GitLocaleKey }> = [
+    { key: GIT_CHANGES_ID, label: 'tab.changes' },
+    { key: GIT_GRAPH_ID, label: 'tab.graph' },
+  ]
+  for (const entry of pageTitles) {
+    ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab.title', () => ctx.slots.register({
+      name: 'sidebar.right.pane.tab.title',
+      key: entry.key,
+      locale: NS,
+      inject: () => ({ labelKey: entry.label }),
+    }, GitPageTitle)), `git: ${entry.key} title`)
   }
 
   ctx.inject(['desktop'], (desktopCtx) => {
