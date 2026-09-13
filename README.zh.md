@@ -35,9 +35,7 @@ kind: "package-bundle"
 <a id="dsh-compatibility"></a>
 ## DSH 兼容性
 
-本仓库的 `develop` 分支面向从 [`v0.1.2-alpha.4`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.1.2-alpha.4) 开始的 **DeepSeek Harness `v0.1.2`**。
-
-若你使用的是 **DeepSeek Harness [`v0.1.1-rc.2`](https://github.com/deepseek-ai/deepseek-harness/releases/tag/v0.1.1-rc.2)**，请改用 [`main`](https://github.com/cherrchen/dsh-plugin-git/tree/main) 分支。
+本仓库的 `develop` 分支面向 **DeepSeek Harness `v0.1.2`**。
 
 <a id="installation"></a>
 ## 安装
