@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import type { DetailsSurfaceInstance } from '@dsh-electron/dsh-client-ui-details-host/client'
+import type { UseSidebarRightTabInfo, SidebarRightTabInfo } from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import type { GitRepositorySnapshot } from '../src/types.ts'
 import { GitDetailsHeaderActions } from '../src/client/GitDetailsHeaderActions.tsx'
 import type { GitDetailsHeaderActionsProps } from '../src/client/GitDetailsHeaderActions.tsx'
@@ -16,7 +16,7 @@ import { GitGraphSurface } from '../src/client/surfaces/GitGraphSurface.tsx'
 import type { GitGraphSurfaceProps } from '../src/client/surfaces/GitGraphSurface.tsx'
 import type { GitClientController } from '../src/client/controller.ts'
 import { layoutGitGraph } from '../src/client/graph/layout.ts'
-import { GIT_CHANGES_SURFACE_ID, GIT_DIFF_SURFACE_ID } from '../src/client/contract.ts'
+import { gitDiffAddress } from '../src/client/contract.ts'
 import { en } from '../src/client/locales.ts'
 
 function snapshot(overrides: Partial<GitRepositorySnapshot> = {}): GitRepositorySnapshot {
@@ -71,14 +71,25 @@ function baseState(overrides: Partial<ReturnType<GitClientController['getSnapsho
   }
 }
 
-function detailsInstanceOf(surfaceId: string, payload: unknown = {}): DetailsSurfaceInstance {
-  return {
-    instanceId: 'details-instance-1',
-    surfaceId,
-    payload,
-    label: 'Git',
-    sessionId: 'session-a',
-  }
+function tabInfoOf(
+  address: string,
+  params?: { readonly path: string; readonly staged: boolean },
+): UseSidebarRightTabInfo {
+  const info = {
+    sidebar: { expanded: true, fullscreen: false },
+    panel: { id: 'pane-a' },
+    tab: {
+      id: 1,
+      kind: 'git.diff',
+      contentId: address,
+      title: 'Diff',
+      visible: true,
+      navigation: { address, params, revision: 1 },
+      signal: new AbortController().signal,
+      actions: { openResource: () => {}, openTab: () => {}, close: () => {} },
+    },
+  } as unknown as SidebarRightTabInfo
+  return () => info
 }
 
 type GitControllerMock = ReturnType<typeof controllerOf>
@@ -129,7 +140,7 @@ describe('GitChangesSurface', () => {
       useSession: vi.fn(),
       useStore: vi.fn(),
       useWorkspaces: vi.fn(),
-      detailsInstance: detailsInstanceOf(GIT_CHANGES_SURFACE_ID),
+      useTabInfo: tabInfoOf('sidebar://git.changes'),
     }) as unknown as GitChangesSurfaceProps
 
   it('refreshes on mount, binds the workspace, and renders context plus sections', () => {
@@ -159,7 +170,7 @@ describe('GitDiffSurface', () => {
       useSession: vi.fn(),
       useStore: vi.fn(),
       useWorkspaces: vi.fn(),
-      detailsInstance: detailsInstanceOf(GIT_DIFF_SURFACE_ID, { path: 'src/a.ts', staged: false }),
+      useTabInfo: tabInfoOf(gitDiffAddress('src/a.ts', false), { path: 'src/a.ts', staged: false }),
     }) as unknown as GitDiffSurfaceProps
 
   it('loads the payload diff and renders the file header', () => {
@@ -178,7 +189,7 @@ describe('GitDiffSurface', () => {
     }))
     render(<GitDiffSurface
       {...props(controller)}
-      detailsInstance={detailsInstanceOf(GIT_DIFF_SURFACE_ID, { path: 'notes.txt', staged: false })}
+      useTabInfo={tabInfoOf(gitDiffAddress('notes.txt', false), { path: 'notes.txt', staged: false })}
     />)
     expect(controller.showDiff).toHaveBeenCalledWith('notes.txt', false)
     expect(screen.getByText(en['details.untrackedDiff'])).toBeTruthy()
@@ -190,6 +201,44 @@ describe('GitDiffSurface', () => {
     // Mounting before the shared controller discovered a repository must not
     // fire a doomed `showDiff` (the load-failure regression).
     expect(controller.showDiff).not.toHaveBeenCalled()
+  })
+
+  it('restores the compared file from the address when params are absent', () => {
+    const controller = controllerOf(baseState({
+      diff: { repository: '/repo', staged: true, path: 'src/b.ts', text: '+added\n' },
+    }))
+    render(<GitDiffSurface
+      {...props(controller)}
+      useTabInfo={tabInfoOf(gitDiffAddress('src/b.ts', true))}
+    />)
+    // Session restore replays the address without the opener's params.
+    expect(controller.showDiff).toHaveBeenCalledWith('src/b.ts', true)
+    expect(screen.getByText('b.ts')).toBeTruthy()
+  })
+
+  it('shows the unresolvable-diff state when neither params nor address decode', () => {
+    const controller = controllerOf(baseState())
+    render(<GitDiffSurface {...props(controller)} useTabInfo={tabInfoOf('sidebar://git.diff')} />)
+    expect(controller.showDiff).not.toHaveBeenCalled()
+    expect(screen.getByText(en['details.missingDiff'])).toBeTruthy()
+  })
+
+  it('refetches when a reveal navigates the same tab again', () => {
+    const controller = controllerOf(baseState())
+    const view = render(<GitDiffSurface {...props(controller)} />)
+    expect(controller.showDiff).toHaveBeenCalledTimes(1)
+    // A repeated open reveals the tab and bumps `revision` without a new mount.
+    view.rerender(<GitDiffSurface
+      {...props(controller)}
+      useTabInfo={tabInfoOf(gitDiffAddress('src/a.ts', false), { path: 'src/a.ts', staged: false })}
+    />)
+    const tabInfo = tabInfoOf(gitDiffAddress('src/a.ts', false), { path: 'src/a.ts', staged: false })
+    const bumped = (): SidebarRightTabInfo => {
+      const info = tabInfo()
+      return { ...info, tab: { ...info.tab, navigation: { ...info.tab.navigation, revision: 2 } } }
+    }
+    view.rerender(<GitDiffSurface {...props(controller)} useTabInfo={bumped} />)
+    expect(controller.showDiff).toHaveBeenCalledTimes(2)
   })
 
   it('places compact refresh in the top-right overlay and hides Reveal even when Desktop exists', () => {
@@ -228,7 +277,7 @@ describe('GitGraphSurface', () => {
       useSession: vi.fn(),
       useStore: vi.fn(),
       useWorkspaces: vi.fn(),
-      detailsInstance: detailsInstanceOf('git.graph'),
+      useTabInfo: tabInfoOf('sidebar://git.graph'),
     }) as unknown as GitGraphSurfaceProps
 
   it('auto-loads the first page only while the history was never loaded', () => {
@@ -287,7 +336,6 @@ describe('GitDetailsHeaderActions', () => {
     ({
       controller,
       t,
-      detailsInstance: detailsInstanceOf(GIT_CHANGES_SURFACE_ID),
     }) as unknown as GitDetailsHeaderActionsProps
 
   it('renders Refresh and conditional Reveal from Host header actions', () => {
@@ -339,7 +387,7 @@ describe('Git Changes actions', () => {
       useSession: vi.fn(),
       useStore: vi.fn(),
       useWorkspaces: vi.fn(),
-      detailsInstance: detailsInstanceOf(GIT_CHANGES_SURFACE_ID),
+      useTabInfo: tabInfoOf('sidebar://git.changes'),
     }) as unknown as GitChangesSurfaceProps
 
   it('stages an unstaged path from the row plus control', () => {
