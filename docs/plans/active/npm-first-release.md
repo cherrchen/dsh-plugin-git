@@ -21,7 +21,7 @@
 ## 非目标
 
 - 改动包运行时行为；发布流水线只验证并分发既有构建产物。
-- 解决 Details Host 的 npm 发布（它是独立包，本包发布前它必须已可用，见 [ADR 依赖关系](#依赖与前置)）。
+- ~~解决 Details Host 的 npm 发布~~（已失去意义：Git 已迁移到上游内置右侧边栏，Details Host 废弃，不再存在独立配对包）。
 
 ## 方案
 
@@ -30,7 +30,7 @@ Release 全部由 GitHub Actions 完成（`.github/workflows/release.yml`）：t
 ### 依赖与前置
 
 - `NPM_TOKEN` secret 已配置到仓库；
-- `@dsh-electron/dsh-client-ui-details-host` 在 npm 可安装（peerDependencies 要求 `>=0.3.0 <0.4.0`）——当前它也未上 npm，是本计划的**前置阻塞项**（相关背景见 [`.agent/note/branch-and-mirror-layout.md`](../../../.agent/note/branch-and-mirror-layout.md)）。
+- ~~Details Host 发布到 npm（前置阻塞项）~~ 已消解：Details Host 被废弃，本包 UI 宿主改为上游内置右侧边栏，`@deepseek-ai/dsh-client-ui-sidebar-right@0.1.5-rc.2` 已在 npm（迁移见 git 历史与 [architecture overview](../../architecture/overview.md)）。
 
 ## 任务清单
 
@@ -38,7 +38,7 @@ Release 全部由 GitHub Actions 完成（`.github/workflows/release.yml`）：t
 - [x] 编写 tag 触发的 Release 工作流并提交入库
 - [x] 试运行 `v0.1.0`：测试/构建/打包/GitHub Release 全链路通过（npm publish 因缺 `NPM_TOKEN` 跳过）
 - [ ] 重新加入 npm publish 步骤并配置 `NPM_TOKEN`（待 npm 发布决策）
-- [ ] Details Host 包发布到 npm（前置，属另一包的对应计划）
+- [x] Details Host 包发布到 npm —— 前置已消解（迁移到上游右侧边栏，无第三方配对包）
 - [ ] npm 首发成功并核对 npm 与 GitHub Release 双渠道
 
 ## 验证

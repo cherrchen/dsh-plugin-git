@@ -14,7 +14,7 @@
 ┌─ Client（src/client/）─────────────────────────────────────────┐
 │ 主 fiber：全部 portable 贡献                                    │
 │  · composer 分支选择器 + 变更文件指示器（slot 注入）             │
-│  · 三个 Details Host surface：git.changes / git.diff / git.graph│
+│  · 三个右侧边栏 tab type：git.changes / git.diff / git.graph   │
 │  · git-commit-message 设置卡（有 ctx.settingsScope 时）         │
 │  · commit message 生成（host LLM runtime，建议式）              │
 │ 子 fiber ctx.inject(['desktop'])：reveal / openPath / 通知      │
@@ -25,7 +25,7 @@
 
 - **Host service**：通过 `ctx.subprocess` 启动 `git`（可执行名或绝对路径 + 分离 argv）。Status 用 porcelain v2 + NUL 路径分隔；branches 用 `for-each-ref`；commit 历史用固定字段数的分页 `git log`（`GIT_LOG_FORMAT`），Graph 据此增量加载。丢弃（discard）通过显式的 index / worktree / clean 操作序列实现，Client 侧强制两步确认。
 - **RPC**：DSH Web 宿主存在时，Connection 子 fiber 注册 loopback `/git` 通道；过期输出（stale mutation）被丢弃，文件名按字面 pathspec 处理。
-- **Details Host 集成**：Client manifest 显式声明 `inject`（运行时依赖 `ctx.shellDetails`）与 `external`（模块表中先物化 Details Host Client 工厂）。三个 surface 各占一个 tab，通过 `ctx.shellDetails.open(...)` 的 create-or-reuse 语义打开；`dedupeKey` 按 workspace path（changes/graph）或 path+staged（diff）收敛重复打开；payload 类型通过 `DetailsSurfacePayloadMap` 模块扩充。tab 栏、Launcher、停靠几何由 Details Host 拥有。
+- **右侧边栏集成**：Client manifest 以 `inject` 声明运行时依赖 `ctx.sidebarRight` / `ctx.sidebarRightTabs`；对 sidebar 包只有 `import type`（动态 plugin 不得 import 其他包的运行时值），bundle 中类型被擦除，故无 `external`。阶段一向 `ctx.sidebarRightTabs.register` 注册三个 tab type（changes/graph 是 page type，diff 是 resource type，pattern `dsh-resource://git/diff/**`）；阶段二把 body 注入 `sidebar.right.pane.tab` 座（key 为 definition id）。导航统一走 `ctx.sidebarRight.openTab(kind)` 与 `openResource(address, { params })`：changes/graph 由侧栏按 kind 每 pane 去重，diff 以精确地址为 tab 身份，重复打开 reveal 既有 tab 并递增 `navigation.revision`；参数类型通过 `SidebarRightResourceParamsMap` 模块扩充。tab 栏、guide 页、停靠几何与面板宽度由右侧边栏（基于 ui-dockkit）拥有。
 - **可移植 / 原生分离**：主 fiber 不 require `desktop`；子 fiber `ctx.inject(['desktop'], ...)` 只接受 `shell.showItemInFolder`、`shell.openPath`、`notification.show`。缺 Desktop 时核心操作全部可用，仅原生动作不显示。
 - **Graph layout engine**（`src/client/graph/`）：纯逻辑模块——不访问 Git、不依赖 React、不触碰 DOM，可独立测试；输出 geometry 与 Canvas 2D 绘制解耦。设计决策与不变量见 [Git Graph Layout Engine](../reference/git-graph-layout.md)、[ADR-0001](../decisions/ADR-0001-graph-lane-not-owned-by-branch.md)、[ADR-0002](../decisions/ADR-0002-graph-lane-cap-max-three-lanes.md)。
 - **Commit message 生成**：Host 侧独立 LLM 请求（不经会话上下文，无 KV Cache 影响）；需要 LLM runtime 与可解析模型，否则 Client 报告 `git/generation-unavailable`。配置结构见根 README [Configuration](../../README.md#configuration)（canonical）。
@@ -33,7 +33,7 @@
 ## 验证方式
 
 - `pnpm test`（单元 + 客户端规格，临时仓库与机器可读输出）；
-- `pnpm test:artifact`（针对钉住的 Details Host fixture 的集成验证）；
+- `pnpm test:artifact`（针对构建产物 lib/client.js 的 bundle/manifest 断言）；
 - Graph 拓扑不变量：`tests/graph-layout.client.spec.ts`、`tests/graph-history.client.spec.ts`。
 
 ## 相关文档

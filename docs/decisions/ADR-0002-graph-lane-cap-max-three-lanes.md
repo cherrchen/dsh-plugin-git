@@ -5,7 +5,7 @@
 
 ## Context
 
-Details Host 的详情面板宽度由宿主控制（约 300–520px）。Graph 行高 36px、lane 间距 16px，真实 monorepo 历史上 `--date-order` 布局的峰值 lane 数可达 19（见 [Git Graph Layout Engine · Ordering policy](../reference/git-graph-layout.md#ordering-policy实测决策)）。不加限制时，Graph 在面板内要么横向滚动严重，要么列宽被压缩到不可读。
+详情面板宽度由宿主控制（写成本 ADR 时是 Details Host 的 300–520px 面板；现为上游右侧边栏，宽度由侧栏 ui-dockkit 布局拥有）。Graph 行高 36px、lane 间距 16px，真实 monorepo 历史上 `--date-order` 布局的峰值 lane 数可达 19（见 [Git Graph Layout Engine · Ordering policy](../reference/git-graph-layout.md#ordering-policy实测决策)）。不加限制时，Graph 在面板内要么横向滚动严重，要么列宽被压缩到不可读。
 
 ## Decision
 
@@ -27,7 +27,7 @@ Details Host 的详情面板宽度由宿主控制（约 300–520px）。Graph �
 
 ## Consequences
 
-- 正面：Graph 在 Details Host 面板内始终可读，分页性能有界；
+- 正面：Graph 在宿主详情面板（现为右侧边栏）内始终可读，分页性能有界；
 - 取舍：被截断的 secondary ancestry 不画线，"parent edge 不消失"不变量在 `maxLanes` 生效时不再全量成立（该不变量仅在未设限时断言，见 `tests/graph-layout.client.spec.ts` 的 lane cap 用例）。
 
 ## Related Documents
