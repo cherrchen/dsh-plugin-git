@@ -16,7 +16,7 @@
 
 1. `vX.Y.Z` tag 推送后自动：校验 tag 与 `package.json` 版本一致 → 安装（frozen lockfile）→ `pnpm test` → `pnpm build` → `pnpm test:artifact` → `pnpm pack` → 创建 GitHub Release 并附 tarball。
 2. GitHub Release 是**当前的发布渠道**（2026-09-13 决定：npm 发布推迟）。
-3. 待 `NPM_TOKEN` secret 配置后，工作流中的 npm publish 步骤自动恢复执行，完成 npm 首发并在 npm 与 GitHub Release 双渠道发布。
+3. npm 发布**暂时移除**（2026-09-13 决定）：待未来决定发 npm 时，配置 `NPM_TOKEN` secret 并重新加入 publish 步骤，完成 npm 首发双渠道发布。
 
 ## 非目标
 
@@ -25,7 +25,7 @@
 
 ## 方案
 
-Release 全部由 GitHub Actions 完成（`.github/workflows/release.yml`）：tag 触发，单 job 顺序执行测试、构建、打包、发布、GitHub Release。版本一致性用脚本前置校验，失败即终止，避免错版发布。npm publish 步骤以 `NPM_TOKEN` secret 存在与否为条件：未配置时自动跳过，只发 GitHub Release（2026-09-13 首次运行因缺少该 secret 而失败，随后加入此条件）。
+Release 全部由 GitHub Actions 完成（`.github/workflows/release.yml`）：tag 触发，单 job 顺序执行测试、构建、打包、创建 GitHub Release。版本一致性用脚本前置校验，失败即终止，避免错版发布。npm publish 步骤已从工作流中移除（2026-09-13：首次运行因缺少 `NPM_TOKEN` 失败，随后决定当前只发 GitHub Release，遂整体删除该步骤而非条件跳过）。
 
 ### 依赖与前置
 
@@ -37,7 +37,7 @@ Release 全部由 GitHub Actions 完成（`.github/workflows/release.yml`）：t
 - [x] 新增 `version:set` 脚本并重置版本为 `0.1.0`
 - [x] 编写 tag 触发的 Release 工作流并提交入库
 - [x] 试运行 `v0.1.0`：测试/构建/打包/GitHub Release 全链路通过（npm publish 因缺 `NPM_TOKEN` 跳过）
-- [ ] 配置 npm 发布凭据（`NPM_TOKEN`），恢复 npm publish 步骤
+- [ ] 重新加入 npm publish 步骤并配置 `NPM_TOKEN`（待 npm 发布决策）
 - [ ] Details Host 包发布到 npm（前置，属另一包的对应计划）
 - [ ] npm 首发成功并核对 npm 与 GitHub Release 双渠道
 
