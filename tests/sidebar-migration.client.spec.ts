@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
 import { GIT_CHANGES_ID, GIT_GRAPH_ID, gitDiffAddress } from '../src/client/contract.ts'
+import { changesDefinition } from '../src/client/tab-definitions.ts'
 import { gitBench } from './harness/sidebar-fake.client.ts'
 
 describe('Git + right-sidebar migration', () => {
@@ -39,8 +40,28 @@ describe('Git + right-sidebar migration', () => {
     // A second pane gets its own Changes tab.
     bench.fake.sidebarRight.openTab('git.changes', { paneId: 'pane-b' })
     expect(bench.fake.sidebarRight.tabs().filter(tab => tab.kind === 'git.changes')).toHaveLength(2)
+
+    // Upstream unload semantics: disposing the registration removes the type,
+    // never the tab records (the body seat renders the owner fallback until a
+    // reload restores the type).
+    const opened = bench.fake.sidebarRight.tabs().map(tab => [tab.kind, tab.address])
     await bench.fiber.dispose()
-    expect(bench.fake.sidebarRight.tabs()).toHaveLength(0)
+    expect(bench.fake.sidebarRightTabs.get('git.changes')).toBeUndefined()
+    expect(bench.fake.sidebarRight.tabs().map(tab => [tab.kind, tab.address])).toEqual(opened)
+  })
+
+  it('resurrects a retained tab body when the type re-registers', async () => {
+    const bench = await gitBench()
+    bench.fake.sidebarRight.openTab('git.changes')
+    await bench.fiber.dispose()
+    // The record survived the unload; its kind no longer resolves.
+    expect(bench.fake.sidebarRight.tabs().map(tab => tab.kind)).toEqual(['git.changes'])
+    expect(bench.fake.sidebarRightTabs.get('git.changes')).toBeUndefined()
+    // Re-registering the type (the "shadowed builtin resumes" model) makes the
+    // persisted tab live again without a fresh open.
+    bench.fake.sidebarRightTabs.register(changesDefinition(key => key))
+    expect(bench.fake.sidebarRightTabs.get('git.changes')).toBeDefined()
+    expect(bench.fake.sidebarRight.tabs()).toHaveLength(1)
   })
 
   it('opens one diff tab per path and side, revealing the exact address on repeat', async () => {
@@ -72,8 +93,12 @@ describe('Git + right-sidebar migration', () => {
     // A different path opens its own tab.
     controller?.openDiff('dir/b.ts', false)
     expect(bench.fake.sidebarRight.tabs()).toHaveLength(3)
+
+    // Unload keeps the records and drops only the type.
+    const opened = bench.fake.sidebarRight.tabs().map(tab => [tab.kind, tab.address])
     await bench.fiber.dispose()
-    expect(bench.fake.sidebarRight.tabs()).toHaveLength(0)
+    expect(bench.fake.sidebarRightTabs.get('git.diff')).toBeUndefined()
+    expect(bench.fake.sidebarRight.tabs().map(tab => [tab.kind, tab.address])).toEqual(opened)
   })
 
   it('claims diff addresses through the registered pattern and canOpen veto', async () => {

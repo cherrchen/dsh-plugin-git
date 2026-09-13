@@ -2,9 +2,14 @@
  * Hand-rolled fake of `ctx.sidebarRight` + `ctx.sidebarRightTabs` with the
  * semantics this plugin's migration depends on: a kind or id registers once,
  * page types dedupe per pane, resource tabs reveal by exact address and bump a
- * navigation revision, and disposing a registration removes its tabs so
- * further opens throw. Mounting the real upstream sidebar was rejected as
- * disproportionate (layout + session + dockkit graph).
+ * navigation revision. Disposal mirrors upstream `SidebarRightTabRegistry.leave`:
+ * it only removes the definition — every tab record stays in `tabs()`, and in
+ * production the body seat dispatches such orphaned tabs to the owner's
+ * `tab.unavailable` fallback until the type is registered again, while new
+ * opens for the unregistered kind throw. A real-registry integration test is
+ * impossible from this package: upstream `client.js` exports only `apply`/
+ * `inject`; the registry and store are bundle-internal. Mounting the real
+ * sidebar was rejected as disproportionate (layout + session + dockkit graph).
  */
 import { Context } from '@deepseek-ai/cordis'
 import { vi } from 'vitest'
@@ -38,6 +43,8 @@ export interface FakeSidebarRight {
 /** The fake tab-type registry (`ctx.sidebarRightTabs`). */
 export interface FakeSidebarRightTabs {
   register(definition: SidebarRightTabDefinition): () => void
+  /** Look up the definition in force for a kind, as upstream's `get(kind)` does. */
+  get(kind: string): SidebarRightTabDefinition | undefined
   guide(): ReadonlyArray<{ kind: string; order: number; title: () => string }>
 }
 
@@ -122,11 +129,13 @@ export function createSidebarFake(): SidebarFake {
       definitions.set(definition.id, definition)
       return () => {
         definitions.delete(definition.id)
-        // Tabs whose type disappeared vanish with it.
-        for (let index = tabs.length - 1; index >= 0; index -= 1) {
-          if (tabs[index]?.kind === definition.kind) tabs.splice(index, 1)
-        }
+        // Upstream `leave` only mutates registry maps: the tabs of an
+        // unregistered kind keep their records. Their bodies render the owner
+        // fallback; a re-registration restores them.
       }
+    },
+    get(kind: string) {
+      return [...definitions.values()].find(definition => definition.kind === kind)
     },
     guide() {
       return [...definitions.values()]
@@ -145,7 +154,11 @@ export function createSidebarFake(): SidebarFake {
   }
 }
 
-/** One registered keyed slot body as recorded by the fake slots service. */
+/**
+ * One registered keyed slot entry as recorded by the fake slots service. The
+ * body seats and the title-seat registrations (Changes, Graph) both flow
+ * through this same list, keyed by `name` + `key`.
+ */
 export interface FakeSlotEntry {
   name: string
   key?: string
