@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
@@ -49,8 +49,6 @@ function baseState(overrides: Partial<ReturnType<GitClientController['getSnapsho
   return {
     workspacePath: '/workspace',
     repository: snapshot(),
-    selectedDiff: undefined,
-    diff: undefined,
     loading: false,
     error: undefined,
     desktopAvailable: false,
@@ -103,7 +101,7 @@ function controllerOf(state: ReturnType<GitClientController['getSnapshot']>) {
       return () => { listeners.delete(listener) }
     },
     refresh: vi.fn(async () => {}),
-    showDiff: vi.fn(async () => {}),
+    fetchDiff: vi.fn(async (path: string, staged: boolean) => ({ repository: '/repo', path, staged, text: '+added\n' })),
     openDiff: vi.fn(),
     stage: vi.fn(async () => {}),
     unstage: vi.fn(async () => {}),
@@ -173,14 +171,13 @@ describe('GitDiffSurface', () => {
       useTabInfo: tabInfoOf(gitDiffAddress('src/a.ts', false), { path: 'src/a.ts', staged: false }),
     }) as unknown as GitDiffSurfaceProps
 
-  it('loads the payload diff and renders the file header', () => {
-    const controller = controllerOf(baseState({
-      diff: { repository: '/repo', staged: false, path: 'src/a.ts', text: '+added\n' },
-    }))
+  it('loads the payload diff and renders the file header', async () => {
+    const controller = controllerOf(baseState())
     render(<GitDiffSurface {...props(controller)} />)
-    expect(controller.showDiff).toHaveBeenCalledWith('src/a.ts', false)
+    expect(controller.fetchDiff).toHaveBeenCalledWith('src/a.ts', false)
     expect(screen.getByText('a.ts')).toBeTruthy()
     expect(screen.getByText(en['details.workingTree'])).toBeTruthy()
+    await waitFor(() => { expect(screen.getByText('+added')).toBeTruthy() })
   })
 
   it('renders the untracked empty state for an untracked payload', () => {
@@ -191,7 +188,9 @@ describe('GitDiffSurface', () => {
       {...props(controller)}
       useTabInfo={tabInfoOf(gitDiffAddress('notes.txt', false), { path: 'notes.txt', staged: false })}
     />)
-    expect(controller.showDiff).toHaveBeenCalledWith('notes.txt', false)
+    // Untracked paths never hit the diff RPC: DiffTab shows the notice from
+    // the repository snapshot alone.
+    expect(controller.fetchDiff).not.toHaveBeenCalled()
     expect(screen.getByText(en['details.untrackedDiff'])).toBeTruthy()
   })
 
@@ -199,34 +198,32 @@ describe('GitDiffSurface', () => {
     const controller = controllerOf(baseState({ repository: undefined }))
     render(<GitDiffSurface {...props(controller)} />)
     // Mounting before the shared controller discovered a repository must not
-    // fire a doomed `showDiff` (the load-failure regression).
-    expect(controller.showDiff).not.toHaveBeenCalled()
+    // fire a doomed `fetchDiff` (the load-failure regression).
+    expect(controller.fetchDiff).not.toHaveBeenCalled()
   })
 
-  it('restores the compared file from the address when params are absent', () => {
-    const controller = controllerOf(baseState({
-      diff: { repository: '/repo', staged: true, path: 'src/b.ts', text: '+added\n' },
-    }))
+  it('restores the compared file from the address when params are absent', async () => {
+    const controller = controllerOf(baseState())
     render(<GitDiffSurface
       {...props(controller)}
       useTabInfo={tabInfoOf(gitDiffAddress('src/b.ts', true))}
     />)
     // Session restore replays the address without the opener's params.
-    expect(controller.showDiff).toHaveBeenCalledWith('src/b.ts', true)
-    expect(screen.getByText('b.ts')).toBeTruthy()
+    expect(controller.fetchDiff).toHaveBeenCalledWith('src/b.ts', true)
+    await waitFor(() => { expect(screen.getByText('b.ts')).toBeTruthy() })
   })
 
   it('shows the unresolvable-diff state when neither params nor address decode', () => {
     const controller = controllerOf(baseState())
     render(<GitDiffSurface {...props(controller)} useTabInfo={tabInfoOf('sidebar://git.diff')} />)
-    expect(controller.showDiff).not.toHaveBeenCalled()
+    expect(controller.fetchDiff).not.toHaveBeenCalled()
     expect(screen.getByText(en['details.missingDiff'])).toBeTruthy()
   })
 
   it('refetches when a reveal navigates the same tab again', () => {
     const controller = controllerOf(baseState())
     const view = render(<GitDiffSurface {...props(controller)} />)
-    expect(controller.showDiff).toHaveBeenCalledTimes(1)
+    expect(controller.fetchDiff).toHaveBeenCalledTimes(1)
     // A repeated open reveals the tab and bumps `revision` without a new mount.
     view.rerender(<GitDiffSurface
       {...props(controller)}
@@ -238,7 +235,7 @@ describe('GitDiffSurface', () => {
       return { ...info, tab: { ...info.tab, navigation: { ...info.tab.navigation, revision: 2 } } }
     }
     view.rerender(<GitDiffSurface {...props(controller)} useTabInfo={bumped} />)
-    expect(controller.showDiff).toHaveBeenCalledTimes(2)
+    expect(controller.fetchDiff).toHaveBeenCalledTimes(2)
   })
 
   it('places compact refresh in the top-right overlay and hides Reveal even when Desktop exists', () => {
@@ -477,3 +474,4 @@ describe('Git Changes button hover token', () => {
     }
   })
 })
+
