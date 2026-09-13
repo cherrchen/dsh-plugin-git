@@ -114,6 +114,13 @@ function release(harness: ReturnType<typeof createHarness>, path: string, staged
   entry.resolve({ ok: true, value: { repository: '/repo', path, staged, text } })
 }
 
+function fail(harness: ReturnType<typeof createHarness>, path: string, staged: boolean, message: string): void {
+  const index = harness.diffs.findIndex(entry => pathOf(entry.payload) === path && stagedOf(entry.payload) === staged)
+  const entry = harness.diffs[index]!
+  harness.diffs.splice(index, 1)
+  entry.resolve({ ok: false, error: { message } })
+}
+
 afterEach(() => { cleanup() })
 
 describe('concurrent Diff panels', () => {
@@ -192,6 +199,26 @@ describe('concurrent Diff panels', () => {
     await waitFor(() => { expect(within(panelA).getByText('+a-line')).toBeTruthy() })
     await harness.controller.refresh()
     await waitFor(() => { expect(within(panelA).getByText('status exploded')).toBeTruthy() })
+    // The diff is not refetched: the repository snapshot never changed.
+    expect(harness.diffs).toHaveLength(0)
+  })
+
+  it('shows a refresh failure next to the panel fetch error instead of masking it', async () => {
+    // Reverse order of the previous test: the diff fetch fails first, then a
+    // Refresh fails while the repository object is retained, so the panel
+    // never refetches and its own error stays behind. Both failures must be
+    // visible — the newer refresh error must not hide behind the fetch error.
+    let calls = 0
+    const harness = createHarness(snapshot({ unstaged: [{ path: 'src/a.ts', status: ' M' }] }), () => (++calls > 1 ? 'status exploded' : undefined))
+    await harness.controller.setWorkspace('/workspace')
+    const { container } = render(<div data-panel="a">{panel(harness.controller, 'src/a.ts', false)}</div>)
+    await waitFor(() => { expect(harness.diffs).toHaveLength(1) })
+    fail(harness, 'src/a.ts', false, 'diff exploded')
+    const panelA = container.querySelector<HTMLElement>('[data-panel="a"]')!
+    await waitFor(() => { expect(within(panelA).getByText('diff exploded')).toBeTruthy() })
+    await harness.controller.refresh()
+    await waitFor(() => { expect(within(panelA).getByText(/status exploded/)).toBeTruthy() })
+    expect(within(panelA).getByText(/diff exploded/)).toBeTruthy()
     // The diff is not refetched: the repository snapshot never changed.
     expect(harness.diffs).toHaveLength(0)
   })

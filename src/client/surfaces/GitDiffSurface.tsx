@@ -61,6 +61,16 @@ export function GitDiffSurface({ controller, t, useSessions, sessionId, useTabIn
     return () => { active = false }
   }, [controller, address, revision, state.repository])
 
+  // A failed Refresh retains the previous repository snapshot, so this panel's
+  // fetch effect does not refire and its own fetch error stays behind. Show
+  // both failures instead of letting one mask the other.
+  const fetchError = result?.error
+  const error = state.error === undefined
+    ? fetchError
+    : fetchError === undefined || fetchError === state.error
+      ? state.error
+      : `${state.error}\n${fetchError}`
+
   return (
     <div className={`${css.root} ${css.diffRoot}`} data-git-diff-surface="">
       <div className={css.diffToolbar} data-git-diff-toolbar="">
@@ -79,7 +89,7 @@ export function GitDiffSurface({ controller, t, useSessions, sessionId, useTabIn
             diff={result?.diff}
             clean={false}
             t={t}
-            error={result?.error ?? state.error}
+            error={error}
           />
         )}
       </div>
