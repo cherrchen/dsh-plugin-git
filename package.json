@@ -44,6 +44,7 @@
     "bundle": "tsdown",
     "test": "vitest run",
     "test:artifact": "vitest run --config vitest.artifact.config.ts",
+    "docs:check": "node scripts/check-docs.mjs",
     "version:set": "pnpm version --no-git-tag-version --no-git-checks"
   },
   "engines": {
