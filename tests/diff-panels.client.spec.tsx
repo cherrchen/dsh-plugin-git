@@ -66,7 +66,7 @@ function stagedOf(payload: unknown): boolean {
 }
 
 /** A real controller on a fake rpc that holds every `diff` call until the test releases it. */
-function createHarness(repository: GitRepositorySnapshot): {
+function createHarness(repository: GitRepositorySnapshot, statusError?: () => string | undefined): {
   controller: GitClientController
   diffs: Array<{ payload: unknown; resolve: (result: GitRpcResult) => void }>
 } {
@@ -74,9 +74,11 @@ function createHarness(repository: GitRepositorySnapshot): {
   const rpc = {
     call: vi.fn(async (_channel: string, endpoint: string, payload: unknown): Promise<GitRpcResult> => {
       if (endpoint === 'discover') return { ok: true, value: '/repo' }
-      if (endpoint === 'status') return { ok: true, value: repository }
-      if (endpoint === 'log') return { ok: true, value: [] }
-      if (endpoint === 'commit-message-capability') return { ok: true, value: { available: false } }
+      if (endpoint === 'status') {
+        const failure = statusError?.()
+        if (failure !== undefined) return { ok: false, error: { message: failure } }
+        return { ok: true, value: repository }
+      }
       if (endpoint === 'diff') {
         return new Promise<GitRpcResult>(resolve => {
           diffs.push({ payload, resolve })
@@ -173,6 +175,24 @@ describe('concurrent Diff panels', () => {
     const { container } = render(<div data-panel="u">{panel(harness.controller, 'notes.txt', false)}</div>)
     const panelU = container.querySelector<HTMLElement>('[data-panel="u"]')!
     expect(within(panelU).getByText(en['details.untrackedDiff'])).toBeTruthy()
+    expect(harness.diffs).toHaveLength(0)
+  })
+
+  it('surfaces a refresh failure over the stale diff body', async () => {
+    // The first status call succeeds; a later refresh fails while the
+    // repository object is retained, so the panel never refetches. The
+    // discovery failure must still appear above the stale diff.
+    let calls = 0
+    const harness = createHarness(snapshot({ unstaged: [{ path: 'src/a.ts', status: ' M' }] }), () => (++calls > 1 ? 'status exploded' : undefined))
+    await harness.controller.setWorkspace('/workspace')
+    const { container } = render(<div data-panel="a">{panel(harness.controller, 'src/a.ts', false)}</div>)
+    await waitFor(() => { expect(harness.diffs).toHaveLength(1) })
+    release(harness, 'src/a.ts', false, '+a-line')
+    const panelA = container.querySelector<HTMLElement>('[data-panel="a"]')!
+    await waitFor(() => { expect(within(panelA).getByText('+a-line')).toBeTruthy() })
+    await harness.controller.refresh()
+    await waitFor(() => { expect(within(panelA).getByText('status exploded')).toBeTruthy() })
+    // The diff is not refetched: the repository snapshot never changed.
     expect(harness.diffs).toHaveLength(0)
   })
 })

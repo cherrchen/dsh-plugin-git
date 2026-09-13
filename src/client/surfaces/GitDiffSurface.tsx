@@ -79,7 +79,7 @@ export function GitDiffSurface({ controller, t, useSessions, sessionId, useTabIn
             diff={result?.diff}
             clean={false}
             t={t}
-            error={result?.error}
+            error={result?.error ?? state.error}
           />
         )}
       </div>
