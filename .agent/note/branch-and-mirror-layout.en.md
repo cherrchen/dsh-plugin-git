@@ -23,7 +23,7 @@ The root `README.md` states that [DeepSeek Harness Desktop](https://github.com/c
 
 ## Upstream version pinning
 
-- devDependencies are pinned to DSH `0.1.5-rc.2` (the npm `next` tag carries every needed package); `@deepseek-ai/dsh-*` peerDependencies cover the range `>=0.1.2-alpha.4 <0.2.0`, while the UI host `@deepseek-ai/dsh-client-ui-sidebar-right` and `@deepseek-ai/dsh-client-resources` peers pin `>=0.1.5-rc.2 <0.2.0`.
+- devDependencies are pinned to DSH `0.1.5-rc.2` (the npm `next` tag carries every needed package); every `@deepseek-ai/dsh-*` peerDependency uses `>=0.1.5-rc.2 <0.2.0`, explicitly admitting that prerelease baseline and avoiding peer conflicts in strict resolvers.
 - The former third-party UI host `@dsh-electron/dsh-client-ui-details-host` is deprecated: this package migrated to the upstream built-in right sidebar (npm `0.1.5-rc.2`), so the pinned `tests/fixtures/` tarball `file:` devDependency workflow (`0.2.0-alpha.4` and `0.3.0`; integrity-refresh history in commits `c09dc1a` and `b4ba876`) is gone.
 
 ## Related documents
