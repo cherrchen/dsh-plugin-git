@@ -11,3 +11,4 @@ Holds **recurring problems, or problems whose diagnosis was expensive**: symptom
 ## Entries
 
 - [`git-rpc-channel-405.md`](git-rpc-channel-405.md) — `/git` RPC channel 405: a cordis nested fiber's property resolution cannot see `webServer`, so the channel silently never registers and all client UI goes blank. (Chinese canonical.)
+- [`windows-desktop-console-flood.md`](windows-desktop-console-flood.md) — Windows desktop terminal-window flood with a blank Git UI: the host's `CreateProcessW` omits `CREATE_NO_WINDOW`, which multiplies focus events, while the client refresh neither coalesces nor lets overlapping rounds land. (Chinese canonical.)

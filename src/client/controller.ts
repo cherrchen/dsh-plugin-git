@@ -245,11 +245,12 @@ export class GitClientController {
     const burst = { read: false, repeat: false }
     const run = (async (): Promise<void> => {
       await this.reloadRepository(generation, workspacePath, () => { burst.read = true })
-      if (!burst.repeat || !burst.read
-        || generation !== this.operationGeneration || this.state.error !== undefined) return
-      // Bounded to exactly one trailing read: deeper chaining would let this
-      // controller's own Host traffic (the focus events the Windows console
-      // windows raise) re-arm the burst forever.
+      // A requested trailing read runs even when this round failed: the request
+      // that set it asked for a read of its own, and a transient discovery or
+      // status failure must not absorb it. Bounded to exactly one extra read —
+      // deeper chaining would let this controller's own Host traffic (the focus
+      // events the Windows console windows raise) re-arm the burst forever.
+      if (!burst.repeat || !burst.read || generation !== this.operationGeneration) return
       await this.reloadRepository(generation, workspacePath)
     })()
     this.refreshing = { path: workspacePath, generation, promise: run, burst }

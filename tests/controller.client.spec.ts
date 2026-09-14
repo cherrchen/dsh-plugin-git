@@ -428,6 +428,36 @@ describe('GitClientController', () => {
     expect(controller.getSnapshot().repository?.head).toBe('after-edit')
   })
 
+  it('retries the requested trailing read when the shared round failed', async () => {
+    let statusCalls = 0
+    const releases: Array<(result: GitRpcResult) => void> = []
+    const rpc = {
+      call: vi.fn(async (_channel: string, endpoint: string) => {
+        if (endpoint === 'discover') return { ok: true as const, value: '/repo' }
+        if (endpoint === 'status') {
+          statusCalls += 1
+          return new Promise<GitRpcResult>((resolve) => { releases.push(resolve) })
+        }
+        if (endpoint === 'log') return { ok: true as const, value: [] }
+        if (endpoint === 'commit-message-capability') return { ok: true as const, value: { available: false } }
+        return { ok: true as const, value: null }
+      }),
+    }
+    const controller = new GitClientController(rpc)
+    const first = controller.refresh('/workspace')
+    await vi.waitFor(() => { expect(releases).toHaveLength(1) })
+    const second = controller.refresh('/workspace')
+    releases[0]?.({ ok: false, error: { message: 'transient status failure' } })
+    // The merged request asked for a read of its own, so the failed round must
+    // not absorb it: the trailing read still runs and its result lands.
+    await vi.waitFor(() => { expect(releases).toHaveLength(2) })
+    releases[1]?.({ ok: true, value: snapshot() })
+    await Promise.all([first, second])
+    expect(statusCalls).toBe(2)
+    expect(controller.getSnapshot().error).toBeUndefined()
+    expect(controller.getSnapshot().repository?.root).toBe('/repo')
+  })
+
   it('discards a commit message proposal whose workspace was rebound mid-flight', async () => {
     let releaseGeneration: ((value: GitRpcResult) => void) | undefined
     let signalGeneration: (() => void) | undefined

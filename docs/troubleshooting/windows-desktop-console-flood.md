@@ -36,16 +36,18 @@ Windows 桌面端（Electron）打开应用后：
 - 复用键同时含工作区 `path` 与 `generation`——`setWorkspace()` 会 bump generation，跨绑定的旧在途轮次绝不能被复用。
 - 被复用的轮次结束后在 `finally` 中做身份比较并释放槽位，否则刷新只会发生一次。
 - **复用只在该轮尚未发出 `status` 读取时成立**：该轮的读取紧随请求之后，看得见请求所代表的改动，故不需要额外往返。若请求在该轮读取之后到达（例如外部编辑后的焦点回归），该轮记一次 **trailing 读取**，合并进来的调用方 await 到这轮 trailing 读取落地——不能拿旧快照回答新请求，否则界面会一直停在改动前的状态，直到下一次焦点或手动刷新。
+- **trailing 读取在共享轮次失败时同样执行**：请求是被"读取已发出"这一事实判定的，与那轮最终成败无关；`discover`/`status` 的瞬时失败不得吞掉请求，否则界面会停在错误态直到下一次事件。保留 generation 检查，仍最多补读一轮。
 - **一个 burst 最多两轮往返**：trailing 轮不再递归链接。控制器自身的 Host 流量在 Windows 上会持续产生焦点事件（每条 git 命令弹出控制台窗口），若无界链接，burst 会自激成永久刷新循环；有界两轮既能覆盖「读取之后的请求」，又保证终止。
 - 原刷新体原样下沉为私有方法 `reloadRepository()`；`setWorkspace()`、`GitBranchControl` 的 focus 监听、surface 挂载刷新、手动刷新按钮都不改，它们共用同一个合并入口。
 - 宿主侧的窗口旗标不在本仓库：本次不预留开关、不加配置项。
 
 ## 验证
 
-- `pnpm test`，`tests/controller.client.spec.ts` 的两个用例固化新行为：
+- `pnpm test`，`tests/controller.client.spec.ts` 的三个用例固化新行为：
   - `collapses overlapping refresh calls into one Host round trip`：同一工作区两次并发 `refresh()`（`status` 被门控挂起）只产生 1 次 `discover` + 1 次 `status`，两次调用都 resolve 且 `repository.root` 落地；轮次结束后再刷新一次，`discover` 计数变为 2（证明复用槽位已释放）。
   - `runs one trailing read when a refresh lands after the round captured its snapshot`：等第一轮发出 `status` 后再 `refresh()`，第一轮以旧快照 `before-edit` 收尾 → trailing 轮发出第二次 `discover`/`status`，前两次调用的 promise 到此时才 resolve；trailing 读取期间再来的第三次 `refresh()` 只并入该 burst（不产生第三轮），最终 `repository.head` 为 `after-edit`。
-- 两条用例都在未修复实现上失败：前者 2 次 `discover`（无合并），后者只有 1 次 `status`（无 trailing 读取）——它们守得住这两个方向。
+  - `retries the requested trailing read when the shared round failed`：同样在读后 `refresh()`，第一轮以 `{ ok: false, error: 'transient status failure' }` 收尾 → trailing 读取仍发出并以正常快照落地，两次调用都 resolve，`error` 被清空、`repository.root` 落地。
+- 三条用例都在未修复实现上失败：第一条 2 次 `discover`（无合并），后两条各只有 1 次 `status`（无 trailing 读取；其中第三条正是"失败吞掉请求"的回归）——它们守得住这三个方向。
 - 未做 Windows 实机复现（开发机为 macOS，且终端窗口属另一仓库）：本仓库的交付边界是「一次焦点 burst 最多两轮 Host 往返、每轮结果都能落地、读取之后的请求不会被旧快照回答」。
 
 ## 关联

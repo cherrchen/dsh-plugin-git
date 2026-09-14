@@ -19,7 +19,7 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ### Fixed
 
-- Window-focus churn no longer stacks repository refreshes: `GitClientController.refresh()` shares one in-flight round trip per workspace, so repeated focus events cost a single `discover`/`status` pair instead of overlapping rounds that superseded each other's results and left `repository` unset. When a request lands after that round has already read the repository — focus returning after an external edit — the burst adds one trailing read, and merged callers await it, so a fresh edit is never answered by the older snapshot (bounded at two round trips per burst, so the controller's own Host traffic cannot re-arm the burst forever). Background: [the Windows desktop terminal-window flood](docs/troubleshooting/windows-desktop-console-flood.md).
+- Window-focus churn no longer stacks repository refreshes: `GitClientController.refresh()` shares one in-flight round trip per workspace, so repeated focus events cost a single `discover`/`status` pair instead of overlapping rounds that superseded each other's results and left `repository` unset. When a request lands after that round has already read the repository — focus returning after an external edit — the burst adds one trailing read, and merged callers await it, so a fresh edit is never answered by the older snapshot; that trailing read runs even when the shared round failed with a transient discovery or status error. The burst is bounded at two round trips, so the controller's own Host traffic cannot re-arm it forever. Background: [the Windows desktop terminal-window flood](docs/troubleshooting/windows-desktop-console-flood.md).
 
 ## [0.2.0] — 2026-09-14
 
