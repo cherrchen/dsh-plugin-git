@@ -1,18 +1,21 @@
 # Branch topology and the Desktop repository mirror
 
-- **Status**: Current (repository observations as of 2026-09-13; update after changes)
-- **Category**: repository observation / upstream integration
+- **Status**: Current (repository observations; updated 2026-09-14, including a Planned decision recorded the same day)
+- **Category**: repository observation / upstream integration / migration background
 
 ## Canonical repository and the local mirror
 
 The canonical repository for this package is `cherrchen/dsh-plugin-git` on GitHub (see the `repository` field in `package.json`). The root `AGENTS.md` declares that this local working copy mirrors the canonical repository and must stay independently installable and publishable (registry semver ranges only, never `workspace:`).
 
-## The git subtree mirror in DeepSeek Harness Desktop
+## How DeepSeek Harness Desktop integrates this package (subtree mirror → npm package)
 
-The root `README.md` states that [DeepSeek Harness Desktop](https://github.com/cherrchen/deepseek-harness-electron) mirrors this repository via **git subtree** and pre-installs the plugin there. Consequences:
-
-- This repository's commit history also appears in the Desktop repository (subtree merges);
-- The package keeps a self-contained path (a `dsh-plugin-git/`-style subdirectory), so cross-package absolute references must be avoided.
+- **Current (as of 2026-09-14)**: the root `README.md` states that [DeepSeek Harness Desktop](https://github.com/cherrchen/deepseek-harness-electron) mirrors this repository via **git subtree** and pre-installs the plugin there. Consequences:
+  - This repository's commit history also appears in the Desktop repository (subtree merges);
+  - The package keeps a self-contained path (a `dsh-plugin-git/`-style subdirectory), so cross-package absolute references must be avoided.
+- **Planned (decision of 2026-09-14)**: Desktop will **consume the package published from this repository to npm**, `@dsh-electron/dsh-plugin-git`, and will **no longer** mirror this repository into the `cherrchen/deepseek-harness-electron` Git repository.
+  - Prerequisite: a successful first npm release (see the [npm-first-release plan](../../docs/plans/active/npm-first-release.md)) — Desktop cannot depend on a package that does not exist on npm yet.
+  - Consequences: upgrading the plugin in Desktop moves from "subtree merge + rebuild" to "bump the npm dependency version"; this repository's `vX.Y.Z` tag → npm publish becomes the single entry point for the version Desktop consumes; the subtree content above then degrades to migration background.
+  - When the switch lands: mark this entry Current (drop the present-tense subtree description), sync the root `README.md` / `README.zh.md`, and re-register the `README.i18n.yaml` shas.
 
 ## Branch model (conclusions from git archaeology)
 
@@ -29,4 +32,5 @@ The root `README.md` states that [DeepSeek Harness Desktop](https://github.com/c
 ## Related documents
 
 - [Compatibility and installation (root README)](../../README.md#installation)
+- [npm-first-release plan](../../docs/plans/active/npm-first-release.md) — the first npm release is the prerequisite for Desktop consuming the npm package
 - [`.agent/note/README.md`](README.md) — admission criteria.

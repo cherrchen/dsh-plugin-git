@@ -1,18 +1,21 @@
 # 分支拓扑与 Desktop 仓库镜像关系
 
-- **Status**: Current（截至 2026-09-13 的仓库观察，变更后请更新）
-- **类别**: 仓库观察 / 上游集成
+- **Status**: Current（仓库观察；2026-09-14 更新，含一条同日记录的 Planned 决策）
+- **类别**: 仓库观察 / 上游集成 / 迁移背景
 
 ## Canonical 仓库与本地镜像
 
 本包的 canonical 仓库是 GitHub 上的 `cherrchen/dsh-plugin-git`（见 `package.json` 的 `repository` 字段）。仓库根 `AGENTS.md` 声明：本地工作目录是该 canonical 仓库的镜像副本，必须保持可独立安装、可独立发布（依赖一律 registry semver，禁止 `workspace:`）。
 
-## 与 DeepSeek Harness Desktop 的 subtree 镜像
+## 与 DeepSeek Harness Desktop 的集成方式（subtree 镜像 → npm 包）
 
-根 `README.md` 声明：[DeepSeek Harness Desktop](https://github.com/cherrchen/deepseek-harness-electron) 仓库通过 **git subtree** 镜像本仓库，并在 Desktop 中预装本插件。这意味着：
-
-- 本仓库的提交历史会出现在 Desktop 仓库中（subtree 合入）；
-- 包内路径相对独立（`dsh-plugin-git/` 之类子目录），跨包绝对引用要谨慎。
+- **Current（截至 2026-09-14）**：根 `README.md` 声明 [DeepSeek Harness Desktop](https://github.com/cherrchen/deepseek-harness-electron) 通过 **git subtree** 镜像本仓库，并在 Desktop 中预装本插件。这意味着：
+  - 本仓库的提交历史会出现在 Desktop 仓库中（subtree 合入）；
+  - 包内路径相对独立（`dsh-plugin-git/` 之类子目录），跨包绝对引用要谨慎。
+- **Planned（2026-09-14 决策）**：Desktop 改为**直接消费本仓库发布到 npm 的包** `@dsh-electron/dsh-plugin-git`，**不再**把本仓库镜像进 `cherrchen/deepseek-harness-electron` 的 Git 仓库。
+  - 前置：npm 首发成功（见 [npm-first-release 计划](../../docs/plans/active/npm-first-release.md)），因为 npm 上还没有本包时 Desktop 无从依赖。
+  - 后果：Desktop 升级本插件从"subtree 合入 + 重新构建"改为"更新 npm 依赖版本"；本仓库的 `vX.Y.Z` tag → npm 发布成为 Desktop 取版的唯一入口；上面的 subtree 内容届时降级为迁移背景。
+  - 切换完成后：把本条改成 Current（删掉子树镜像的当前时态描述）、同步根 `README.md` / `README.zh.md` 并重新登记 `README.i18n.yaml` 的 sha。
 
 ## 分支模型（git 考古结论）
 
@@ -29,4 +32,5 @@
 ## 相关文档
 
 - [兼容性与安装（根 README）](../../README.md#installation)
+- [npm-first-release 计划](../../docs/plans/active/npm-first-release.md) —— npm 首发是 Desktop 改用 npm 包的前置
 - [`.agent/note/README.md`](README.md) —— 准入标准。

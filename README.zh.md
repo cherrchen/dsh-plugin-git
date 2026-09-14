@@ -35,7 +35,7 @@ kind: "package-bundle"
 <a id="dsh-compatibility"></a>
 ## DSH 兼容性
 
-本仓库的 `develop` 分支面向 **DeepSeek Harness `v0.1.5`**（右侧边栏 tab-type API 基线 `0.1.5-rc.2`）。
+本仓库的面向 **DeepSeek Harness `v0.1.5-rc.2`**。
 
 <a id="installation"></a>
 ## 安装

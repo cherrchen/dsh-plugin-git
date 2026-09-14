@@ -32,4 +32,4 @@ Chat logs, scratchpads, chain-of-thought, temporary TODOs, unverified guesses, o
 
 ## Current entries
 
-- [branch-and-mirror-layout.md](branch-and-mirror-layout.md) — branch topology and the subtree mirror relationship with the Desktop repository.
+- [branch-and-mirror-layout.md](branch-and-mirror-layout.md) — branch topology and the Desktop integration path (subtree mirror → consuming this repository's npm package).

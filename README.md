@@ -35,7 +35,7 @@ Standard DSH/Cordis Git plugin with one portable Host service, one Client bundle
 <a id="dsh-compatibility"></a>
 ## DSH compatibility
 
-This `develop` branch targets **DeepSeek Harness `v0.1.5`** (right-sidebar tab-type API baseline `0.1.5-rc.2`).
+This repo targets **DeepSeek Harness `v0.1.5-rc.2`**.
 
 <a id="installation"></a>
 ## Installation

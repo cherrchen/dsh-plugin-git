@@ -32,4 +32,4 @@
 
 ## 当前条目
 
-- [branch-and-mirror-layout.md](branch-and-mirror-layout.md) —— 分支拓扑与 Desktop 仓库 subtree 镜像关系。
+- [branch-and-mirror-layout.md](branch-and-mirror-layout.md) —— 分支拓扑与 Desktop 集成方式（subtree 镜像 → 改为消费本仓库的 npm 包）。

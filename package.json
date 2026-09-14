@@ -1,7 +1,7 @@
 {
   "name": "@dsh-electron/dsh-plugin-git",
   "description": "Portable Git repository service and DSH client experience",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publishConfig": {
     "access": "public"
   },
@@ -45,7 +45,10 @@
     "test": "vitest run",
     "test:artifact": "vitest run --config vitest.artifact.config.ts",
     "docs:check": "node scripts/check-docs.mjs",
-    "version:set": "pnpm version --no-git-tag-version --no-git-checks"
+    "version:set": "pnpm version --no-git-tag-version --no-git-checks",
+    "version:major": "pnpm version:set major",
+    "version:minor": "pnpm version:set minor",
+    "version:patch": "pnpm version:set patch"
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
