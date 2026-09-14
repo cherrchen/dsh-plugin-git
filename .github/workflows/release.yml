@@ -44,7 +44,9 @@ jobs:
         id: pack
         run: |
           pnpm pack --pack-destination dist
-          echo "tarball=$(ls dist/*.tgz)" >> "$GITHUB_OUTPUT"
+          # npm parses a bare "dist/foo.tgz" as the GitHub "owner/repo" shorthand
+          # and tries git ls-remote; the "./" prefix marks it as a file path.
+          echo "tarball=./$(ls dist/*.tgz)" >> "$GITHUB_OUTPUT"
 
       # Trusted publishing needs npm >= 11.5.1; Node 22.x ships npm 10.
       - name: Install npm CLI with trusted publishing support
