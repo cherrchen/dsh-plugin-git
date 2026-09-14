@@ -15,7 +15,7 @@ Toolchain: Node.js `^22.19.0 || >=24.0.0`, pnpm 11 (pinned via `packageManager`)
 | --- | --- |
 | Install (strict lockfile) | `pnpm install --frozen-lockfile` |
 | Full test run | `pnpm test` |
-| Pinned-fixture integration tests | `pnpm test:artifact` |
+| Build-artifact bundle/manifest assertions | `pnpm test:artifact` |
 | Build (types + bundle) | `pnpm build` |
 | Documentation machine check | `pnpm docs:check` |
 | Set the version | `pnpm version:set <version>` |

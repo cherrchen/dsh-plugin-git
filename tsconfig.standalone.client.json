@@ -54,7 +54,7 @@
     "src/client/surfaces/GitGraphSurface.tsx",
     "src/client/details/CommitRegion.tsx",
     "src/client/LauncherIcons.tsx",
-    "src/client/launcher-cards.tsx",
+    "src/client/tab-definitions.ts",
     "src/client/details/GitIconButton.tsx",
     "src/client/details/GitActionIcons.tsx",
     "src/client/status-letter.ts",

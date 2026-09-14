@@ -28,7 +28,7 @@
     "src/client/graph/colors.ts",
     "src/client/graph-geometry.ts",
     "src/client/GitGraphCanvas.tsx",
-    "src/client/launcher-cards.tsx",
+    "src/client/tab-definitions.ts",
     "src/client/LauncherIcons.tsx",
     "src/client/surfaces/GitChangesSurface.tsx",
     "src/client/surfaces/GitDiffSurface.tsx",
@@ -67,6 +67,9 @@
     },
     {
       "path": "../../client/ui-settings-plugins"
+    },
+    {
+      "path": "../../client/ui-sidebar-right"
     }
   ]
 }

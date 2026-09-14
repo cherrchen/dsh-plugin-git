@@ -15,7 +15,7 @@
 | --- | --- |
 | 安装（锁文件严格模式） | `pnpm install --frozen-lockfile` |
 | 全量测试 | `pnpm test` |
-| 钉住 fixture 集成测试 | `pnpm test:artifact` |
+| 构建产物 bundle/manifest 断言 | `pnpm test:artifact` |
 | 构建（类型 + bundle） | `pnpm build` |
 | 文档机器校验 | `pnpm docs:check` |
 | 设置版本号 | `pnpm version:set <version>` |
