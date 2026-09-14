@@ -103,6 +103,17 @@ export class GitClientController {
   private readonly listeners = new Set<() => void>()
   private desktop: GitDesktopCapability | undefined
   private operationGeneration = 0
+  /**
+   * In-flight repository refresh; concurrent refreshes for the same workspace
+   * reuse it instead of starting another Host round trip.
+   */
+  private refreshing: {
+    path: string | undefined
+    generation: number
+    promise: Promise<void>
+    /** Whether the round has issued its repository read; later requests need a trailing one. */
+    burst: { read: boolean; repeat: boolean }
+  } | undefined
   /** Serializes repository mutations so overlapping RPCs apply in call order. */
   private mutationTail: Promise<void> = Promise.resolve()
   /** Workspace path of the last completed `setWorkspace` binding (idempotence guard). */
@@ -208,16 +219,60 @@ export class GitClientController {
    * Discover and reload repository state for a workspace. A successful reload
    * invalidates the loaded graph so the Graph surface reloads history that may
    * have changed outside this session (external commits, branch switches).
+   * Overlapping calls for the same workspace share the in-flight round trip
+   * instead of superseding one another, so focus churn cannot stack Host
+   * discovery/status calls or discard the round whose result would land. A
+   * request that arrives after the shared round captured its snapshot is not
+   * assumed covered by it: the burst runs one trailing read, and callers
+   * merging into it await that read.
    * @param workspacePath - Workspace path, defaulting to the current controller state.
-   * @returns Completion after Host discovery and status calls settle.
+   * @returns Completion after the burst's last Host discovery and status calls settle.
    */
   async refresh(workspacePath = this.state.workspacePath): Promise<void> {
     if (workspacePath === undefined) {
       this.patch({ workspacePath, repository: undefined, loading: false, error: undefined })
       return
     }
+    const inFlight = this.refreshing
+    if (inFlight !== undefined && inFlight.path === workspacePath && inFlight.generation === this.operationGeneration) {
+      // Reusing the round trip is only sound while that round has yet to read
+      // the repository: its read still follows this request. Once it has read,
+      // this request carries newer intent and needs a read of its own.
+      if (inFlight.burst.read) inFlight.burst.repeat = true
+      return inFlight.promise
+    }
     const generation = ++this.operationGeneration
-    await this.loadRepository(generation, workspacePath)
+    const burst = { read: false, repeat: false }
+    const run = (async (): Promise<void> => {
+      await this.reloadRepository(generation, workspacePath, () => { burst.read = true })
+      // A requested trailing read runs even when this round failed: the request
+      // that set it asked for a read of its own, and a transient discovery or
+      // status failure must not absorb it. Bounded to exactly one extra read —
+      // deeper chaining would let this controller's own Host traffic (the focus
+      // events the Windows console windows raise) re-arm the burst forever.
+      if (!burst.repeat || !burst.read || generation !== this.operationGeneration) return
+      await this.reloadRepository(generation, workspacePath)
+    })()
+    this.refreshing = { path: workspacePath, generation, promise: run, burst }
+    try {
+      await run
+    } finally {
+      if (this.refreshing?.promise === run) this.refreshing = undefined
+    }
+  }
+
+  /**
+   * Discover and reload one workspace, retaining no result from a superseded binding.
+   * @param generation - Operation generation owning this reload.
+   * @param workspacePath - Workspace path to discover and read.
+   * @param onRepositoryRead - Called once this round has issued its status read.
+   */
+  private async reloadRepository(
+    generation: number,
+    workspacePath: string,
+    onRepositoryRead?: () => void,
+  ): Promise<void> {
+    await this.loadRepository(generation, workspacePath, onRepositoryRead)
     if (generation !== this.operationGeneration || this.state.error !== undefined) return
     // Keep the binding bookkeeping current so surface remounts after a
     // refresh stay idempotent.
@@ -444,7 +499,7 @@ export class GitClientController {
     await this.desktop?.shell.showItemInFolder(repository.root)
   }
 
-  private async loadRepository(generation: number, workspacePath: string): Promise<void> {
+  private async loadRepository(generation: number, workspacePath: string, onRepositoryRead?: () => void): Promise<void> {
     this.patch({ workspacePath, loading: true, error: undefined })
     try {
       const root = decodeRoot(await this.call('discover', { path: workspacePath }))
@@ -453,6 +508,9 @@ export class GitClientController {
         this.patch({ repository: null, loading: false })
         return
       }
+      // From here on this round reads the repository as it is now: a refresh
+      // requested after this point must not be answered by this snapshot.
+      onRepositoryRead?.()
       const snapshot = decodeSnapshot(await this.call('status', { repository: root }))
       if (!this.isWorkspaceCurrent(generation)) return
       this.patch({

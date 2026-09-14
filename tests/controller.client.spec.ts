@@ -365,6 +365,99 @@ describe('GitClientController', () => {
     expect(logCalls).toBe(callsAfterRefresh + 1)
   })
 
+  it('collapses overlapping refresh calls into one Host round trip', async () => {
+    const endpoints: string[] = []
+    const releases: Array<() => void> = []
+    const rpc = {
+      call: vi.fn(async (_channel: string, endpoint: string) => {
+        endpoints.push(endpoint)
+        if (endpoint === 'discover') return { ok: true as const, value: '/repo' }
+        if (endpoint === 'status') {
+          // Gate only the first round trip: every refresh after it must settle
+          // on its own so the test can observe the released reuse slot.
+          if (releases.length === 0) await new Promise<void>((resolve) => { releases.push(resolve) })
+          return { ok: true as const, value: snapshot() }
+        }
+        if (endpoint === 'log') return { ok: true as const, value: [] }
+        if (endpoint === 'commit-message-capability') return { ok: true as const, value: { available: false } }
+        return { ok: true as const, value: null }
+      }),
+    }
+    const controller = new GitClientController(rpc)
+    const first = controller.refresh('/workspace')
+    const second = controller.refresh('/workspace')
+    await vi.waitFor(() => { expect(releases).toHaveLength(1) })
+    releases[0]?.()
+    await Promise.all([first, second])
+    expect(endpoints.filter(entry => entry === 'discover')).toHaveLength(1)
+    expect(endpoints.filter(entry => entry === 'status')).toHaveLength(1)
+    expect(controller.getSnapshot().repository?.root).toBe('/repo')
+
+    // 轮次结束后槽位释放：后续刷新仍必须到达 Host。
+    await controller.refresh('/workspace')
+    expect(endpoints.filter(entry => entry === 'discover')).toHaveLength(2)
+  })
+
+  it('runs one trailing read when a refresh lands after the round captured its snapshot', async () => {
+    const endpoints: string[] = []
+    const releases: Array<(result: GitRpcResult) => void> = []
+    const rpc = {
+      call: vi.fn(async (_channel: string, endpoint: string) => {
+        endpoints.push(endpoint)
+        if (endpoint === 'discover') return { ok: true as const, value: '/repo' }
+        if (endpoint === 'status') return new Promise<GitRpcResult>((resolve) => { releases.push(resolve) })
+        if (endpoint === 'log') return { ok: true as const, value: [] }
+        if (endpoint === 'commit-message-capability') return { ok: true as const, value: { available: false } }
+        return { ok: true as const, value: null }
+      }),
+    }
+    const controller = new GitClientController(rpc)
+    const first = controller.refresh('/workspace')
+    await vi.waitFor(() => { expect(releases).toHaveLength(1) })
+    // The round has already read the repository, so an edit made from here on
+    // plus this refresh must not be answered by the snapshot in flight.
+    const second = controller.refresh('/workspace')
+    releases[0]?.({ ok: true, value: snapshot({ head: 'before-edit' }) })
+    await vi.waitFor(() => { expect(releases).toHaveLength(2) })
+    // Requests landing during the trailing read join the burst without arming a third.
+    const third = controller.refresh('/workspace')
+    releases[1]?.({ ok: true, value: snapshot({ head: 'after-edit' }) })
+    await Promise.all([first, second, third])
+    expect(endpoints.filter(entry => entry === 'discover')).toHaveLength(2)
+    expect(endpoints.filter(entry => entry === 'status')).toHaveLength(2)
+    expect(controller.getSnapshot().repository?.head).toBe('after-edit')
+  })
+
+  it('retries the requested trailing read when the shared round failed', async () => {
+    let statusCalls = 0
+    const releases: Array<(result: GitRpcResult) => void> = []
+    const rpc = {
+      call: vi.fn(async (_channel: string, endpoint: string) => {
+        if (endpoint === 'discover') return { ok: true as const, value: '/repo' }
+        if (endpoint === 'status') {
+          statusCalls += 1
+          return new Promise<GitRpcResult>((resolve) => { releases.push(resolve) })
+        }
+        if (endpoint === 'log') return { ok: true as const, value: [] }
+        if (endpoint === 'commit-message-capability') return { ok: true as const, value: { available: false } }
+        return { ok: true as const, value: null }
+      }),
+    }
+    const controller = new GitClientController(rpc)
+    const first = controller.refresh('/workspace')
+    await vi.waitFor(() => { expect(releases).toHaveLength(1) })
+    const second = controller.refresh('/workspace')
+    releases[0]?.({ ok: false, error: { message: 'transient status failure' } })
+    // The merged request asked for a read of its own, so the failed round must
+    // not absorb it: the trailing read still runs and its result lands.
+    await vi.waitFor(() => { expect(releases).toHaveLength(2) })
+    releases[1]?.({ ok: true, value: snapshot() })
+    await Promise.all([first, second])
+    expect(statusCalls).toBe(2)
+    expect(controller.getSnapshot().error).toBeUndefined()
+    expect(controller.getSnapshot().repository?.root).toBe('/repo')
+  })
+
   it('discards a commit message proposal whose workspace was rebound mid-flight', async () => {
     let releaseGeneration: ((value: GitRpcResult) => void) | undefined
     let signalGeneration: (() => void) | undefined

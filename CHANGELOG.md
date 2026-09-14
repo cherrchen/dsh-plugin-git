@@ -17,6 +17,10 @@ All notable changes to this package are recorded here. The format follows [Keep 
 - A `prepare` script (`pnpm run build`) makes a GitHub/git install build `lib/` from `src/` on the installing machine.
 - `pnpm docs:check` also enforces the root bilingual pairs now: `README`, `CONTRIBUTING`, and `CHANGELOG` each need their `.zh.md` side and their `*.i18n.yaml` consistency record.
 
+### Fixed
+
+- Window-focus churn no longer stacks repository refreshes: `GitClientController.refresh()` shares one in-flight round trip per workspace, so repeated focus events cost a single `discover`/`status` pair instead of overlapping rounds that superseded each other's results and left `repository` unset. When a request lands after that round has already read the repository — focus returning after an external edit — the burst adds one trailing read, and merged callers await it, so a fresh edit is never answered by the older snapshot; that trailing read runs even when the shared round failed with a transient discovery or status error. The burst is bounded at two round trips, so the controller's own Host traffic cannot re-arm it forever. Background: [the Windows desktop terminal-window flood](docs/troubleshooting/windows-desktop-console-flood.md).
+
 ## [0.2.0] — 2026-09-14
 
 First public release: `@dsh-electron/dsh-plugin-git@0.2.0` is on npm with build provenance, and its GitHub Release carries the same tarball.
