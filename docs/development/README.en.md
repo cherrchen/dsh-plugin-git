@@ -23,7 +23,7 @@ The `prepare` script is `pnpm run build` (tsc declarations plus both bundle face
 | Set the version | `pnpm version:set <version>` (also accepts bump keywords such as `major`/`minor`/`patch`) |
 | Bump the version | `pnpm version:major` / `pnpm version:minor` / `pnpm version:patch` |
 
-CI runs in `.github/workflows/ci.yml` (tests on PRs and main pushes); the release pipeline is below, and its execution status lives in the [npm-first-release plan](../plans/active/npm-first-release.md). Contributor setup, the gate list, and the documentation duty are in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
+CI runs in `.github/workflows/ci.yml` (tests on PRs and main pushes); the release pipeline is below, and its execution status lives in the [npm-first-release plan](../plans/completed/npm-first-release.md). Contributor setup, the gate list, and the documentation duty are in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 
 ## Release process
 

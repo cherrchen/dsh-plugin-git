@@ -13,7 +13,7 @@
   - 本仓库的提交历史会出现在 Desktop 仓库中（subtree 合入）；
   - 包内路径相对独立（`dsh-plugin-git/` 之类子目录），跨包绝对引用要谨慎。
 - **Planned（2026-09-14 决策）**：Desktop 改为**直接消费本仓库发布到 npm 的包** `@dsh-electron/dsh-plugin-git`，**不再**把本仓库镜像进 `cherrchen/deepseek-harness-electron` 的 Git 仓库。
-  - 前置：npm 首发成功（见 [npm-first-release 计划](../../docs/plans/active/npm-first-release.md)），因为 npm 上还没有本包时 Desktop 无从依赖。
+  - 前置：npm 首发成功（**已完成 2026-09-14**；见 [npm-first-release 计划](../../docs/plans/completed/npm-first-release.md)），因为 npm 上还没有本包时 Desktop 无从依赖。
   - 后果：Desktop 升级本插件从"subtree 合入 + 重新构建"改为"更新 npm 依赖版本"；本仓库的 `vX.Y.Z` tag → npm 发布成为 Desktop 取版的唯一入口；上面的 subtree 内容届时降级为迁移背景。
   - 切换完成后：把本条改成 Current（删掉子树镜像的当前时态描述）、同步根 `README.md` / `README.zh.md` 并重新登记 `README.i18n.yaml` 的 sha。
 
@@ -32,5 +32,5 @@
 ## 相关文档
 
 - [兼容性与安装（根 README）](../../README.md#installation)
-- [npm-first-release 计划](../../docs/plans/active/npm-first-release.md) —— npm 首发是 Desktop 改用 npm 包的前置
+- [npm-first-release 计划](../../docs/plans/completed/npm-first-release.md) —— npm 首发是 Desktop 改用 npm 包的前置
 - [`.agent/note/README.md`](README.md) —— 准入标准。

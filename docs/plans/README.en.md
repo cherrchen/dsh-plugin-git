@@ -10,5 +10,5 @@ Holds **large, multi-commit implementation tasks**: goals, approach, task lists,
 
 ## Index
 
-- Active: [npm-first-release](active/npm-first-release.md) — first npm release and the release pipeline.
-- Completed: none yet.
+- Active: none.
+- Completed: [npm-first-release](completed/npm-first-release.md) — first npm release and the release pipeline.

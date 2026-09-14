@@ -6,4 +6,4 @@ Large plans that are **done and verified** live here permanently as project hist
 
 ## Entries
 
-None yet.
+- [npm-first-release.md](npm-first-release.md) — first npm release and the release pipeline (started 2026-09-13, done 2026-09-14: the `v0.2.0` token first release and the `v0.2.1` first OIDC release).

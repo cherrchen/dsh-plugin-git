@@ -6,4 +6,4 @@
 
 ## 条目
 
-暂无。
+- [npm-first-release.md](npm-first-release.md) —— npm 首次发布与 Release 流水线（2026-09-13 起，2026-09-14 完成：`v0.2.0` token 首发、`v0.2.1` 首个 OIDC 发布）。

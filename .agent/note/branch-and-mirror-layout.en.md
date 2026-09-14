@@ -13,7 +13,7 @@ The canonical repository for this package is `cherrchen/dsh-plugin-git` on GitHu
   - This repository's commit history also appears in the Desktop repository (subtree merges);
   - The package keeps a self-contained path (a `dsh-plugin-git/`-style subdirectory), so cross-package absolute references must be avoided.
 - **Planned (decision of 2026-09-14)**: Desktop will **consume the package published from this repository to npm**, `@dsh-electron/dsh-plugin-git`, and will **no longer** mirror this repository into the `cherrchen/deepseek-harness-electron` Git repository.
-  - Prerequisite: a successful first npm release (see the [npm-first-release plan](../../docs/plans/active/npm-first-release.md)) — Desktop cannot depend on a package that does not exist on npm yet.
+  - Prerequisite: a successful first npm release (**done 2026-09-14**; see the [npm-first-release plan](../../docs/plans/completed/npm-first-release.md)) — Desktop cannot depend on a package that does not exist on npm yet.
   - Consequences: upgrading the plugin in Desktop moves from "subtree merge + rebuild" to "bump the npm dependency version"; this repository's `vX.Y.Z` tag → npm publish becomes the single entry point for the version Desktop consumes; the subtree content above then degrades to migration background.
   - When the switch lands: mark this entry Current (drop the present-tense subtree description), sync the root `README.md` / `README.zh.md`, and re-register the `README.i18n.yaml` shas.
 
@@ -32,5 +32,5 @@ The canonical repository for this package is `cherrchen/dsh-plugin-git` on GitHu
 ## Related documents
 
 - [Compatibility and installation (root README)](../../README.md#installation)
-- [npm-first-release plan](../../docs/plans/active/npm-first-release.md) — the first npm release is the prerequisite for Desktop consuming the npm package
+- [npm-first-release plan](../../docs/plans/completed/npm-first-release.md) — the first npm release is the prerequisite for Desktop consuming the npm package
 - [`.agent/note/README.md`](README.md) — admission criteria.

@@ -6,4 +6,4 @@ Only **currently executing** large plans live here. Every plan states its status
 
 ## Entries
 
-- [npm-first-release.md](npm-first-release.md) — first npm release and the release pipeline.
+None.

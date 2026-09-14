@@ -23,7 +23,7 @@
 | 设置版本号 | `pnpm version:set <version>`（也接受 `major`/`minor`/`patch` 等 bump 关键字） |
 | 提升版本号 | `pnpm version:major` / `pnpm version:minor` / `pnpm version:patch` |
 
-CI 在 `.github/workflows/ci.yml`（PR 与 main push 跑测试），发布流水线见下节，执行状态见 [npm-first-release 计划](../plans/active/npm-first-release.md)。贡献者的环境搭建、门禁清单与文档义务见 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)。
+CI 在 `.github/workflows/ci.yml`（PR 与 main push 跑测试），发布流水线见下节，执行状态见 [npm-first-release 计划](../plans/completed/npm-first-release.md)。贡献者的环境搭建、门禁清单与文档义务见 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)。
 
 ## 发布流程
 

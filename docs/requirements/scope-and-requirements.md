@@ -48,4 +48,4 @@
 ## 相关文档
 
 - [architecture](../architecture/overview.md) —— 上述需求如何被满足。
-- [plans/active/npm-first-release](../plans/active/npm-first-release.md) —— 发布约束的现状与计划。
+- [plans/completed/npm-first-release](../plans/completed/npm-first-release.md) —— 发布约束的现状与已完成记录。

@@ -10,5 +10,5 @@
 
 ## 索引
 
-- 进行中：[npm-first-release](active/npm-first-release.md) —— npm 首次发布与 Release 流水线。
-- 已完成：暂无。
+- 进行中：暂无。
+- 已完成：[npm-first-release](completed/npm-first-release.md) —— npm 首次发布与 Release 流水线。
