@@ -40,15 +40,17 @@ This repo targets **DeepSeek Harness `v0.1.5-rc.2`**.
 <a id="installation"></a>
 ## Installation
 
-The package is in experimental development. A public npm release under `@dsh-electron/dsh-plugin-git` is planned; until then, install from this repository.
+The package is published to npm as `@dsh-electron/dsh-plugin-git` (current `0.2.0`, MIT, with build provenance). It is still experimental development: the API and versioning remain pre-1.0 and may change between minor releases.
 
 **DeepSeek Harness Desktop** — Git is pre-installed and enabled by default. Disable it from **Settings → Plugins** when you do not need repository UI.
 
 **DSH Web** — the right sidebar ships with DeepSeek Harness ≥ v0.1.5-rc.2; install Git alone:
 
 ```sh
-dsh plugin --profile web add github:cherrchen/dsh-plugin-git
+dsh plugin --profile web add @dsh-electron/dsh-plugin-git
 ```
+
+`github:cherrchen/dsh-plugin-git` installs straight from the repository instead.
 
 For local development, build this checkout and add it to the profile:
 
@@ -157,7 +159,7 @@ GitHub authentication, hosting-provider workflows, credential prompts, issues, p
 <a id="npm-publication"></a>
 ## npm publication
 
-The package will publish to npm as `@dsh-electron/dsh-plugin-git`. Publication is not available yet; treat API and versioning as pre-release. The UI host is the upstream built-in right sidebar; no separately installed third-party pairing package is required.
+The package is published to npm as `@dsh-electron/dsh-plugin-git` (MIT; latest `0.2.0`). Releases are cut by pushing a `vX.Y.Z` tag: the workflow runs the tests and build, packs the tarball, publishes it to npm with build provenance, and attaches the same tarball to a GitHub Release. API and versioning remain pre-1.0. The UI host is the upstream built-in right sidebar; no separately installed third-party pairing package is required. Release steps and credentials are documented in [`docs/development/README.en.md`](docs/development/README.en.md#release-process).
 
 <a id="development"></a>
 ## Development

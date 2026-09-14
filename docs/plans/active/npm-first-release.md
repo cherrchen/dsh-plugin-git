@@ -6,12 +6,13 @@
 
 ## 背景
 
-包发布到 npm 为 `@dsh-electron/dsh-plugin-git`（`publishConfig.access` = `public`）；根 README [npm publication](../../../README.md#npm-publication) 当前仍声明"尚未发布，API 与版本按 pre-release 对待"。发布前状态：
+包发布到 npm 为 `@dsh-electron/dsh-plugin-git`（`publishConfig.access` = `public`）。**首发已于 2026-09-14 完成**：`0.2.0` 以 token 模式发布，npm 与 GitHub Release 双渠道一致，根 README 已同步为"已发布"。起点状态：
 
-- Release 已由 tag 触发的 `.github/workflows/release.yml` 承担：校验 tag 与版本一致 → 测试 → `docs:check` → 构建 → 产物断言 → `pnpm pack` → 创建 GitHub Release；
-- 2026-09-14 决策：DeepSeek Harness Desktop 后续**直接消费本仓库发布的 npm 包**，不再把本仓库 subtree 镜像进 `cherrchen/deepseek-harness-electron`（见 [branch-and-mirror-layout](../../../.agent/note/branch-and-mirror-layout.md)）——npm 首发因此成为该集成的唯一前置；
-- 包从未发布到 npm：npm 上不存在该包，也就无法绑定 Trusted Publisher；
-- 2026-09-13 的首次 tag 试运行中 npm publish 因缺 `NPM_TOKEN` 失败，该步骤当时被整体移除；2026-09-14 重新加入，并改为 token/OIDC 双模式（本计划当前形态）；
+- Release 已由 tag 触发的 `.github/workflows/release.yml` 承担：校验 tag 与版本一致 → 测试 → `docs:check` → 构建 → 产物断言 → `pnpm pack` → npm publish → 创建 GitHub Release；
+- 2026-09-14 决策：DeepSeek Harness Desktop 后续**直接消费本仓库发布的 npm 包**，不再把本仓库 subtree 镜像进 `cherrchen/deepseek-harness-electron`（见 [branch-and-mirror-layout](../../../.agent/note/branch-and-mirror-layout.md)）——npm 首发因此是该集成的唯一前置；
+- 包此前从未发布到 npm，npm 上不存在该包，因此首发只能用 token（Trusted Publisher 无从绑定）；
+- 2026-09-13 的首次 tag 试运行中 npm publish 因缺 `NPM_TOKEN` 失败，该步骤当时被整体移除；2026-09-14 重新加入并改为 token/OIDC 双模式；
+- 2026-09-14 首发首次触发也失败：`npm publish dist/….tgz` 被 npm 解析成 GitHub `owner/repo` 简写（`git ls-remote ssh://git@github.com/dist/….tgz.git`，exit 128）。修复为带 `./` 前缀的文件路径后平移 `v0.2.0` tag 重跑成功（当时 npm 上无 0.2.0、GitHub Release 未创建，平移安全）；
 - 版本脚本统一为 `pnpm version:set`，2026-09-14 增加 `version:major|minor|patch` 快捷脚本并把版本提升到 `0.2.0`。
 
 ## 目标
@@ -48,19 +49,26 @@ npm 认证集中在 "Publish to npm" 一步内自动二选一，无需后续改�
 - [x] 新增 `version:set` 与 `version:major|minor|patch` 脚本，版本提升到 `0.2.0`（2026-09-14）
 - [x] Release 工作流加入 npm publish（token/OIDC 双模式 + provenance）
 - [x] 文档：[development](../../development/README.md) 记录发布流程与两阶段认证
-- [ ] 配置仓库 secret `NPM_TOKEN`
-- [ ] 推送 `v0.2.0` tag 完成 npm 首发（token 模式）
+- [x] 修复 tarball 参数被 npm 当作 GitHub 简写的问题（`./` 前缀），平移 `v0.2.0` tag 后重跑成功
+- [x] 配置仓库 secret `NPM_TOKEN`
+- [x] 推送 `v0.2.0` tag 完成 npm 首发（token 模式，2026-09-14 06:36 UTC）
+- [x] 更新根 README [npm publication](../../../README.md#npm-publication)（含 `README.zh.md` 与 `README.i18n.yaml` 的 sha）
+- [x] 核对 npm 与 GitHub Release 双渠道一致
 - [ ] 首发后在 npmjs.com 绑定 Trusted Publisher 并删除 `NPM_TOKEN`（后续走 OIDC）
-- [ ] 更新根 README [npm publication](../../../README.md#npm-publication)（发布后不再是"尚未发布"；同步 `README.zh.md` 与 `README.i18n.yaml` 的 sha）
-- [ ] 核对 npm 与 GitHub Release 双渠道一致
 
 ## 验证
 
-- 推送 `v0.2.0` 后 Actions 全绿，日志中 `::notice title=npm auth::` 标明 token 模式；
-- `npm view @dsh-electron/dsh-plugin-git@0.2.0` 可见，且 npm 页面显示 provenance；
-- GitHub Release 附 `dsh-electron-dsh-plugin-git-0.2.0.tgz`；
+已完成（2026-09-14）：
+
+- `v0.2.0` 的 Release run 全绿，日志 `::notice title=npm auth::Publishing with the NPM_TOKEN secret.`；
+- npm 上 `@dsh-electron/dsh-plugin-git@0.2.0` 为 `latest`，`dist.attestations.provenance` 为 SLSA v1；
+- GitHub Release `v0.2.0` 附 `dsh-electron-dsh-plugin-git-0.2.0.tgz`；
+- 根 README（en/zh）与已发布状态一致，`pnpm docs:check` 通过。
+
+待验证（切换 OIDC 之后）：
+
 - 删除 `NPM_TOKEN` 后再发一个版本，日志显示 OIDC 模式且发布成功；
-- `dsh plugin --profile web add` 能从 npm 安装本包（替代目前的仓库/fixture 安装方式，见根 README [Installation](../../../README.md#installation)）。
+- `dsh plugin --profile web add @dsh-electron/dsh-plugin-git` 能从 npm 安装本包（替代仓库/fixture 安装方式，见根 README [Installation](../../../README.md#installation)）。
 
 ## 相关文档
 

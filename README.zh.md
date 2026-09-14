@@ -40,15 +40,17 @@ kind: "package-bundle"
 <a id="installation"></a>
 ## 安装
 
-本包处于试验开发阶段，计划以 `@dsh-electron/dsh-plugin-git` 发布到 npm；在此之前请从本仓库安装。
+本包已发布到 npm：`@dsh-electron/dsh-plugin-git`（当前 `0.2.0`，MIT，带构建 provenance）。仍处于试验开发阶段：API 与版本保持 pre-1.0，minor 版本之间可能变化。
 
 **DeepSeek Harness Desktop** — Git 默认预装并启用。不需要仓库 UI 时，可在**设置 → 插件**中禁用。
 
 **DSH Web** — 右侧边栏随 DeepSeek Harness ≥ v0.1.5-rc.2 一起提供，无需单独安装；再安装 Git：
 
 ```sh
-dsh plugin --profile web add github:cherrchen/dsh-plugin-git
+dsh plugin --profile web add @dsh-electron/dsh-plugin-git
 ```
+
+`github:cherrchen/dsh-plugin-git` 则直接从仓库安装。
 
 本地开发时，构建本 checkout 并加入 profile：
 
@@ -157,7 +159,7 @@ GitHub authentication、hosting-provider workflows、credential prompts、issues
 <a id="npm-publication"></a>
 ## npm 发布
 
-本包将以 `@dsh-electron/dsh-plugin-git` 发布到 npm。当前尚未公开发布；请将 API 与版本视为 pre-release。UI 宿主是上游内置的右侧边栏，无需独立安装的第三方配对包。
+本包已发布到 npm：`@dsh-electron/dsh-plugin-git`（MIT；最新 `0.2.0`）。发布方式为推送 `vX.Y.Z` tag：工作流跑测试与构建、打包 tarball、带构建 provenance 发布到 npm，并把同一个 tarball 附到 GitHub Release。API 与版本保持 pre-1.0。UI 宿主是上游内置的右侧边栏，无需独立安装的第三方配对包。发布步骤与凭据见 [`docs/development/README.md`](docs/development/README.md#发布流程)。
 
 <a id="development"></a>
 ## 开发
