@@ -31,19 +31,22 @@ Windows 桌面端（Electron）打开应用后：
 
 ## 解法（已验证）
 
-`GitClientController.refresh()` 改为合并入口：同一工作区在途的刷新被复用，不再发起新一轮 Host 往返。
+`GitClientController.refresh()` 改为合并入口：同一工作区在途的刷新被复用（一个 burst 最多两轮 Host 往返，而不是每个焦点事件一轮）。
 
 - 复用键同时含工作区 `path` 与 `generation`——`setWorkspace()` 会 bump generation，跨绑定的旧在途轮次绝不能被复用。
 - 被复用的轮次结束后在 `finally` 中做身份比较并释放槽位，否则刷新只会发生一次。
-- 不做 trailing 重跑：被复用的那轮已经看到焦点回归后的状态，重跑只会再增一轮 5 条命令。
+- **复用只在该轮尚未发出 `status` 读取时成立**：该轮的读取紧随请求之后，看得见请求所代表的改动，故不需要额外往返。若请求在该轮读取之后到达（例如外部编辑后的焦点回归），该轮记一次 **trailing 读取**，合并进来的调用方 await 到这轮 trailing 读取落地——不能拿旧快照回答新请求，否则界面会一直停在改动前的状态，直到下一次焦点或手动刷新。
+- **一个 burst 最多两轮往返**：trailing 轮不再递归链接。控制器自身的 Host 流量在 Windows 上会持续产生焦点事件（每条 git 命令弹出控制台窗口），若无界链接，burst 会自激成永久刷新循环；有界两轮既能覆盖「读取之后的请求」，又保证终止。
 - 原刷新体原样下沉为私有方法 `reloadRepository()`；`setWorkspace()`、`GitBranchControl` 的 focus 监听、surface 挂载刷新、手动刷新按钮都不改，它们共用同一个合并入口。
 - 宿主侧的窗口旗标不在本仓库：本次不预留开关、不加配置项。
 
 ## 验证
 
-- `pnpm test`，其中 `tests/controller.client.spec.ts` 的新用例 `collapses overlapping refresh calls into one Host round trip` 固化新行为：同一工作区两次并发 `refresh()`（`status` 被门控挂起）只产生 1 次 `discover` + 1 次 `status`，两次调用都 resolve 且 `repository.root` 落地；轮次结束后再刷新一次，`discover` 计数变为 2（证明复用槽位已释放）。
-- 修复前该用例在未合并实现上失败（2 次 `discover` + 2 次 `status`），修复后通过——它守得住这两点。
-- 未做 Windows 实机复现（开发机为 macOS，且终端窗口属另一仓库）：本仓库的交付边界是「任意焦点抖动最多对应一轮 Host 往返、且每轮结果都能落地」。
+- `pnpm test`，`tests/controller.client.spec.ts` 的两个用例固化新行为：
+  - `collapses overlapping refresh calls into one Host round trip`：同一工作区两次并发 `refresh()`（`status` 被门控挂起）只产生 1 次 `discover` + 1 次 `status`，两次调用都 resolve 且 `repository.root` 落地；轮次结束后再刷新一次，`discover` 计数变为 2（证明复用槽位已释放）。
+  - `runs one trailing read when a refresh lands after the round captured its snapshot`：等第一轮发出 `status` 后再 `refresh()`，第一轮以旧快照 `before-edit` 收尾 → trailing 轮发出第二次 `discover`/`status`，前两次调用的 promise 到此时才 resolve；trailing 读取期间再来的第三次 `refresh()` 只并入该 burst（不产生第三轮），最终 `repository.head` 为 `after-edit`。
+- 两条用例都在未修复实现上失败：前者 2 次 `discover`（无合并），后者只有 1 次 `status`（无 trailing 读取）——它们守得住这两个方向。
+- 未做 Windows 实机复现（开发机为 macOS，且终端窗口属另一仓库）：本仓库的交付边界是「一次焦点 burst 最多两轮 Host 往返、每轮结果都能落地、读取之后的请求不会被旧快照回答」。
 
 ## 关联
 

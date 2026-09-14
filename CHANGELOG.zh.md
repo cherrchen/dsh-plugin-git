@@ -19,7 +19,7 @@
 
 ### Fixed
 
-- 焦点抖动不再叠加仓库刷新：`GitClientController.refresh()` 对同一工作区复用在途往返，反复的焦点事件只对应一对 `discover`/`status`，而不是互相判旧、让 `repository` 迟迟不落地的多轮重叠请求。背景见 [Windows 桌面端终端窗口风暴](docs/troubleshooting/windows-desktop-console-flood.md)。
+- 焦点抖动不再叠加仓库刷新：`GitClientController.refresh()` 对同一工作区复用在途往返，反复的焦点事件只对应一对 `discover`/`status`，而不是互相判旧、让 `repository` 迟迟不落地的多轮重叠请求；请求若在该轮已读取仓库之后到达（外部编辑后的焦点回归），该 burst 会补读一轮，合并进来的调用方等到这轮补读落地（每个 burst 最多两轮，避免控制器自身的 Host 流量自激）。背景见 [Windows 桌面端终端窗口风暴](docs/troubleshooting/windows-desktop-console-flood.md)。
 
 ## [0.2.0] — 2026-09-14
 

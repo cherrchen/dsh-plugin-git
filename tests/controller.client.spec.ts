@@ -398,6 +398,36 @@ describe('GitClientController', () => {
     expect(endpoints.filter(entry => entry === 'discover')).toHaveLength(2)
   })
 
+  it('runs one trailing read when a refresh lands after the round captured its snapshot', async () => {
+    const endpoints: string[] = []
+    const releases: Array<(result: GitRpcResult) => void> = []
+    const rpc = {
+      call: vi.fn(async (_channel: string, endpoint: string) => {
+        endpoints.push(endpoint)
+        if (endpoint === 'discover') return { ok: true as const, value: '/repo' }
+        if (endpoint === 'status') return new Promise<GitRpcResult>((resolve) => { releases.push(resolve) })
+        if (endpoint === 'log') return { ok: true as const, value: [] }
+        if (endpoint === 'commit-message-capability') return { ok: true as const, value: { available: false } }
+        return { ok: true as const, value: null }
+      }),
+    }
+    const controller = new GitClientController(rpc)
+    const first = controller.refresh('/workspace')
+    await vi.waitFor(() => { expect(releases).toHaveLength(1) })
+    // The round has already read the repository, so an edit made from here on
+    // plus this refresh must not be answered by the snapshot in flight.
+    const second = controller.refresh('/workspace')
+    releases[0]?.({ ok: true, value: snapshot({ head: 'before-edit' }) })
+    await vi.waitFor(() => { expect(releases).toHaveLength(2) })
+    // Requests landing during the trailing read join the burst without arming a third.
+    const third = controller.refresh('/workspace')
+    releases[1]?.({ ok: true, value: snapshot({ head: 'after-edit' }) })
+    await Promise.all([first, second, third])
+    expect(endpoints.filter(entry => entry === 'discover')).toHaveLength(2)
+    expect(endpoints.filter(entry => entry === 'status')).toHaveLength(2)
+    expect(controller.getSnapshot().repository?.head).toBe('after-edit')
+  })
+
   it('discards a commit message proposal whose workspace was rebound mid-flight', async () => {
     let releaseGeneration: ((value: GitRpcResult) => void) | undefined
     let signalGeneration: (() => void) | undefined
