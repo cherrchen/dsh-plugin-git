@@ -11,6 +11,8 @@ Holds **how this package is developed, tested, built, and released**: environmen
 
 Toolchain: Node.js `^22.19.0 || >=24.0.0`, pnpm 11 (pinned via `packageManager`).
 
+The `prepare` script is `pnpm run build` (tsc declarations plus both bundle faces): a git install of this package runs it on the installing machine. Inside a checkout, run `pnpm build` explicitly.
+
 | Purpose | Command |
 | --- | --- |
 | Install (strict lockfile) | `pnpm install --frozen-lockfile` |
@@ -21,19 +23,23 @@ Toolchain: Node.js `^22.19.0 || >=24.0.0`, pnpm 11 (pinned via `packageManager`)
 | Set the version | `pnpm version:set <version>` (also accepts bump keywords such as `major`/`minor`/`patch`) |
 | Bump the version | `pnpm version:major` / `pnpm version:minor` / `pnpm version:patch` |
 
-CI runs in `.github/workflows/ci.yml` (tests on PRs and main pushes); the release pipeline is below, and its execution status lives in the [npm-first-release plan](../plans/active/npm-first-release.md).
+CI runs in `.github/workflows/ci.yml` (tests on PRs and main pushes); the release pipeline is below, and its execution status lives in the [npm-first-release plan](../plans/active/npm-first-release.md). Contributor setup, the gate list, and the documentation duty are in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 
 ## Release process
 
 The version only changes through `pnpm version:*`: those scripts pass `--no-git-tag-version --no-git-checks`, so they **never** commit or tag on their own.
 
 ```sh
+# 1. Move CHANGELOG.md's Unreleased entries under the new version, sync CHANGELOG.zh.md,
+#    and re-record both hashes in CHANGELOG.i18n.yaml
 pnpm version:minor   # or version:set <version> / version:major / version:patch
-git add package.json
+git add package.json CHANGELOG.md CHANGELOG.zh.md CHANGELOG.i18n.yaml
 git commit -m "chore(release): 0.2.0"
 git tag v0.2.0
 git push origin HEAD --follow-tags
 ```
+
+The release commit is also what moves the [`CHANGELOG.md`](../../CHANGELOG.md) entries out of `[Unreleased]` and points the `[Unreleased]` compare link at the new tag.
 
 The tag must be `v` + the `package.json` version; otherwise the workflow stops at its first step. `.github/workflows/release.yml` is triggered by `v*` tag pushes and runs one sequential job:
 

@@ -28,6 +28,7 @@ kind: "package-bundle"
 - [Git 操作](#git-operations)
 - [npm 发布](#npm-publication)
 - [开发](#development)
+- [贡献](#contributing)
 - [Model Experience](#model-experience)
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 - [开发备注](#dev-note)
@@ -44,23 +45,74 @@ kind: "package-bundle"
 
 **DeepSeek Harness Desktop** — Git 默认预装并启用。不需要仓库 UI 时，可在**设置 → 插件**中禁用。
 
-**DSH Web** — 右侧边栏随 DeepSeek Harness ≥ v0.1.5-rc.2 一起提供，无需单独安装；再安装 Git：
+**DSH Web** — 右侧边栏随 DeepSeek Harness ≥ v0.1.5-rc.2 一起提供，因此只装 Git 即可。最短路径是两条命令：
+
+```sh
+dsh plugin --profile web add @dsh-electron/dsh-plugin-git
+dsh --profile web
+```
+
+`dsh plugin` 在 profile 目录内转发给 pnpm：安装 package，并激活包内 `cordis.patch.yml` 层，把插件挂进组合。它支持四种安装来源，下表以 `web` profile 为例：
+
+| 来源 | 命令 | 说明 |
+| --- | --- | --- |
+| npm 注册表（推荐） | `dsh plugin --profile web add @dsh-electron/dsh-plugin-git` | 预构建产物；无需构建授权 |
+| tarball | `dsh plugin --profile web add ./dsh-electron-dsh-plugin-git-<version>.tgz` | 预构建离线包；无需构建授权 |
+| 本地路径 | `dsh plugin --profile web add /path/to/dsh-plugin-git` | pnpm 链接该 checkout；适合开发 |
+| GitHub / git | `dsh plugin --profile web add github:cherrchen/dsh-plugin-git` | 拉取源码并在安装时经 `prepare` 现场构建；需 `allowBuilds`，建议锁定 tag |
+
+无论用哪种来源，Git client 加载时都要求宿主已提供 `ctx.sidebarRight` 与 `ctx.sidebarRightTabs` 两个 service；DeepSeek Harness ≥ v0.1.5-rc.2 两者皆有。
+
+### 从 npm 注册表安装（推荐）
 
 ```sh
 dsh plugin --profile web add @dsh-electron/dsh-plugin-git
 ```
 
-`github:cherrchen/dsh-plugin-git` 则直接从仓库安装。
+注册表里是预构建产物，安装时不会有任何 package 代码在你的机器上执行。
 
-本地开发时，构建本 checkout 并加入 profile：
+### 从 tarball 安装
 
 ```sh
-pnpm install
-pnpm build
-dsh plugin --profile web add /path/to/dsh-plugin-git
+pnpm pack --pack-destination dist
+dsh plugin --profile web add ./dist/dsh-electron-dsh-plugin-git-0.2.0.tgz
 ```
 
-每次 `dsh plugin add` 都会激活 package 自带的 `cordis.patch.yml` 层。Git client 加载时要求宿主已提供 `ctx.sidebarRight` 与 `ctx.sidebarRightTabs` 两个 service。
+`pnpm pack` 产出上述单一 tarball，每个 tag 的 GitHub Release 都附同一个文件 —— `0.2.0` 对应 `https://github.com/cherrchen/dsh-plugin-git/releases/download/v0.2.0/dsh-electron-dsh-plugin-git-0.2.0.tgz`。它同样是预构建产物，因此适合内网或离线 profile。
+
+### 从 GitHub 安装
+
+```sh
+dsh plugin --profile web add github:cherrchen/dsh-plugin-git
+```
+
+git 安装拉取的是**源码而非构建产物**，因此由本包自带的 `prepare` 脚本在安装方机器上构建发布入口：`pnpm run build` 先用 `tsc` 产出声明，再用 `tsdown` 打包两个面，只使用本包自带的 standalone tsconfig —— 不假设任何 sibling checkout。pnpm ≥ 10 会先拦下该脚本，首次 `add` 以 `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED` 失败。把 pnpm 打印出的**原样包键**写入该 profile 的 `pnpm-workspace.yaml` —— 对 git 依赖而言，该键是包名加上解析后的 git spec 与 commit，裸包名并不匹配：
+
+```yaml
+allowBuilds:
+  # 此处填 pnpm 打印出的键
+  '@dsh-electron/dsh-plugin-git@git+<host>/<path>#<commit>': true
+```
+
+然后重新执行 `add` 即可；换 pin 会换 commit，键也随之变化。请把该授权视为**允许该 package 在安装时于你的机器上执行代码**（且不在 agent 运行的任何沙箱之内）。建议锁定 tag，让后续推送无法悄悄改变实际运行的内容：
+
+```sh
+dsh plugin --profile web add github:cherrchen/dsh-plugin-git#v0.2.0
+```
+
+### 从本地 checkout 安装（开发调试）
+
+```sh
+git clone https://github.com/cherrchen/dsh-plugin-git.git
+cd dsh-plugin-git
+pnpm install
+pnpm build        # 生成 lib/；它未纳入 Git，但安装读的就是它
+dsh plugin --profile web add "$PWD"
+```
+
+pnpm 以链接方式接入该 checkout，之后的 `pnpm build` 无需重装即被采用。
+
+> **提示**：如果你的 DSH 是 clone 源码方式使用（而非全局安装），`dsh` 不在 `PATH` 里，请把上述命令中的 `dsh` 换成 `pnpm dsh`，例如 `pnpm dsh plugin --profile web add …`。
 
 <a id="pairing-with-sidebar-right"></a>
 ## 与上游右侧边栏配对
@@ -192,3 +244,8 @@ pnpm pack
 ### 开发备注
 
 无。
+
+<a id="contributing"></a>
+## 贡献
+
+环境搭建、质量门禁与文档义务见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。每个已发布版本的用户可见变更见 [`CHANGELOG.md`](CHANGELOG.md)。本包以 MIT 许可发布，见 [`LICENSE`](LICENSE)。

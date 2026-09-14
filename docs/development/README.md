@@ -11,6 +11,8 @@
 
 工具链：Node.js `^22.19.0 || >=24.0.0`，pnpm 11（`packageManager` 钉定）。
 
+`prepare` 脚本即 `pnpm run build`（`tsc` 声明 + 两个 bundle 面）：git 方式安装本包时由 pnpm 在安装方现场执行它；本仓库 checkout 内请显式运行 `pnpm build`。
+
 | 目的 | 命令 |
 | --- | --- |
 | 安装（锁文件严格模式） | `pnpm install --frozen-lockfile` |
@@ -21,19 +23,23 @@
 | 设置版本号 | `pnpm version:set <version>`（也接受 `major`/`minor`/`patch` 等 bump 关键字） |
 | 提升版本号 | `pnpm version:major` / `pnpm version:minor` / `pnpm version:patch` |
 
-CI 在 `.github/workflows/ci.yml`（PR 与 main push 跑测试），发布流水线见下节，执行状态见 [npm-first-release 计划](../plans/active/npm-first-release.md)。
+CI 在 `.github/workflows/ci.yml`（PR 与 main push 跑测试），发布流水线见下节，执行状态见 [npm-first-release 计划](../plans/active/npm-first-release.md)。贡献者的环境搭建、门禁清单与文档义务见 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)。
 
 ## 发布流程
 
 版本号只经 `pnpm version:*` 改动：这些脚本带 `--no-git-tag-version --no-git-checks`，**不**自动提交、也不打 tag。
 
 ```sh
+# 1. 把 CHANGELOG.md 的 Unreleased 条目移到新版本号之下，同步 CHANGELOG.zh.md，
+#    并在 CHANGELOG.i18n.yaml 中重新登记双方 sha
 pnpm version:minor   # 或 version:set <version> / version:major / version:patch
-git add package.json
+git add package.json CHANGELOG.md CHANGELOG.zh.md CHANGELOG.i18n.yaml
 git commit -m "chore(release): 0.2.0"
 git tag v0.2.0
 git push origin HEAD --follow-tags
 ```
+
+发布提交同时负责把 [`CHANGELOG.md`](../../CHANGELOG.md) 的 `[Unreleased]` 条目落到新版本号之下，并把 `[Unreleased]` 的比较链接指向该 tag。
 
 tag 必须是 `v` + `package.json` 的版本，否则工作流在第一步就终止。`.github/workflows/release.yml` 由 `v*` tag 推送触发，单 job 顺序执行：
 

@@ -36,12 +36,17 @@
     "cordis.patch.yml",
     "README.md",
     "README.zh.md",
+    "CHANGELOG.md",
+    "CHANGELOG.zh.md",
+    "CONTRIBUTING.md",
+    "CONTRIBUTING.zh.md",
     "LICENSE"
   ],
   "scripts": {
     "build": "pnpm run build:types:standalone && tsdown --config tsdown.standalone.config.ts",
     "build:types:standalone": "tsc -p tsconfig.standalone.host.json && tsc -p tsconfig.standalone.client.json",
     "bundle": "tsdown",
+    "prepare": "pnpm run build",
     "test": "vitest run",
     "test:artifact": "vitest run --config vitest.artifact.config.ts",
     "docs:check": "node scripts/check-docs.mjs",

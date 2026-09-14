@@ -36,15 +36,17 @@
 - 约定：`foo.md` 为中文 canonical 版，`foo.en.md` 为英文副版，两者是**一个逻辑文档**的两个视图。
 - 修改任意一方时，必须检查同步另一方；冲突时**以中文版为准**。
 - 不要求逐句直译，但不允许存在重要信息差异（一方独有的段落、数字、结论都不行）。
-- **强制双语**：所有 `README.md`（仓库根按既有惯例配对 `README.zh.md`，其余目录配对 `README.en.md`），以及 `.agent/note/` 下的正式文档。
+- **强制双语**：所有 `README.md`（仓库根按既有惯例配对 `README.zh.md`，其余目录配对 `README.en.md`）、仓库根的 `CONTRIBUTING.md`（配对 `CONTRIBUTING.zh.md`）与 `CHANGELOG.md`（配对 `CHANGELOG.zh.md`），以及 `.agent/note/` 下的正式文档。
 - ADR、Plan、Reference 等不强制双语；**禁止**为不强制双语的文档创建空壳 `.en.md`。
 
 ### `*.i18n.yaml` 同步（必须执行项）
 
-双语配对文档旁若有 `foo.i18n.yaml` 记录文件（当前仓库：根 `README.i18n.yaml` 对应 `README.md` ↔ `README.zh.md`），它登记的是**最近一次确认双语一致时**各侧的 git blob hash。修改任意一侧后，必须在**同一变更内**把另一侧同步到位，并立即重新登记双方 sha：
+双语配对文档旁若有 `foo.i18n.yaml` 记录文件（当前仓库为仓库根三对：`README.i18n.yaml`、`CONTRIBUTING.i18n.yaml`、`CHANGELOG.i18n.yaml`，分别对应 `foo.md` ↔ `foo.zh.md`），它登记的是**最近一次确认双语一致时**各侧的 git blob hash。修改任意一侧后，必须在**同一变更内**把另一侧同步到位，并立即重新登记双方 sha：
 
 ```sh
-git hash-object README.md README.zh.md   # 输出写回 README.i18n.yaml 对应键
+git hash-object README.md README.zh.md             # 输出写回 README.i18n.yaml 对应键
+git hash-object CONTRIBUTING.md CONTRIBUTING.zh.md # 输出写回 CONTRIBUTING.i18n.yaml 对应键
+git hash-object CHANGELOG.md CHANGELOG.zh.md       # 输出写回 CHANGELOG.i18n.yaml 对应键
 ```
 
 这是文档变更的完成条件之一（与 `pnpm docs:check` 同级）：`docs:check` **不**校验 sha 是否过期，只能靠执行者完成。sha 未刷新的变更视为双语同步状态不可信、未完成。

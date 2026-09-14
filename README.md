@@ -28,6 +28,7 @@ Standard DSH/Cordis Git plugin with one portable Host service, one Client bundle
 - [Git operations](#git-operations)
 - [npm publication](#npm-publication)
 - [Development](#development)
+- [Contributing](#contributing)
 - [Model Experience](#model-experience)
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
 - [Dev Note](#dev-note)
@@ -44,23 +45,74 @@ The package is published to npm as `@dsh-electron/dsh-plugin-git` (current `0.2.
 
 **DeepSeek Harness Desktop** — Git is pre-installed and enabled by default. Disable it from **Settings → Plugins** when you do not need repository UI.
 
-**DSH Web** — the right sidebar ships with DeepSeek Harness ≥ v0.1.5-rc.2; install Git alone:
+**DSH Web** — the right sidebar ships with DeepSeek Harness ≥ v0.1.5-rc.2, so Git alone is enough. The shortest path is two commands:
+
+```sh
+dsh plugin --profile web add @dsh-electron/dsh-plugin-git
+dsh --profile web
+```
+
+`dsh plugin` forwards to pnpm inside the profile directory: it installs the package and activates the bundled `cordis.patch.yml` layer that mounts the plugin. Four install sources are supported, shown here with the `web` profile:
+
+| Source | Command | Notes |
+| --- | --- | --- |
+| npm registry (recommended) | `dsh plugin --profile web add @dsh-electron/dsh-plugin-git` | Prebuilt artifact; no build authorization |
+| tarball | `dsh plugin --profile web add ./dsh-electron-dsh-plugin-git-<version>.tgz` | Prebuilt offline package; no build authorization |
+| local path | `dsh plugin --profile web add /path/to/dsh-plugin-git` | pnpm links the checkout; for development |
+| GitHub / git | `dsh plugin --profile web add github:cherrchen/dsh-plugin-git` | Fetches sources and builds them on install through `prepare`; needs `allowBuilds`, pin a tag |
+
+Whichever source you use, the Git client requires the host to already provide the `ctx.sidebarRight` and `ctx.sidebarRightTabs` services at load time; DeepSeek Harness ≥ v0.1.5-rc.2 provides both.
+
+### From the npm registry (recommended)
 
 ```sh
 dsh plugin --profile web add @dsh-electron/dsh-plugin-git
 ```
 
-`github:cherrchen/dsh-plugin-git` installs straight from the repository instead.
+The registry holds the prebuilt artifact, so no package code runs on your machine at install time.
 
-For local development, build this checkout and add it to the profile:
+### From a tarball
 
 ```sh
-pnpm install
-pnpm build
-dsh plugin --profile web add /path/to/dsh-plugin-git
+pnpm pack --pack-destination dist
+dsh plugin --profile web add ./dist/dsh-electron-dsh-plugin-git-0.2.0.tgz
 ```
 
-Each `dsh plugin add` activates the package's bundled `cordis.patch.yml` layer. The Git client requires the host to already provide the `ctx.sidebarRight` and `ctx.sidebarRightTabs` services at load time.
+`pnpm pack` produces that single tarball, and every tag's GitHub Release carries the same one — for `0.2.0`, `https://github.com/cherrchen/dsh-plugin-git/releases/download/v0.2.0/dsh-electron-dsh-plugin-git-0.2.0.tgz`. It is prebuilt as well, which makes it the form to use for an offline or air-gapped profile.
+
+### From GitHub
+
+```sh
+dsh plugin --profile web add github:cherrchen/dsh-plugin-git
+```
+
+A git install fetches **sources, not built artifacts**, so the package's own `prepare` script builds the published entry points on your machine: `pnpm run build` emits the declarations with `tsc` and then bundles both faces with `tsdown`, using only this package's standalone tsconfigs, so no sibling checkout is assumed. pnpm ≥ 10 refuses to run that script until it is explicitly allowed, so the first `add` fails with `ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED`. Copy the exact key pnpm prints into the profile's `pnpm-workspace.yaml` — for a git-hosted dependency that key is the package name plus the resolved git spec and commit, and a bare package name does not match it:
+
+```yaml
+allowBuilds:
+  # the key pnpm printed
+  '@dsh-electron/dsh-plugin-git@git+<host>/<path>#<commit>': true
+```
+
+then run the `add` again. Moving the pin moves the commit, so the key moves with it. Treat that allowance as **permission for the package to execute code on your machine at install time**, outside any sandbox the agent runs under. Pin a tag so a later push cannot silently change what runs:
+
+```sh
+dsh plugin --profile web add github:cherrchen/dsh-plugin-git#v0.2.0
+```
+
+### From a local checkout (development)
+
+```sh
+git clone https://github.com/cherrchen/dsh-plugin-git.git
+cd dsh-plugin-git
+pnpm install
+pnpm build        # writes lib/, which Git ignores but the install reads
+dsh plugin --profile web add "$PWD"
+```
+
+pnpm links the checkout, so a later `pnpm build` is picked up without reinstalling.
+
+> **Note**: if your DSH is a source checkout rather than a global install, `dsh` is not on `PATH` — replace `dsh` with `pnpm dsh` in every command above, for example `pnpm dsh plugin --profile web add …`.
 
 <a id="pairing-with-sidebar-right"></a>
 ## Pairing with the upstream right sidebar
@@ -192,3 +244,8 @@ None. Commit-message generation is an independent Host LLM request and does not 
 ### Dev Note
 
 None.
+
+<a id="contributing"></a>
+## Contributing
+
+Setup, quality gates, and the documentation duty are in [`CONTRIBUTING.md`](CONTRIBUTING.md). The user-visible changes of each released version are in [`CHANGELOG.md`](CHANGELOG.md). The package is MIT-licensed; see [`LICENSE`](LICENSE).

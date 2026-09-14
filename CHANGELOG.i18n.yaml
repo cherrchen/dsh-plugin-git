@@ -1,6 +1,6 @@
 # Bilingual-pair consistency record (.agent/skills/documentation/SKILL.md §4): the git blob hash of each
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
-#   git hash-object README.md README.zh.md
-README.md: f0f8755fad83666d385fa633cf045d48e41aa15a
-README.zh.md: de9506b16ca970302c98ce305277d8f5839255fd
+#   git hash-object CHANGELOG.md CHANGELOG.zh.md
+CHANGELOG.md: f7919cce278221b3e1b0ba8cb439db7cac169426
+CHANGELOG.zh.md: ba09c21e642f386047ec9284404b6c2eccdb0162

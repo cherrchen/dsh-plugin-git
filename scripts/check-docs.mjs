@@ -55,6 +55,12 @@ const REQUIRED_PATHS = [
 const README_PAIR_EXCEPTIONS = new Map([['', 'README.zh.md']]);
 
 /**
+ * 仓库根额外强制双语的文档基名：`X.md`(英文) ↔ `X.zh.md`(中文)，
+ * 且必须有 `X.i18n.yaml` 记录双方最近一次一致时的 blob hash（SKILL.md 双语规则）。
+ */
+const ROOT_PAIR_BASES = ['README', 'CONTRIBUTING', 'CHANGELOG'];
+
+/**
  * 确实要讨论路径格式本身的文档在此豁免绝对路径禁令（相对根路径）。
  * 默认为空：新增豁免必须在 SKILL.md 或该文档内说明理由。
  */
@@ -205,6 +211,28 @@ function checkReadmePairs() {
   }
 }
 
+/** 仓库根强制双语对：两侧都在、一致性记录在，且两侧互相导航。 */
+function checkRootPairs() {
+  for (const base of ROOT_PAIR_BASES) {
+    const canonical = `${base}.md`;
+    const zh = `${base}.zh.md`;
+    const record = `${base}.i18n.yaml`;
+    if (!mdFiles.includes(canonical)) {
+      violation(canonical, '仓库根强制双语文档缺失（见 SKILL.md 双语规则）');
+      continue;
+    }
+    if (!mdFiles.includes(zh)) {
+      violation(canonical, `缺少配对的中文副版 ${zh}（双语强制，见 SKILL.md 双语规则）`);
+      continue;
+    }
+    if (!allFiles.includes(record)) {
+      violation(record, '缺少双语一致性记录（SKILL.md *.i18n.yaml 同步）');
+    }
+    // README 的互相导航由 checkReadmePairs 负责，避免重复计数。
+    if (base !== 'README') checkMutualLinks(canonical, zh);
+  }
+}
+
 function basename(f) {
   return f.split('/').pop();
 }
@@ -340,6 +368,7 @@ function checkNaming() {
 
 checkRequiredPaths();
 checkReadmePairs();
+checkRootPairs();
 checkNotePairs();
 checkAdrNames();
 checkLinks();
