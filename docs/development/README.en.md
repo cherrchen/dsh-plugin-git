@@ -32,14 +32,15 @@ The version only changes through `pnpm version:*`: those scripts pass `--no-git-
 ```sh
 # 1. Move CHANGELOG.md's Unreleased entries under the new version, sync CHANGELOG.zh.md,
 #    and re-record both hashes in CHANGELOG.i18n.yaml
-pnpm version:minor   # or version:set <version> / version:major / version:patch
-git add package.json CHANGELOG.md CHANGELOG.zh.md CHANGELOG.i18n.yaml
-git commit -m "chore(release): 0.2.0"
-git tag v0.2.0
+pnpm version:patch   # or version:set <version> / version:major / version:minor
+git add package.json CHANGELOG.md CHANGELOG.zh.md CHANGELOG.i18n.yaml \
+  README.md README.zh.md README.i18n.yaml
+git commit -m "chore(release): 0.2.1"
+git tag v0.2.1
 git push origin HEAD --follow-tags
 ```
 
-The release commit is also what moves the [`CHANGELOG.md`](../../CHANGELOG.md) entries out of `[Unreleased]` and points the `[Unreleased]` compare link at the new tag.
+The release commit is also what moves the [`CHANGELOG.md`](../../CHANGELOG.md) entries out of `[Unreleased]` and points the `[Unreleased]` compare link at the new tag; when a version number appears in the [`README.md`](../../README.md) installation section, the same commit moves it and re-records `README.i18n.yaml`.
 
 The tag must be `v` + the `package.json` version; otherwise the workflow stops at its first step. `.github/workflows/release.yml` is triggered by `v*` tag pushes and runs one sequential job:
 

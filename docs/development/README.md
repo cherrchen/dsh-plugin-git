@@ -32,14 +32,15 @@ CI 在 `.github/workflows/ci.yml`（PR 与 main push 跑测试），发布流水
 ```sh
 # 1. 把 CHANGELOG.md 的 Unreleased 条目移到新版本号之下，同步 CHANGELOG.zh.md，
 #    并在 CHANGELOG.i18n.yaml 中重新登记双方 sha
-pnpm version:minor   # 或 version:set <version> / version:major / version:patch
-git add package.json CHANGELOG.md CHANGELOG.zh.md CHANGELOG.i18n.yaml
-git commit -m "chore(release): 0.2.0"
-git tag v0.2.0
+pnpm version:patch   # 或 version:set <version> / version:major / version:minor
+git add package.json CHANGELOG.md CHANGELOG.zh.md CHANGELOG.i18n.yaml \
+  README.md README.zh.md README.i18n.yaml
+git commit -m "chore(release): 0.2.1"
+git tag v0.2.1
 git push origin HEAD --follow-tags
 ```
 
-发布提交同时负责把 [`CHANGELOG.md`](../../CHANGELOG.md) 的 `[Unreleased]` 条目落到新版本号之下，并把 `[Unreleased]` 的比较链接指向该 tag。
+发布提交同时负责把 [`CHANGELOG.md`](../../CHANGELOG.md) 的 `[Unreleased]` 条目落到新版本号之下，并把 `[Unreleased]` 的比较链接指向该 tag；当 [`README.md`](../../README.md) 安装一节中出现版本号时，同一个提交负责同步它并重新登记 `README.i18n.yaml`。
 
 tag 必须是 `v` + `package.json` 的版本，否则工作流在第一步就终止。`.github/workflows/release.yml` 由 `v*` tag 推送触发，单 job 顺序执行：
 

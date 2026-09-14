@@ -6,6 +6,10 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-09-14
+
+Documentation and reliability release: the changelog and contribution guide arrive, the installation section documents all four install sources, and window-focus churn no longer stacks repository refreshes.
+
 ### Added
 
 - `CONTRIBUTING.md` (with the Chinese side `CONTRIBUTING.zh.md`) describing setup, the quality gates, and the documentation duty.
@@ -64,6 +68,7 @@ First tagged version: one portable Host service, one Client bundle, and an optio
 - Optional `ctx.inject(['desktop'], ...)` child fiber using `shell.showItemInFolder`, `shell.openPath`, and `notification.show`.
 - Documentation library under `docs/`, the `pnpm docs:check` machine check, the `version:set` script, a tag-triggered release workflow, the bilingual README pair, and its `README.i18n.yaml` hash record.
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/cherrchen/dsh-plugin-git/releases/tag/v0.1.0

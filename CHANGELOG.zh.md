@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-09-14
+
+文档与可靠性版本：新增变更日志与贡献指南，[安装](README.zh.md#installation)一节文档化全部四种安装来源，焦点抖动不再叠加仓库刷新。
+
 ### Added
 
 - `CONTRIBUTING.md`（中文副版 `CONTRIBUTING.zh.md`），说明环境搭建、质量门禁与文档义务。
@@ -64,6 +68,7 @@
 - 可选的 `ctx.inject(['desktop'], ...)` child fiber，使用 `shell.showItemInFolder`、`shell.openPath` 与 `notification.show`。
 - `docs/` 文档库、`pnpm docs:check` 机器校验、`version:set` 脚本、tag 触发的 release 工作流、双语 README 配对及其 `README.i18n.yaml` hash 记录。
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/cherrchen/dsh-plugin-git/releases/tag/v0.1.0
