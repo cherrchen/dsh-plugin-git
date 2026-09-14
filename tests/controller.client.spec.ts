@@ -365,6 +365,39 @@ describe('GitClientController', () => {
     expect(logCalls).toBe(callsAfterRefresh + 1)
   })
 
+  it('collapses overlapping refresh calls into one Host round trip', async () => {
+    const endpoints: string[] = []
+    const releases: Array<() => void> = []
+    const rpc = {
+      call: vi.fn(async (_channel: string, endpoint: string) => {
+        endpoints.push(endpoint)
+        if (endpoint === 'discover') return { ok: true as const, value: '/repo' }
+        if (endpoint === 'status') {
+          // Gate only the first round trip: every refresh after it must settle
+          // on its own so the test can observe the released reuse slot.
+          if (releases.length === 0) await new Promise<void>((resolve) => { releases.push(resolve) })
+          return { ok: true as const, value: snapshot() }
+        }
+        if (endpoint === 'log') return { ok: true as const, value: [] }
+        if (endpoint === 'commit-message-capability') return { ok: true as const, value: { available: false } }
+        return { ok: true as const, value: null }
+      }),
+    }
+    const controller = new GitClientController(rpc)
+    const first = controller.refresh('/workspace')
+    const second = controller.refresh('/workspace')
+    await vi.waitFor(() => { expect(releases).toHaveLength(1) })
+    releases[0]?.()
+    await Promise.all([first, second])
+    expect(endpoints.filter(entry => entry === 'discover')).toHaveLength(1)
+    expect(endpoints.filter(entry => entry === 'status')).toHaveLength(1)
+    expect(controller.getSnapshot().repository?.root).toBe('/repo')
+
+    // 轮次结束后槽位释放：后续刷新仍必须到达 Host。
+    await controller.refresh('/workspace')
+    expect(endpoints.filter(entry => entry === 'discover')).toHaveLength(2)
+  })
+
   it('discards a commit message proposal whose workspace was rebound mid-flight', async () => {
     let releaseGeneration: ((value: GitRpcResult) => void) | undefined
     let signalGeneration: (() => void) | undefined

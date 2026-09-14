@@ -103,6 +103,8 @@ export class GitClientController {
   private readonly listeners = new Set<() => void>()
   private desktop: GitDesktopCapability | undefined
   private operationGeneration = 0
+  /** 在途仓库刷新；同一工作区的并发刷新复用它，不再发起新一轮 Host 往返。 */
+  private refreshing: { path: string | undefined; generation: number; promise: Promise<void> } | undefined
   /** Serializes repository mutations so overlapping RPCs apply in call order. */
   private mutationTail: Promise<void> = Promise.resolve()
   /** Workspace path of the last completed `setWorkspace` binding (idempotence guard). */
@@ -208,6 +210,9 @@ export class GitClientController {
    * Discover and reload repository state for a workspace. A successful reload
    * invalidates the loaded graph so the Graph surface reloads history that may
    * have changed outside this session (external commits, branch switches).
+   * Overlapping calls for the same workspace share the in-flight round trip
+   * instead of superseding one another, so focus churn cannot stack Host
+   * discovery/status calls or discard the round whose result would land.
    * @param workspacePath - Workspace path, defaulting to the current controller state.
    * @returns Completion after Host discovery and status calls settle.
    */
@@ -216,7 +221,26 @@ export class GitClientController {
       this.patch({ workspacePath, repository: undefined, loading: false, error: undefined })
       return
     }
+    const inFlight = this.refreshing
+    if (inFlight !== undefined && inFlight.path === workspacePath && inFlight.generation === this.operationGeneration) {
+      return inFlight.promise
+    }
     const generation = ++this.operationGeneration
+    const run = this.reloadRepository(generation, workspacePath)
+    this.refreshing = { path: workspacePath, generation, promise: run }
+    try {
+      await run
+    } finally {
+      if (this.refreshing?.promise === run) this.refreshing = undefined
+    }
+  }
+
+  /**
+   * Discover and reload one workspace, retaining no result from a superseded binding.
+   * @param generation - Operation generation owning this reload.
+   * @param workspacePath - Workspace path to discover and read.
+   */
+  private async reloadRepository(generation: number, workspacePath: string): Promise<void> {
     await this.loadRepository(generation, workspacePath)
     if (generation !== this.operationGeneration || this.state.error !== undefined) return
     // Keep the binding bookkeeping current so surface remounts after a

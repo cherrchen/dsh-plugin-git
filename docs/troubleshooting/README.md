@@ -11,3 +11,4 @@
 ## 条目
 
 - [`git-rpc-channel-405.md`](git-rpc-channel-405.md) —— `/git` RPC 通道 405：cordis 嵌套 fiber 属性访问不可见 `webServer`，通道静默未注册，客户端 UI 全部空白。
+- [`windows-desktop-console-flood.md`](windows-desktop-console-flood.md) —— Windows 桌面端终端窗口风暴与 Git 界面空白：宿主 `CreateProcessW` 缺 `CREATE_NO_WINDOW` 放大焦点事件，客户端刷新无合并且轮次互相判旧。

@@ -17,6 +17,10 @@
 - 新增 `prepare` 脚本（`pnpm run build`），使 GitHub/git 安装会在安装方机器上从 `src/` 构建 `lib/`。
 - `pnpm docs:check` 现在同时校验仓库根的三对双语文档：`README`、`CONTRIBUTING`、`CHANGELOG` 都必须有 `.zh.md` 副版与 `*.i18n.yaml` 一致性记录。
 
+### Fixed
+
+- 焦点抖动不再叠加仓库刷新：`GitClientController.refresh()` 对同一工作区复用在途往返，反复的焦点事件只对应一对 `discover`/`status`，而不是互相判旧、让 `repository` 迟迟不落地的多轮重叠请求。背景见 [Windows 桌面端终端窗口风暴](docs/troubleshooting/windows-desktop-console-flood.md)。
+
 ## [0.2.0] — 2026-09-14
 
 首次公开发布：`@dsh-electron/dsh-plugin-git@0.2.0` 已带构建 provenance 发布到 npm，其 GitHub Release 附同一个 tarball。
