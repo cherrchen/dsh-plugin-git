@@ -6,6 +6,16 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Changed
+
+- The exact DSH compatibility matrix now covers `0.1.5-rc.2` and `0.1.6-alpha.2`, with development dependencies pinned to `0.1.5-rc.2`.
+- Main CI now runs the full validation gate against each supported DSH release.
+- Client workspace lookup and plugin settings registration now span the alpha.2 Session-list and Plugins-tab API changes.
+
+### Fixed
+
+- Declare `simple-icons` as a peer dependency because `dsh-client-ui-primitives@0.1.6-alpha.2` imports it from its published bundle without a runtime dependency declaration.
+
 ## [0.2.1] — 2026-09-14
 
 Documentation and reliability release: the changelog and contribution guide arrive, the installation section documents all four install sources, and window-focus churn no longer stacks repository refreshes.

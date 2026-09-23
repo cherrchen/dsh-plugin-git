@@ -26,7 +26,7 @@
 
 ## 上游版本钉住
 
-- DSH 的已验证兼容版本清单、精确 peer 范围和候选升级流程见 [DSH 兼容契约](../../docs/reference/dsh-compatibility.md)；当前开发 pin 为 `0.1.6-alpha.1`。
+- DSH 的已验证兼容版本清单、精确 peer 范围和候选升级流程见 [DSH 兼容契约](../../docs/reference/dsh-compatibility.md)；当前开发 pin 为 `0.1.5-rc.2`。
 - 旧的第三方 UI 宿主 `@dsh-electron/dsh-client-ui-details-host` 已废弃：本包已迁移到上游内置右侧边栏（npm `0.1.5-rc.2`），不再需要 `tests/fixtures/` 下钉 tarball 的 `file:` devDependency 工作流（曾用于 `0.2.0-alpha.4` 与 `0.3.0` 两份 fixture，见提交 `c09dc1a`、`b4ba876`；现已删除）。
 
 ## 相关文档

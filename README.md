@@ -12,7 +12,7 @@ English | [中文](README.zh.md)
 
 Standard DSH/Cordis Git plugin with one portable Host service, one Client bundle, and optional Desktop enhancement. The package runs unchanged in DeepSeek Harness Desktop and in a standard DSH Web host; the npm scope `@dsh-electron/` identifies the publisher, not a runtime requirement.
 
-**Requires the upstream right sidebar.** This package supports the exact DeepSeek Harness releases `0.1.5-rc.2` and `0.1.6-alpha.1`, whose Client UI ships the right sidebar (`@deepseek-ai/dsh-client-ui-sidebar-right`). Git registers three sidebar tab types through the standard two-stage path and navigates through `ctx.sidebarRight`; without the right sidebar the Client half cannot load. The third-party Details Host plugin is deprecated and no longer depended on. See the [DSH compatibility contract](docs/reference/dsh-compatibility.md) for the verified release list.
+**Requires the upstream right sidebar.** This package supports the exact DeepSeek Harness releases `0.1.5-rc.2` and `0.1.6-alpha.2`, whose Client UI ships the right sidebar (`@deepseek-ai/dsh-client-ui-sidebar-right`). Git registers three sidebar tab types through the standard two-stage path and navigates through `ctx.sidebarRight`; without the right sidebar the Client half cannot load. The third-party Details Host plugin is deprecated and no longer depended on. See the [DSH compatibility contract](docs/reference/dsh-compatibility.md) for the verified release list.
 
 [DeepSeek Harness Desktop](https://github.com/cherrchen/deepseek-harness-electron) pre-installs this plugin and mirrors this repository with git subtree. Users may disable Git from the Plugins settings; the right sidebar is an upstream built-in.
 
@@ -36,7 +36,7 @@ Standard DSH/Cordis Git plugin with one portable Host service, one Client bundle
 <a id="dsh-compatibility"></a>
 ## DSH compatibility
 
-This repo currently verifies against **DeepSeek Harness `0.1.5-rc.2` and `0.1.6-alpha.1`**. The development pin is `0.1.6-alpha.1`; see the [compatibility contract](docs/reference/dsh-compatibility.md) for the CI gate and candidate upgrade process.
+This repo currently verifies against **DeepSeek Harness `0.1.5-rc.2` and `0.1.6-alpha.2`**. The development pin is `0.1.5-rc.2`; see the [compatibility contract](docs/reference/dsh-compatibility.md) for the compatibility matrix and candidate upgrade process.
 
 <a id="installation"></a>
 ## Installation

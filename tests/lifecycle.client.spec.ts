@@ -119,11 +119,11 @@ describe('Git client lifecycle', () => {
 
   it('registers the commit-message card when settingsScope is present', async () => {
     const ctx = new Context()
-    const registrations: Array<{ name?: string; key?: string }> = []
+    const registrations: Array<{ name?: string; key?: string; id?: string; label?: string | (() => string) }> = []
     const sidebar = minimalSidebar()
     ctx.provide('slots', {
       inject: (_name: string, callback: () => unknown) => ctx.effect(() => callback() as () => void),
-      register: (entry: { name?: string; key?: string }) => {
+      register: (entry: { name?: string; key?: string; id?: string; label?: string | (() => string) }) => {
         registrations.push(entry)
         return () => { registrations.splice(registrations.indexOf(entry), 1) }
       },
@@ -157,6 +157,9 @@ describe('Git client lifecycle', () => {
     await fiber.await()
     expect(registrations.filter(entry => entry.name === 'settings.plugin.item').map(entry => entry.key))
       .toEqual(['git-commit-message'])
+    const settingsTab = registrations.find(entry => entry.name === 'settings.plugins.tab')
+    expect(settingsTab?.id).toBe('git-commit-message')
+    expect(typeof settingsTab?.label).toBe('function')
     await fiber.dispose()
     expect(registrations.some(entry => entry.name === 'settings.plugin.item')).toBe(false)
   })

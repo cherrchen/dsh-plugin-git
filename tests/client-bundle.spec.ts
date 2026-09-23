@@ -28,7 +28,7 @@ describe('Git client bundle', () => {
       .filter(([name]) => name.startsWith('@deepseek-ai/dsh-'))
     expect(dshPeers.length).toBeGreaterThan(0)
     for (const [, range] of dshPeers) {
-      expect(range).toBe('0.1.5-rc.2 || 0.1.6-alpha.1')
+      expect(range).toBe('0.1.5-rc.2 || 0.1.6-alpha.2')
     }
   })
 })

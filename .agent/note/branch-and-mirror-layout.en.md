@@ -26,7 +26,7 @@ The canonical repository for this package is `cherrchen/dsh-plugin-git` on GitHu
 
 ## Upstream version pinning
 
-- The verified DSH release list, exact peer ranges, and candidate upgrade flow are documented in the [DSH compatibility contract](../../docs/reference/dsh-compatibility.md); the current development pin is `0.1.6-alpha.1`.
+- The verified DSH release list, exact peer ranges, and candidate upgrade flow are documented in the [DSH compatibility contract](../../docs/reference/dsh-compatibility.md); the current development pin is `0.1.5-rc.2`.
 - The former third-party UI host `@dsh-electron/dsh-client-ui-details-host` is deprecated: this package migrated to the upstream built-in right sidebar (npm `0.1.5-rc.2`), so the pinned `tests/fixtures/` tarball `file:` devDependency workflow (`0.2.0-alpha.4` and `0.3.0`; integrity-refresh history in commits `c09dc1a` and `b4ba876`) is gone.
 
 ## Related documents

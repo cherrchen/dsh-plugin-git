@@ -10,8 +10,27 @@ permissions:
   contents: read
 
 jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      dsh-versions: ${{ steps.versions.outputs.dsh-versions }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+      - id: versions
+        run: echo "dsh-versions=$(node scripts/check-dsh-compat.mjs --list)" >> "$GITHUB_OUTPUT"
+
   test:
     runs-on: ubuntu-latest
+    needs: matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        dsh-version: ${{ fromJSON(needs.matrix.outputs.dsh-versions) }}
+    env:
+      DSH_COMPAT_VERSION: ${{ matrix.dsh-version }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -22,6 +41,11 @@ jobs:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Select DSH matrix version
+        if: matrix.dsh-version != '0.1.5-rc.2'
+        run: |
+          node scripts/upgrade-dsh.mjs "$DSH_COMPAT_VERSION"
+          pnpm install --no-frozen-lockfile
       - run: pnpm compat:check
       - run: pnpm test
       - run: pnpm docs:check

@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 精确 DSH 兼容矩阵现支持 `0.1.5-rc.2` 与 `0.1.6-alpha.2`，开发依赖 pin 回 `0.1.5-rc.2`。
+- 主 CI 现会针对每个受支持的 DSH 版本分别运行完整门禁。
+- Client 工作区读取和插件设置卡片注册已适配 alpha.2 的 Session 列表与 Plugins 标签页接口变化。
+
+### Fixed
+
+- 将 `simple-icons` 声明为 peer dependency：`dsh-client-ui-primitives@0.1.6-alpha.2` 的发布 bundle 导入该包，但其 manifest 未声明运行时依赖。
+
 ## [0.2.1] — 2026-09-14
 
 文档与可靠性版本：新增变更日志与贡献指南，[安装](README.zh.md#installation)一节文档化全部四种安装来源，焦点抖动不再叠加仓库刷新。

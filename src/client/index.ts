@@ -151,12 +151,28 @@ export function apply(ctx: ClientContext): void {
       loadCatalog,
     )
     settingsCtx.effect(() => () => { card.dispose() }, 'git: commit-message settings dispose')
-    settingsCtx.effect(() => settingsCtx.slots.inject('settings.plugin.item', () => settingsCtx.slots.register({
+    // The Plugins settings composition changed in DSH 0.1.6-alpha.2: old
+    // hosts render plugin cards from `settings.plugin.item`, while new hosts
+    // render feature-owned pages from `settings.plugins.tab`. Register both
+    // names through the structural Slots API so the package remains buildable
+    // against either release's declarations; an unconsumed registration is inert.
+    const settingsSlots = settingsCtx.slots as unknown as {
+      inject(name: string, callback: () => void | (() => void)): () => void
+      register(options: Record<string, unknown>, component: unknown): () => void
+    }
+    settingsCtx.effect(() => settingsSlots.inject('settings.plugin.item', () => settingsSlots.register({
       name: 'settings.plugin.item',
       key: GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE,
       locale: NS,
       inject: () => ({ controller: card }),
     }, CommitMessageSettingsCard)), 'git: commit-message settings card')
+    settingsCtx.effect(() => settingsSlots.inject('settings.plugins.tab', () => settingsSlots.register({
+      name: 'settings.plugins.tab',
+      id: GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE,
+      order: 30,
+      label: () => t('settings.title'),
+      locale: NS,
+      inject: () => ({ controller: card }),
+    }, CommitMessageSettingsCard)), 'git: commit-message settings tab')
   })
 }
-

@@ -3,15 +3,6 @@ import { useEffect } from 'react'
 import type { GitClientController } from './controller.ts'
 
 /**
- * Session-cwd hook face (framework-injected `useSessions`).
- * Kept structural so surfaces can accept it through their props.
- */
-export type GitSessionsHook = <T>(selector: (list: {
-  current: string | undefined
-  byId: Record<string, { cwd?: string } | undefined>
-}) => T) => T
-
-/**
  * Bind the controller's repository discovery to the current session workspace
  * and reload whenever it changes (workspace/session switches rebind, so no
  * surface can keep showing a previous workspace's repository).

@@ -12,6 +12,10 @@ const match = /export const SUPPORTED_DSH_RELEASES = \[([^\]]*)\]/u.exec(contrac
 if (!match) throw new Error('SUPPORTED_DSH_RELEASES must be an array literal in src/compat/dsh-version.ts')
 const supported = [...match[1].matchAll(/'([^']+)'/gu)].map((item) => item[1])
 if (supported.length === 0) throw new Error('SUPPORTED_DSH_RELEASES must not be empty')
+if (process.argv.includes('--list')) {
+  console.log(JSON.stringify(supported))
+  process.exit(0)
+}
 
 const peers = Object.fromEntries(Object.entries(manifest.peerDependencies ?? {}).filter(([name]) => name.startsWith('@deepseek-ai/dsh-')))
 const devs = Object.fromEntries(Object.entries(manifest.devDependencies ?? {}).filter(([name]) => name.startsWith('@deepseek-ai/dsh-')))

@@ -10,7 +10,6 @@ import { ComposerToolTrigger } from './ComposerToolTrigger.tsx'
 import { changedPathCount } from './changed-path-count.ts'
 import type { GitClientController } from './controller.ts'
 import { formatLocale } from './locales.ts'
-import type { GitSessionsHook } from './use-git-workspace.ts'
 import css from './GitBranchControl.module.css'
 
 export type GitBranchControlProps = PropsRuntime<'conversation.input.left'> & PropsLocale<'git'>
@@ -45,10 +44,7 @@ export function createBranchErrorMessage(
 /** Branch selector and changed-files chip for the composer `conversation.input.left` slot. */
 export function GitBranchControl({ controller, openDetails, t, sessionId, useSessions }: GitBranchControlProps): ReactNode {
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
-  // Structural hook face (same treatment as the details surfaces): keeps the
-  // component independent of the Host session adapter's concrete typing.
-  const sessions = useSessions as GitSessionsHook
-  const workspacePath = sessions(list => list.byId[sessionId as string]?.cwd)
+  const workspacePath = useSessions(list => list.byId[sessionId]?.cwd)
   const [menuOpen, setMenuOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [branchName, setBranchName] = useState('')
