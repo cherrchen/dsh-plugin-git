@@ -31,6 +31,12 @@
 - 兼容检查的范围是本插件直接声明的 DSH peer 与开发依赖；当前候选锁文件仍有来自上游内部包的 peer 警告，全宿主依赖图验证归上游组合仓库负责。
 - 不支持版本在运行时不会被主动拒绝；若上游改变接口导致功能错误，仍需依靠主机升级验证与报告处理。
 
+## 后续修正（2026-09-23）：宿主运行时副本不能被新版本漂走
+
+把 Cordis peer 下限抬到 `>=4.0.3`、并把 schemastery 依赖下限抬到 `>=3.18.3`，会让 0.1.5-rc.2 与 0.1.6 的宿主失去可加载的插件：那些发行版带的是 Cordis `4.0.2` 与 schemastery `3.18.2`。`3.18.2` 没有 `Schema.prototype.volatile`。插件在求值导出的 `Config` 时无条件调用它，入口模块直接抛出 `volatile is not a function`。主 CI 与当时的矩阵把这两份运行时漂到了 0.1.7 的副本，所以这条加载失败没有被测试看见。
+
+修正：`src/compat/dsh-schema.ts` 按方法是否存在决定是否标记 `volatile`；Cordis peer 回到 `>=4.0.2 <5`；schemastery 依赖回到 `>=3.18.2 <4`。开发 pin 与每个矩阵车道把 Cordis、schemastery 钉到该 DSH 版本声明的 caret 下限。`pnpm compat:check` 核对解析结果等于这个下限。
+
 ## Related Documents
 
 - [DSH 兼容契约](../reference/dsh-compatibility.md)

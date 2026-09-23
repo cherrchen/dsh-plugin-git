@@ -18,6 +18,7 @@ import {
   validateCommitMessageSettings,
   type CommitMessageSettings,
 } from './commit-message-settings.ts'
+import { markVolatile } from './compat/dsh-schema.ts'
 import { GitService } from './service.ts'
 import type { GitCommitMessageCapability, GitFileChange } from './types.ts'
 
@@ -50,11 +51,11 @@ export const Config = z.object({
   maxOutputBytes: z.natural().min(1024).default(8 * 1024 * 1024),
   graceMs: z.natural().min(1).default(3000),
   commitMessage: z.object({
-    mode: z.union([z.const('inherit'), z.const('custom')]).volatile(),
-    provider: z.string().volatile(),
-    model: z.string().volatile(),
-    systemPrompt: z.string().volatile(),
-    maxDiffBytes: z.natural().min(1024).volatile(),
+    mode: markVolatile(z.union([z.const('inherit'), z.const('custom')])),
+    provider: markVolatile(z.string()),
+    model: markVolatile(z.string()),
+    systemPrompt: markVolatile(z.string()),
+    maxDiffBytes: markVolatile(z.natural().min(1024)),
   }),
 })
 

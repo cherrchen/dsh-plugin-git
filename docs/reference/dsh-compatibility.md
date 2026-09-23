@@ -13,7 +13,7 @@
 
 每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。开发依赖与提交锁文件统一 pin 到 `0.1.5-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。`0.1.6-alpha.1` 是已验证版本，后续加入 alpha.2 与 0.1.7 时应保留在支持清单内；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
 
-跨版本适配集中在 [`src/compat/`](../../src/compat)：提交信息设置适配器在旧版 `settingsScope` 与 0.1.7 的 `configForms` 间转换表单，图标适配器在固定尺寸名称与 0.1.7 权重 glyph 间选择。开发 pin 始终保持 `0.1.5-rc.2`。
+跨版本适配集中在 [`src/compat/`](../../src/compat)，并且只按结构探测、不按版本号分支：提交信息设置适配器在旧版 `settingsScope` 与 0.1.7 的 `configForms` 间转换表单；图标适配器在固定尺寸名称与 0.1.7 权重 glyph 间选择；schema 适配器仅在当前 schemastery 副本提供 `volatile` 时才标记字段。开发 pin 始终保持 `0.1.5-rc.2`，其宿主运行时是 Cordis `4.0.2` 与 schemastery `3.18.2`。
 
 `dsh-client-ui-primitives` 的发布 bundle 导入 `diff`，但上游没有将其声明为运行时依赖。本插件将 `diff`（`>=9 <10`）声明为 peer。alpha.2 的 bundle 还导入 `simple-icons@16.31.0`，同样未声明运行时依赖；本插件将 `simple-icons`（`>=16.31.0 <17`）声明为 peer，并以 `16.31.0` 做开发依赖 pin。这样严格依赖解析器也能满足上游 bundle 的导入。
 
@@ -33,12 +33,12 @@
 晋级 `0.1.7-alpha.1` 前，对比了插件直接使用的上游 npm 发布包 `0.1.6-alpha.2` 与 `0.1.7-alpha.1` 的公开声明、manifest 和运行时 bundle：
 
 - **必须适配：设置服务与配置 schema 迁移。** `dsh-client-ui-settings` 删除 `settingsScope.bind({ namespace })` 与 `SettingsScope` 类型，新增 `configForms.get(entryId)` / `ConfigForm`。Git 的提交信息设置卡片依赖旧服务进行快照订阅和 revision-fenced mutate；未适配时新的服务注入永不启动，设置卡片消失。插件现在分别注入 `settingsScope` 与 `configForms`，都接入同一个结构化卡片控制器。新 `mutate` 返回 `boolean`、旧版返回 `void`；控制器根据订阅后的快照判断写入是否落地，兼容两种结果。
-- **必须适配：Host 设置由独立 section 转为插件 Config 投影。** `dsh-settings` 移除了 `installSection`，改为从插件 `Config` 的 `.volatile()` 字段生成表单，应用的插件配置引用提供实时值。提交信息配置字段现标记为 volatile，Host 配置表单自动生成关闭，Client 自有页面通过插件 entry id `@dsh-electron/dsh-plugin-git` 读取整个 Config，并将写操作映射到 `commitMessage.*` 路径。`.volatile()` 由 `@deepseek-ai/schemastery@3.18.3` 提供，因此将本包直接依赖的最低版本提高到 `3.18.3`。
+- **必须适配：Host 设置由独立 section 转为插件 Config 投影。** `dsh-settings` 移除了 `installSection`，改为从插件 `Config` 的 `.volatile()` 字段生成表单，应用的插件配置引用提供实时值。0.1.7 的提交信息配置字段需要 `volatile`，Host 配置表单自动生成关闭，Client 自有页面通过插件 entry id `@dsh-electron/dsh-plugin-git` 读取整个 Config，并将写操作映射到 `commitMessage.*` 路径。`.volatile()` 只存在于 schemastery `3.18.3`（0.1.7-alpha.1）。0.1.5-rc.2、0.1.6-alpha.1 与 0.1.6-alpha.2 的宿主解析到 schemastery `3.18.2`，模块求值期无条件调用 `.volatile()` 会抛出 `volatile is not a function`，插件入口无法加载。适配层先探测该方法是否存在：没有就保持普通字段，旧版仍走 `installSection`。本包对 schemastery 的依赖范围是 `>=3.18.2 <4`，两个宿主副本都满足。
 - **需关注但未发现阻断：设置 UI slots 的组织方式变化。** `dsh-client-ui-settings-plugins` 从自身提供若干内置配置表单改为只提供 Settings 插件页框架；`settings.plugins.tab` 仍由 feature-owned 页签注册。Git 仍在旧 `settings.plugin.item` 与新 `settings.plugins.tab` 注册贡献，宿主只消费已知插槽。
 - **需适配：primitives 图标导出重命名。** `dsh-client-ui-primitives` 将固定尺寸图标（如 `IconChevronDownOutline14`、`IconBranchOutline16`）改为带权重名的 glyph（如 `IconChevronDownOutlineMedium`）。Git 通过本地兼容层先找旧导出，再映射至新 Medium glyph；Menu API 保持可用。
 - **当前调用保持兼容：Git 服务与主要 Client 扩展点。** `dsh-subprocess` 保留 `resolveExecutable` / `spawn` 声明；右侧栏插件调用的 `openTab` / `openResource` 和注册所需 SidebarRight tab/resource 类型未改变。
 - **上游 bundle 漏声明运行时依赖。** `dsh-client-store@0.1.7-alpha.1` bundle 导入 `zustand` 和 `immer`，但 manifest 未声明它们；严格依赖解析器运行测试时无法解析模块。本包补充 `zustand`（`>=4.4.7 <5`）和 `immer`（`>=10.1.1 <11`）peer，并以匹配上游的开发版本验证。
-- **Cordis 最低版本提高。** DSH 0.1.7-alpha.1 的直接依赖要求 Cordis `^4.0.3`；本包将 peer 下限与开发依赖同步到 4.0.3，以免宿主包树在候选版下落入不满足 peer 的 Cordis 4.0.2。
+- **Cordis 跟随宿主副本，不抬高 peer 下限。** 0.1.5-rc.2 到 0.1.6-alpha.2 的宿主是 Cordis `4.0.2`；0.1.7-alpha.1 要求 `^4.0.3`。peer 保持 `>=4.0.2 <5`，因此 4.0.2 宿主仍满足声明。开发 pin 与矩阵车道分别钉到该 DSH 版本声明的精确 Cordis，避免同一棵树里出现两份 Cordis。
 - **Session 与 LLM 风险检查：** Session Controller 重组了 subagent catalog 到 projection baseline 的接口，移除若干 catalog 专用成员；插件不调用这些接口，只按 `sessionId` 从 `useSessions(...).byId[id].cwd` 取工作目录。LLM 类型有所扩充/重排，插件依赖的 `GenerateOptions`、`Message`、`MessageId` 与 `TextBlock` 通过候选版构建验证。
 
 候选版本的直接依赖安装后，类型构建、测试及 artifact 检查用于验证上述兼容判断。新的 `ConfigForms.get` 以宿主 entry id 作为查找键；插件通过 `@dsh-electron/dsh-plugin-git` 插件 entry id 读取 Config 表单，旧版仍使用 `git-commit-message` 独立设置 namespace。
@@ -50,7 +50,10 @@
 1. peer dependencies 是否与精确版本清单一致；
 2. 每个 DSH peer 是否有对应开发依赖；
 3. 所有 DSH 开发依赖是否 pin 在同一已支持版本；
-4. 当前 `node_modules` 中每个已声明的 DSH 包是否存在且解析到该 pin。
+4. 当前 `node_modules` 中每个已声明的 DSH 包是否存在且解析到该 pin；
+5. 已安装的 `@deepseek-ai/dsh-settings` 所声明的 Cordis 与 schemastery caret 下限，是否就是当前解析到的精确版本，且本包的 Cordis peer 与 schemastery 依赖范围接受这个副本。
+
+第 5 项挡住「DSH 包是旧版本、Cordis / schemastery 却被漂到新版本」的安装。那种树上类型检查和单测可以通过，真实宿主加载插件时仍会失败。schemastery 的发布范围仍是 `>=3.18.2 <4`，仓库用 `pnpm-workspace.yaml` 的 `overrides` 把当前车道钉到该版本声明的精确副本；Cordis 由开发依赖的精确版本钉住。升级脚本在切换车道时同时改这两处。
 
 主 CI 使用已提交锁文件中的开发 pin，冻结安装后运行兼容门禁、测试、文档检查、构建与 artifact 检查。`.github/workflows/upgrade.yml` 通过 `scripts/check-dsh-compat.mjs --list-non-default` 从唯一版本清单中动态生成非开发 pin 的矩阵，避免再复制维护版本数组；每个车道切换至对应精确版本、重新解析依赖，再运行同一组门禁。两条工作流均不会静默改变支持清单。
 

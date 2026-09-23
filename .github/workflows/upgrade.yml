@@ -65,9 +65,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Select DSH matrix version
-        run: |
-          node scripts/upgrade-dsh.mjs "$DSH_COMPAT_VERSION"
-          pnpm install --no-frozen-lockfile
+        run: node scripts/upgrade-dsh.mjs "$DSH_COMPAT_VERSION"
+      # Re-resolve after the pin change. minimumReleaseAge=0 lets a newly
+      # published prerelease install; the compat check then rejects a tree
+      # whose cordis or schemastery is not the copy that release ships.
+      - name: Install the selected host runtime
+        run: pnpm install --no-frozen-lockfile --config.minimumReleaseAge=0
       - run: pnpm compat:check
       - run: pnpm test
       - run: pnpm docs:check
