@@ -9,7 +9,7 @@ import type { GitGenerationUnavailableReason, GitRepositorySnapshot } from '../.
 import type { GitClientController, GitCommitFollowUp } from '../controller.ts'
 import type { GitLocaleKey } from '../locales.ts'
 import { Menu, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
-import { IconChevronDownOutline14 } from '../compat/icons.tsx'
+import { IconChevronDownOutline14 } from '../../compat/dsh-icons.tsx'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IconGitWand } from './GitActionIcons.tsx'
 import css from '../GitDetailsSurface.module.css'

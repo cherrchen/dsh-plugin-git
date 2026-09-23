@@ -12,7 +12,7 @@ kind: "package-bundle"
 
 标准 DSH/Cordis Git 插件，包含一项 portable Host service、一份 Client bundle 与 optional Desktop enhancement。同一 package 可在 DeepSeek Harness Desktop 与标准 DSH Web host 中原样运行；npm scope `@dsh-electron/` 标识发布者，不是运行时要求。
 
-**依赖上游右侧边栏。** 本包精确支持 DeepSeek Harness `0.1.5-rc.2` 与 `0.1.6-alpha.2`，两者的 Client UI 均自带右侧边栏 `@deepseek-ai/dsh-client-ui-sidebar-right`。Git 以标准两阶段方式注册三个 sidebar tab type，并通过 `ctx.sidebarRight` 导航；宿主没有右侧边栏时 Client 半无法加载。旧的第三方 Details Host 插件已废弃，不再被依赖。已验证版本见 [DSH 兼容契约](docs/reference/dsh-compatibility.md)。
+**依赖上游右侧边栏。** 本包精确支持 DeepSeek Harness `0.1.5-rc.2`、`0.1.6-alpha.1`、`0.1.6-alpha.2` 与 `0.1.7-alpha.1`，这些版本的 Client UI 均自带右侧边栏 `@deepseek-ai/dsh-client-ui-sidebar-right`。Git 以标准两阶段方式注册三个 sidebar tab type，并通过 `ctx.sidebarRight` 导航；宿主没有右侧边栏时 Client 半无法加载。旧的第三方 Details Host 插件已废弃，不再被依赖。已验证版本见 [DSH 兼容契约](docs/reference/dsh-compatibility.md)。
 
 [DeepSeek Harness Desktop](https://github.com/cherrchen/deepseek-harness-electron) 预装本插件，并通过 git subtree 镜像本仓库。用户可在**设置 → 插件**中禁用 Git；右侧边栏是上游内置项。
 
@@ -36,7 +36,7 @@ kind: "package-bundle"
 <a id="dsh-compatibility"></a>
 ## DSH 兼容性
 
-本仓库当前验证支持 **DeepSeek Harness `0.1.5-rc.2` 与 `0.1.6-alpha.2`**。开发 pin 为 `0.1.5-rc.2`；兼容矩阵与候选升级流程见[兼容契约](docs/reference/dsh-compatibility.md)。
+本仓库当前验证支持 **DeepSeek Harness `0.1.5-rc.2`、`0.1.6-alpha.1`、`0.1.6-alpha.2` 与 `0.1.7-alpha.1`**。开发 pin 为 `0.1.5-rc.2`；兼容矩阵与候选升级流程见[兼容契约](docs/reference/dsh-compatibility.md)。
 
 <a id="installation"></a>
 ## 安装

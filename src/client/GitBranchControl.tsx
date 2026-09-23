@@ -5,7 +5,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import {
   Button, Input, Menu, Modal, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import { IconBranchOutline16, IconCheckOutline16 } from './compat/icons.tsx'
+import { IconBranchOutline16, IconCheckOutline16 } from '../compat/dsh-icons.tsx'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { ComposerToolTrigger } from './ComposerToolTrigger.tsx'
 import { changedPathCount } from './changed-path-count.ts'

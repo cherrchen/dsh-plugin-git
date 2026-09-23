@@ -4,7 +4,7 @@
 import { useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import { IconFolderOpenOutline16, IconRefreshOutline16 } from './compat/icons.tsx'
+import { IconFolderOpenOutline16, IconRefreshOutline16 } from '../compat/dsh-icons.tsx'
 import type { GitClientController } from './controller.ts'
 import { GitIconButton } from './details/GitIconButton.tsx'
 import css from './GitDetailsHeaderActions.module.css'

@@ -7,10 +7,13 @@
 唯一版本清单位于 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)：
 
 - `0.1.5-rc.2`
+- `0.1.6-alpha.1`
 - `0.1.6-alpha.2`
 - `0.1.7-alpha.1`
 
-每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。开发依赖与提交锁文件统一 pin 到 `0.1.5-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。
+每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。开发依赖与提交锁文件统一 pin 到 `0.1.5-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。`0.1.6-alpha.1` 是已验证版本，后续加入 alpha.2 与 0.1.7 时应保留在支持清单内；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
+
+跨版本适配集中在 [`src/compat/`](../../src/compat)：提交信息设置适配器在旧版 `settingsScope` 与 0.1.7 的 `configForms` 间转换表单，图标适配器在固定尺寸名称与 0.1.7 权重 glyph 间选择。开发 pin 始终保持 `0.1.5-rc.2`。
 
 `dsh-client-ui-primitives` 的发布 bundle 导入 `diff`，但上游没有将其声明为运行时依赖。本插件将 `diff`（`>=9 <10`）声明为 peer。alpha.2 的 bundle 还导入 `simple-icons@16.31.0`，同样未声明运行时依赖；本插件将 `simple-icons`（`>=16.31.0 <17`）声明为 peer，并以 `16.31.0` 做开发依赖 pin。这样严格依赖解析器也能满足上游 bundle 的导入。
 

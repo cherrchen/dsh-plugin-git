@@ -37,6 +37,7 @@ import {
 } from './contract.ts'
 import { changesDefinition, diffDefinition, graphDefinition } from './tab-definitions.ts'
 import { en, NS, zh, type GitLocaleKey } from './locales.ts'
+import { injectDshCommitMessageSettings } from '../compat/dsh-client-settings.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -181,38 +182,10 @@ export function apply(ctx: ClientContext): void {
     }, CommitMessageSettingsCard)), 'git: commit-message settings tab')
   }
 
-  // DSH 0.1.7-alpha.1 replaces `settingsScope.bind({ namespace })` with
-  // `configForms.get(entryId)`. Keep the settings card in its own optional
-  // fiber for each service so either supported host can mount it.
-  const injectSettingsService = (ctx as unknown as {
-    inject(services: string[], callback: (settingsCtx: ClientContext) => void): unknown
-  }).inject.bind(ctx)
-  injectSettingsService(['settingsScope'], (settingsCtx) => {
-    const settingsApi = settingsCtx as unknown as {
-      settingsScope: { bind(options: { namespace: string }): CommitMessageSettingsForm<import('./settings/commit-message-card-controller.ts').CommitMessageCardSettings> }
-    }
-    mountCommitMessageSettings(settingsCtx, () => settingsApi.settingsScope.bind({ namespace: GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE }))
-  })
-  injectSettingsService(['configForms'], (settingsCtx) => {
-    const settingsApi = settingsCtx as unknown as {
-      configForms: { get(entryId: string): CommitMessageSettingsForm<Record<string, unknown>> }
-    }
-    mountCommitMessageSettings(settingsCtx, () => {
-      const form = settingsApi.configForms.get('@dsh-electron/dsh-plugin-git')
-      return {
-        getSnapshot: () => {
-          const snapshot = form.getSnapshot()
-          return {
-            ...snapshot,
-            value: snapshot.value?.commitMessage as CommitMessageCardSettings | undefined,
-          }
-        },
-        subscribe: listener => form.subscribe(listener),
-        mutate: (operations, revision) => form.mutate(operations.map(operation => ({
-          ...operation,
-          path: ['commitMessage', ...operation.path],
-        })), revision),
-      }
-    })
+  // Settings API differences across DSH releases are isolated in compat.
+  injectDshCommitMessageSettings(ctx, {
+    namespace: GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE,
+    entryId: '@dsh-electron/dsh-plugin-git',
+    mount: mountCommitMessageSettings,
   })
 }
