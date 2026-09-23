@@ -18,7 +18,7 @@ import {
   validateCommitMessageSettings,
   type CommitMessageSettings,
 } from './commit-message-settings.ts'
-import { markVolatile } from './compat/dsh-schema.ts'
+import { markVolatile, readVolatile } from './compat/dsh-schema.ts'
 import { GitService } from './service.ts'
 import type { GitCommitMessageCapability, GitFileChange } from './types.ts'
 
@@ -118,12 +118,12 @@ class GenerationAssembly {
  * @returns The mutable assembly consumed by the RPC adapter.
  */
 function assembleGeneration(ctx: Context, config: CommitMessageSettings | undefined): GenerationAssembly {
-  if (config?.mode === 'custom') validateCommitMessageSettings(config)
   const generation = new GenerationAssembly()
   const entry: CommitMessageSettings = config ?? {}
   let readSettings: (() => CommitMessageSettings) | undefined
   let readHostDefault: (() => CommitMessageSelection) | undefined
-  const resolved = (): CommitMessageSettings => readSettings?.() ?? entry
+  const resolved = (): CommitMessageSettings => plainCommitMessageSettings(readSettings?.() ?? entry)
+  if (resolved().mode === 'custom') validateCommitMessageSettings(resolved())
   const resolveSelection = (): CommitMessageSelection | undefined => {
     const source = resolved()
     if (source.mode !== 'inherit' && source.provider !== undefined && source.model !== undefined) {
@@ -180,6 +180,29 @@ function assembleGeneration(ctx: Context, config: CommitMessageSettings | undefi
     return () => { readSettings = undefined }
   })
   return generation
+}
+
+/**
+ * Copy commit-message settings into plain values.
+ * On DSH 0.1.7 each field is a volatile reference and must be snapshotted per
+ * read so a settings edit applies to the next generation. Older hosts and the
+ * legacy settings section already store plain values.
+ * @param source - Composition entry, or the live settings section.
+ * @returns Settings safe to treat as strings and numbers.
+ */
+function plainCommitMessageSettings(source: CommitMessageSettings | undefined): CommitMessageSettings {
+  const mode = readVolatile(source?.mode)
+  const provider = readVolatile(source?.provider)
+  const model = readVolatile(source?.model)
+  const systemPrompt = readVolatile(source?.systemPrompt)
+  const maxDiffBytes = readVolatile(source?.maxDiffBytes)
+  return {
+    ...(mode === 'inherit' || mode === 'custom' ? { mode } : {}),
+    ...(typeof provider === 'string' ? { provider } : {}),
+    ...(typeof model === 'string' ? { model } : {}),
+    ...(typeof systemPrompt === 'string' ? { systemPrompt } : {}),
+    ...(typeof maxDiffBytes === 'number' ? { maxDiffBytes } : {}),
+  }
 }
 
 /** Current capability answer for the generation backend, including why it is unavailable. */

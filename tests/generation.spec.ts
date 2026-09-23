@@ -175,4 +175,66 @@ describe('commit message generation assembly', () => {
     await git.call('generate-commit-message', { repository: '/repo', stagedDiff: '+x' })
     expect((llm.requests[0] as { system?: string }).system).toBe('From composition.')
   })
+
+  it('reads DSH 0.1.7 volatile config references instead of calling string methods on them', async () => {
+    const llm = fakeLlm()
+    let systemPrompt: string | undefined
+    const git = await mounted({
+      llm,
+      defaultModel: { provider: 'main-provider', model: 'main-model' },
+      config: {
+        commitMessage: {
+          mode: volatile('inherit'),
+          provider: volatile('leftover'),
+          model: volatile('leftover-model'),
+          systemPrompt: volatileLive(() => systemPrompt),
+          maxDiffBytes: volatile(1024),
+        },
+      },
+    })
+    const absent = await git.call('generate-commit-message', { repository: '/repo', stagedDiff: '+x' })
+    expect(absent).toEqual({ ok: true, value: 'feat: assembled proposal' })
+    expect((llm.requests[0] as { system?: string; provider?: string }).system).toBe(COMMIT_MESSAGE_SYSTEM)
+    expect((llm.requests[0] as { provider?: string }).provider).toBe('main-provider')
+
+    systemPrompt = 'From volatile config.'
+    const diff = `${'line\n'.repeat(400)}tail`
+    await git.call('generate-commit-message', { repository: '/repo', stagedDiff: diff })
+    const request = llm.requests[1] as { system?: string; messages?: { content: { text: string }[] }[] }
+    expect(request.system).toBe('From volatile config.')
+    expect(request.messages?.[0]?.content[0]?.text).toContain('diff truncated for length')
+  })
+
+  it('resolves a volatile custom provider route', async () => {
+    const llm = fakeLlm()
+    const git = await mounted({
+      llm,
+      defaultModel: { provider: 'main-provider', model: 'main-model' },
+      config: {
+        commitMessage: {
+          mode: volatile('custom'),
+          provider: volatile('custom-provider'),
+          model: volatile('custom-model'),
+          systemPrompt: volatile(''),
+        },
+      },
+    })
+    await git.call('generate-commit-message', { repository: '/repo', stagedDiff: '+x' })
+    const request = llm.requests[0] as { provider?: string; model?: string; system?: string }
+    expect(request.provider).toBe('custom-provider')
+    expect(request.model).toBe('custom-model')
+    expect(request.system).toBe(COMMIT_MESSAGE_SYSTEM)
+  })
 })
+
+const volatileWrite = Symbol.for('cosmokit.volatile.write')
+
+/** A stable config reference, matching schemastery 3.18.3 volatile output. */
+function volatile<T>(value: T): T {
+  return { get: () => value, [volatileWrite]() {} } as unknown as T
+}
+
+/** A reference whose snapshot is read on every generation. */
+function volatileLive<T>(read: () => T): T {
+  return { get: read, [volatileWrite]() {} } as unknown as T
+}
