@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { SUPPORTED_DSH_RELEASES } from '../src/compat/dsh-version.ts'
 
 const packageRoot = resolve(import.meta.dirname, '..')
 
@@ -28,7 +29,7 @@ describe('Git client bundle', () => {
       .filter(([name]) => name.startsWith('@deepseek-ai/dsh-'))
     expect(dshPeers.length).toBeGreaterThan(0)
     for (const [, range] of dshPeers) {
-      expect(range).toBe('0.1.5-rc.2 || 0.1.6-alpha.2 || 0.1.7-alpha.1')
+      expect(range).toBe(SUPPORTED_DSH_RELEASES.join(' || '))
     }
   })
 })
