@@ -20,6 +20,8 @@ import { GitClientController, type GitDesktopCapability } from './controller.ts'
 import {
   CommitMessageSettingsCardController,
   GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE,
+  type CommitMessageCardSettings,
+  type CommitMessageSettingsForm,
   type CommitMessageCatalogGroup,
   type CommitMessageCatalogLoader,
 } from './settings/commit-message-card-controller.ts'
@@ -133,7 +135,10 @@ export function apply(ctx: ClientContext): void {
     return () => { controller.setDesktop(undefined) }
   })
 
-  ctx.inject(['settingsScope'], (settingsCtx) => {
+  const mountCommitMessageSettings = (
+    settingsCtx: ClientContext,
+    getForm: () => CommitMessageSettingsForm<CommitMessageCardSettings>,
+  ): void => {
     const loadCatalog: CommitMessageCatalogLoader = async () => {
       const session = settingsCtx.get('remote.session') as {
         modelCatalog?: () => Promise<
@@ -147,7 +152,7 @@ export function apply(ctx: ClientContext): void {
       return { groups: response.value.groups, partial: response.value.failures.length > 0 }
     }
     const card = new CommitMessageSettingsCardController(
-      settingsCtx.settingsScope.bind({ namespace: GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE }),
+      getForm(),
       loadCatalog,
     )
     settingsCtx.effect(() => () => { card.dispose() }, 'git: commit-message settings dispose')
@@ -174,5 +179,40 @@ export function apply(ctx: ClientContext): void {
       locale: NS,
       inject: () => ({ controller: card }),
     }, CommitMessageSettingsCard)), 'git: commit-message settings tab')
+  }
+
+  // DSH 0.1.7-alpha.1 replaces `settingsScope.bind({ namespace })` with
+  // `configForms.get(entryId)`. Keep the settings card in its own optional
+  // fiber for each service so either supported host can mount it.
+  const injectSettingsService = (ctx as unknown as {
+    inject(services: string[], callback: (settingsCtx: ClientContext) => void): unknown
+  }).inject.bind(ctx)
+  injectSettingsService(['settingsScope'], (settingsCtx) => {
+    const settingsApi = settingsCtx as unknown as {
+      settingsScope: { bind(options: { namespace: string }): CommitMessageSettingsForm<import('./settings/commit-message-card-controller.ts').CommitMessageCardSettings> }
+    }
+    mountCommitMessageSettings(settingsCtx, () => settingsApi.settingsScope.bind({ namespace: GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE }))
+  })
+  injectSettingsService(['configForms'], (settingsCtx) => {
+    const settingsApi = settingsCtx as unknown as {
+      configForms: { get(entryId: string): CommitMessageSettingsForm<Record<string, unknown>> }
+    }
+    mountCommitMessageSettings(settingsCtx, () => {
+      const form = settingsApi.configForms.get('@dsh-electron/dsh-plugin-git')
+      return {
+        getSnapshot: () => {
+          const snapshot = form.getSnapshot()
+          return {
+            ...snapshot,
+            value: snapshot.value?.commitMessage as CommitMessageCardSettings | undefined,
+          }
+        },
+        subscribe: listener => form.subscribe(listener),
+        mutate: (operations, revision) => form.mutate(operations.map(operation => ({
+          ...operation,
+          path: ['commitMessage', ...operation.path],
+        })), revision),
+      }
+    })
   })
 }

@@ -3,8 +3,9 @@ import type { ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import {
-  Button, IconBranchOutline16, IconCheckOutline16, Input, Menu, Modal, Tooltip,
+  Button, Input, Menu, Modal, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconBranchOutline16, IconCheckOutline16 } from './compat/icons.tsx'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { ComposerToolTrigger } from './ComposerToolTrigger.tsx'
 import { changedPathCount } from './changed-path-count.ts'

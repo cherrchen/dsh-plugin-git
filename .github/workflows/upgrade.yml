@@ -1,22 +1,59 @@
-name: DSH upgrade candidate
+name: DSH compatibility matrix
 
 on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '23 5 * * 1'
   workflow_dispatch:
     inputs:
       version:
-        description: Exact DSH prerelease to evaluate (for example 0.1.7-alpha.1)
-        required: true
+        description: Optional exact prerelease candidate (for example 0.1.7-alpha.1)
+        required: false
         type: string
 
 permissions:
   contents: read
 
 jobs:
-  candidate:
+  matrix:
     runs-on: ubuntu-latest
+    outputs:
+      dsh-versions: ${{ steps.versions.outputs.dsh-versions }}
+      candidate: ${{ steps.versions.outputs.candidate }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+      - id: versions
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$REQUESTED_VERSION" ]; then
+            if [[ ! "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc)\.[0-9]+$ ]]; then
+              echo "Invalid prerelease version: $REQUESTED_VERSION" >&2
+              exit 1
+            fi
+            echo "dsh-versions=[\"$REQUESTED_VERSION\"]" >> "$GITHUB_OUTPUT"
+            echo "candidate=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "dsh-versions=$(node scripts/check-dsh-compat.mjs --list-non-default)" >> "$GITHUB_OUTPUT"
+            echo "candidate=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  verify:
+    runs-on: ubuntu-latest
+    needs: matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        dsh-version: ${{ fromJSON(needs.matrix.outputs.dsh-versions) }}
     env:
-      DSH_COMPAT_MODE: warn
-      DSH_COMPAT_VERSION: ${{ inputs.version }}
+      DSH_COMPAT_MODE: ${{ needs.matrix.outputs.candidate == 'true' && 'warn' || '' }}
+      DSH_COMPAT_VERSION: ${{ matrix.dsh-version }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -27,10 +64,13 @@ jobs:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: node scripts/upgrade-dsh.mjs "$DSH_COMPAT_VERSION"
-      - run: pnpm install --no-frozen-lockfile
+      - name: Select DSH matrix version
+        run: |
+          node scripts/upgrade-dsh.mjs "$DSH_COMPAT_VERSION"
+          pnpm install --no-frozen-lockfile
       - run: pnpm compat:check
       - run: pnpm test
       - run: pnpm docs:check
       - run: pnpm build
       - run: pnpm test:artifact
+      - run: pnpm pack

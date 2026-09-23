@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import { IconChevronDownOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconChevronDownOutline14 } from '../compat/icons.tsx'
 import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
 import type { CommitMessageSettingsCardController } from './commit-message-card-controller.ts'
 import { commitMessageModelKey } from './commit-message-card-controller.ts'

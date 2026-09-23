@@ -17,6 +17,17 @@ if (process.argv.includes('--list')) {
   process.exit(0)
 }
 
+if (process.argv.includes('--list-non-default')) {
+  const pins = new Set(Object.entries(manifest.devDependencies ?? {})
+    .filter(([name]) => name.startsWith('@deepseek-ai/dsh-'))
+    .map(([, version]) => version))
+  if (pins.size !== 1) throw new Error(`development dependencies must pin one DSH release; found ${[...pins].join(', ') || '(none)'}`)
+  const [pin] = pins
+  if (!supported.includes(pin)) throw new Error(`development pin ${pin} is not in the supported release list`)
+  console.log(JSON.stringify(supported.filter(version => version !== pin)))
+  process.exit(0)
+}
+
 const peers = Object.fromEntries(Object.entries(manifest.peerDependencies ?? {}).filter(([name]) => name.startsWith('@deepseek-ai/dsh-')))
 const devs = Object.fromEntries(Object.entries(manifest.devDependencies ?? {}).filter(([name]) => name.startsWith('@deepseek-ai/dsh-')))
 const expectedPeerRange = supported.join(' || ')

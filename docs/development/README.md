@@ -26,7 +26,7 @@
 
 CI 在 `.github/workflows/ci.yml`（PR 与 main push 跑测试），发布流水线见下节，执行状态见 [npm-first-release 计划](../plans/completed/npm-first-release.md)。贡献者的环境搭建、门禁清单与文档义务见 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)。
 
-DSH 版本 pin 由[兼容契约](../reference/dsh-compatibility.md)管理。安装依赖后运行 `pnpm compat:check`；如需评估候选版本，可手动 dispatch `.github/workflows/upgrade.yml` 并传入精确 prerelease 版本，该流程不会更改支持清单。
+DSH 版本 pin 由[兼容契约](../reference/dsh-compatibility.md)管理。安装依赖后运行 `pnpm compat:check`；主 CI 验证开发 pin，`.github/workflows/upgrade.yml` 回归其余已支持版本。手动 dispatch 可传入精确 prerelease 版本评估候选，该流程不会更改支持清单。
 
 ## 发布流程
 

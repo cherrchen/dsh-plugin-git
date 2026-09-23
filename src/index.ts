@@ -50,11 +50,11 @@ export const Config = z.object({
   maxOutputBytes: z.natural().min(1024).default(8 * 1024 * 1024),
   graceMs: z.natural().min(1).default(3000),
   commitMessage: z.object({
-    mode: z.union([z.const('inherit'), z.const('custom')]),
-    provider: z.string(),
-    model: z.string(),
-    systemPrompt: z.string(),
-    maxDiffBytes: z.natural().min(1024),
+    mode: z.union([z.const('inherit'), z.const('custom')]).volatile(),
+    provider: z.string().volatile(),
+    model: z.string().volatile(),
+    systemPrompt: z.string().volatile(),
+    maxDiffBytes: z.natural().min(1024).volatile(),
   }),
 })
 
@@ -155,11 +155,27 @@ function assembleGeneration(ctx: Context, config: CommitMessageSettings | undefi
   // Plugin configuration edits this section live; without a settings provider
   // the composition entry above is the only source.
   ctx.inject(['settings'], (settingsCtx) => {
-    settingsCtx.settings.installSection(ctx, GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE, GIT_COMMIT_MESSAGE_SETTINGS_SCHEMA, entry, {
-      setSource: (current) => { readSettings = current },
-      onChange: () => {},
-      validate: validateCommitMessageSettings,
-    })
+    const settings = settingsCtx.settings as unknown as {
+      installSection?: (
+        owner: Context,
+        namespace: string,
+        schema: typeof GIT_COMMIT_MESSAGE_SETTINGS_SCHEMA,
+        initialValue: CommitMessageSettings,
+        hooks: { setSource: (current: () => CommitMessageSettings) => void; onChange: () => void; validate: typeof validateCommitMessageSettings },
+      ) => void
+      configure?: (presentation: { auto?: boolean }, owner?: unknown) => () => void
+    }
+    if (settings.installSection !== undefined) {
+      settings.installSection(ctx, GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE, GIT_COMMIT_MESSAGE_SETTINGS_SCHEMA, entry, {
+        setSource: (current) => { readSettings = current },
+        onChange: () => {},
+        validate: validateCommitMessageSettings,
+      })
+    } else if (settings.configure !== undefined) {
+      // DSH 0.1.7 derives edit forms from this plugin's volatile Config fields.
+      // Our Client page owns the UI, while the plugin keeps reading the live Config.
+      return settingsCtx.effect(() => settings.configure!({ auto: false }, settingsCtx.fiber), 'git: custom config page')
+    }
     return () => { readSettings = undefined }
   })
   return generation
