@@ -14,3 +14,4 @@
 | --- | --- | --- |
 | [ADR-0001](ADR-0001-graph-lane-not-owned-by-branch.md) | Accepted | Graph lane 不归 branch 所有 |
 | [ADR-0002](ADR-0002-graph-lane-cap-max-three-lanes.md) | Accepted | Graph 视图最多渲染 3 条 lane |
+| [ADR-0003](ADR-0003-dsh-compatibility-contract.md) | Accepted | 用精确版本清单承诺 DSH 兼容性 |

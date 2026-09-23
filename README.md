@@ -12,7 +12,7 @@ English | [中文](README.zh.md)
 
 Standard DSH/Cordis Git plugin with one portable Host service, one Client bundle, and optional Desktop enhancement. The package runs unchanged in DeepSeek Harness Desktop and in a standard DSH Web host; the npm scope `@dsh-electron/` identifies the publisher, not a runtime requirement.
 
-**Requires the upstream right sidebar.** This package targets DeepSeek Harness ≥ v0.1.5-rc.2, whose Client UI ships the right sidebar (`@deepseek-ai/dsh-client-ui-sidebar-right`). Git registers three sidebar tab types through the standard two-stage path and navigates through `ctx.sidebarRight`; without the right sidebar the Client half cannot load. The third-party Details Host plugin is deprecated and no longer depended on.
+**Requires the upstream right sidebar.** This package supports the exact DeepSeek Harness releases `0.1.5-rc.2` and `0.1.6-alpha.1`, whose Client UI ships the right sidebar (`@deepseek-ai/dsh-client-ui-sidebar-right`). Git registers three sidebar tab types through the standard two-stage path and navigates through `ctx.sidebarRight`; without the right sidebar the Client half cannot load. The third-party Details Host plugin is deprecated and no longer depended on. See the [DSH compatibility contract](docs/reference/dsh-compatibility.md) for the verified release list.
 
 [DeepSeek Harness Desktop](https://github.com/cherrchen/deepseek-harness-electron) pre-installs this plugin and mirrors this repository with git subtree. Users may disable Git from the Plugins settings; the right sidebar is an upstream built-in.
 
@@ -36,7 +36,7 @@ Standard DSH/Cordis Git plugin with one portable Host service, one Client bundle
 <a id="dsh-compatibility"></a>
 ## DSH compatibility
 
-This repo targets **DeepSeek Harness `v0.1.5-rc.2`**.
+This repo currently verifies against **DeepSeek Harness `0.1.5-rc.2` and `0.1.6-alpha.1`**. The development pin is `0.1.6-alpha.1`; see the [compatibility contract](docs/reference/dsh-compatibility.md) for the CI gate and candidate upgrade process.
 
 <a id="installation"></a>
 ## Installation
@@ -45,7 +45,7 @@ The package is published to npm as `@dsh-electron/dsh-plugin-git` (current `0.2.
 
 **DeepSeek Harness Desktop** — Git is pre-installed and enabled by default. Disable it from **Settings → Plugins** when you do not need repository UI.
 
-**DSH Web** — the right sidebar ships with DeepSeek Harness ≥ v0.1.5-rc.2, so Git alone is enough. The shortest path is two commands:
+**DSH Web** — both supported releases ship the right sidebar, so Git alone is enough. The shortest path is two commands:
 
 ```sh
 dsh plugin --profile web add @dsh-electron/dsh-plugin-git
@@ -61,7 +61,7 @@ dsh --profile web
 | local path | `dsh plugin --profile web add /path/to/dsh-plugin-git` | pnpm links the checkout; for development |
 | GitHub / git | `dsh plugin --profile web add github:cherrchen/dsh-plugin-git` | Fetches sources and builds them on install through `prepare`; needs `allowBuilds`, pin a tag |
 
-Whichever source you use, the Git client requires the host to already provide the `ctx.sidebarRight` and `ctx.sidebarRightTabs` services at load time; DeepSeek Harness ≥ v0.1.5-rc.2 provides both.
+Whichever source you use, the Git client requires the host to already provide the `ctx.sidebarRight` and `ctx.sidebarRightTabs` services at load time; both supported DeepSeek Harness releases provide them.
 
 ### From the npm registry (recommended)
 

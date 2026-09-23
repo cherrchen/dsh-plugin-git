@@ -1,17 +1,22 @@
-name: CI
+name: DSH upgrade candidate
 
 on:
-  pull_request:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact DSH prerelease to evaluate (for example 0.1.7-alpha.1)
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
-  test:
+  candidate:
     runs-on: ubuntu-latest
+    env:
+      DSH_COMPAT_MODE: warn
+      DSH_COMPAT_VERSION: ${{ inputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -22,9 +27,10 @@ jobs:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: node scripts/upgrade-dsh.mjs "$DSH_COMPAT_VERSION"
+      - run: pnpm install --no-frozen-lockfile
       - run: pnpm compat:check
       - run: pnpm test
       - run: pnpm docs:check
       - run: pnpm build
       - run: pnpm test:artifact
-      - run: pnpm pack

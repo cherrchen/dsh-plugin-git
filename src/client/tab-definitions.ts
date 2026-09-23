@@ -27,16 +27,18 @@ import { BranchGlyph, GraphGlyph } from './LauncherIcons.tsx'
  * @returns The definition to register.
  */
 export function changesDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
+  const guideEntry = {
+    id: 'git-changes',
+    order: 10,
+    title: () => t('launcher.changes.title'),
+    description: () => t('launcher.changes.description'),
+    icon: BranchGlyph,
+  }
   return {
     id: GIT_CHANGES_ID,
     kind: GIT_CHANGES_KIND,
     title: () => t('tab.changes'),
-    guide: [{
-      order: 10,
-      title: () => t('launcher.changes.title'),
-      description: () => t('launcher.changes.description'),
-      icon: BranchGlyph,
-    }],
+    guide: [guideEntry],
   }
 }
 
@@ -63,15 +65,17 @@ export function diffDefinition(): SidebarRightTabDefinition {
  * @returns The definition to register.
  */
 export function graphDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
+  const guideEntry = {
+    id: 'git-graph',
+    order: 11,
+    title: () => t('launcher.graph.title'),
+    description: () => t('launcher.graph.description'),
+    icon: GraphGlyph,
+  }
   return {
     id: GIT_GRAPH_ID,
     kind: GIT_GRAPH_KIND,
     title: () => t('tab.graph'),
-    guide: [{
-      order: 11,
-      title: () => t('launcher.graph.title'),
-      description: () => t('launcher.graph.description'),
-      icon: GraphGlyph,
-    }],
+    guide: [guideEntry],
   }
 }
