@@ -7,8 +7,8 @@
  * not change SUPPORTED_DSH_RELEASES or peer ranges: a green matrix lane is
  * evidence, not a support promise.
  *
- * Cordis and schemastery are pinned to the caret floor declared by that DSH
- * release (`@deepseek-ai/dsh` and `@deepseek-ai/dsh-settings`). Leaving the
+ * Cordis and schemastery are pinned to the caret or tilde floor declared by
+ * that DSH release (`@deepseek-ai/dsh` and `@deepseek-ai/dsh-settings`). Leaving the
  * baseline 4.0.2 / 3.18.2 pins in a 0.1.7 tree, or floating a newer copy into
  * a 0.1.5 tree, makes the lane pass against a runtime the host does not ship.
  */
@@ -35,9 +35,9 @@ function view(spec) {
 }
 
 function caretFloor(range, label) {
-  const match = typeof range === 'string' ? /^\^(\d+\.\d+\.\d+)$/u.exec(range) : null
+  const match = typeof range === 'string' ? /^[~^](\d+\.\d+\.\d+)$/u.exec(range) : null
   if (match === null) {
-    throw new Error(`[upgrade] ${label} is ${JSON.stringify(range)}, which is not a single caret this script can pin`)
+    throw new Error(`[upgrade] ${label} is ${JSON.stringify(range)}, which is not a single caret or tilde this script can pin`)
   }
   return match[1]
 }

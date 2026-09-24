@@ -5,9 +5,9 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 function caretFloor(range, label) {
-  const match = /^\^(\d+\.\d+\.\d+)$/u.exec(range ?? '')
+  const match = /^[~^](\d+\.\d+\.\d+)$/u.exec(range ?? '')
   if (!match) {
-    failures.push(`${label} must be a single caret range; found ${range ?? '(missing)'}`)
+    failures.push(`${label} must be a single caret or tilde range; found ${range ?? '(missing)'}`)
     return undefined
   }
   return match[1]
@@ -115,8 +115,8 @@ if (pin !== undefined) {
 }
 
 // The DSH packages declare the cordis and schemastery copies a real host of
-// this release ships. A newer copy that still satisfies a caret hides load
-// crashes that only happen on that host (schemastery 3.18.2 has no volatile).
+// this release ships. A newer copy that still satisfies a caret or tilde hides
+// load crashes that only happen on that host (schemastery 3.18.2 has no volatile).
 const hostRuntime = readHostRuntime(require)
 if (hostRuntime.settings === undefined) {
   failures.push('@deepseek-ai/dsh-settings is not installed; the host runtime pin cannot be checked')

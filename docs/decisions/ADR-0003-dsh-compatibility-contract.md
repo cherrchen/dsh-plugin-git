@@ -43,6 +43,12 @@
 
 修正：`.pnpmfile.cjs` 把传递 DSH 依赖、可选依赖和 peer 全部改成当前 pin。主 CI 继续冻结锁文件并保留默认冷却。只有兼容矩阵 job 设置 `pnpm_config_minimum_release_age=0`。不把新出现的 prerelease 写入 `minimumReleaseAgeExclude`，也不在 `pnpm-workspace.yaml` 全局关闭冷却。`pnpm compat:check` 拒绝锁文件里任何一个不等于 pin 的 `@deepseek-ai/dsh-*`。
 
+## 后续修正（2026-09-24）：0.1.7-alpha.2 与 rc.1 用波浪号声明宿主副本
+
+0.1.7-alpha.2 与 0.1.7-rc.1 把 Cordis、schemastery 写成 `~4.0.4` 与 `~3.18.4`，不再是 `^4.0.3` 与 `^3.18.3`。只认 caret 的升级脚本无法切换这两条矩阵车道。rc.1 的宿主预检还会拒绝 peer 范围里没有该精确版本的插件。
+
+修正：支持清单加入这两个版本，peer OR 随之扩大。升级脚本与 `pnpm compat:check` 把 `^x.y.z` 和 `~x.y.z` 都当成该副本的精确下限。Cordis peer 与 schemastery 依赖下限不抬高。`volatile` 探测不改：3.18.4 仍提供该方法。
+
 ## Related Documents
 
 - [DSH 兼容契约](../reference/dsh-compatibility.md)

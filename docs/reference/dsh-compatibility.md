@@ -10,10 +10,12 @@
 - `0.1.6-alpha.1`
 - `0.1.6-alpha.2`
 - `0.1.7-alpha.1`
+- `0.1.7-alpha.2`
+- `0.1.7-rc.1`
 
 每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。开发依赖与提交锁文件统一 pin 到 `0.1.5-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。`0.1.6-alpha.1` 是已验证版本，后续加入 alpha.2 与 0.1.7 时应保留在支持清单内；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
 
-跨版本适配集中在 [`src/compat/`](../../src/compat)，并且只按结构探测、不按版本号分支：提交信息设置适配器在旧版 `settingsScope` 与 0.1.7 的 `configForms` 间转换表单；图标适配器在固定尺寸名称与 0.1.7 权重 glyph 间选择；schema 适配器仅在当前 schemastery 副本提供 `volatile` 时才标记字段。开发 pin 始终保持 `0.1.5-rc.2`，其宿主运行时是 Cordis `4.0.2` 与 schemastery `3.18.2`。
+跨版本适配集中在 [`src/compat/`](../../src/compat)，并且只按结构探测、不按版本号分支：提交信息设置适配器在旧版 `settingsScope` 与 0.1.7 的 `configForms` 间转换表单；图标适配器在固定尺寸名称与 0.1.7 权重 glyph 间选择；schema 适配器仅在当前 schemastery 副本提供 `volatile` 时才标记字段。开发 pin 始终保持 `0.1.5-rc.2`，其宿主运行时是 Cordis `4.0.2` 与 schemastery `3.18.2`。0.1.7-alpha.1 的宿主是 Cordis `4.0.3` 与 schemastery `3.18.3`；0.1.7-alpha.2 与 0.1.7-rc.1 的宿主是 Cordis `4.0.4` 与 schemastery `3.18.4`。后两个发行版把这两份依赖写成波浪号，矩阵车道钉的是该范围的精确下限。
 
 `dsh-client-ui-primitives` 的发布 bundle 导入 `diff`，但上游没有将其声明为运行时依赖。本插件将 `diff`（`>=9 <10`）声明为 peer。alpha.2 的 bundle 还导入 `simple-icons@16.31.0`，同样未声明运行时依赖；本插件将 `simple-icons`（`>=16.31.0 <17`）声明为 peer，并以 `16.31.0` 做开发依赖 pin。这样严格依赖解析器也能满足上游 bundle 的导入。
 
@@ -33,7 +35,7 @@
 晋级 `0.1.7-alpha.1` 前，对比了插件直接使用的上游 npm 发布包 `0.1.6-alpha.2` 与 `0.1.7-alpha.1` 的公开声明、manifest 和运行时 bundle：
 
 - **必须适配：设置服务与配置 schema 迁移。** `dsh-client-ui-settings` 删除 `settingsScope.bind({ namespace })` 与 `SettingsScope` 类型，新增 `configForms.get(entryId)` / `ConfigForm`。Git 的提交信息设置卡片依赖旧服务进行快照订阅和 revision-fenced mutate；未适配时新的服务注入永不启动，设置卡片消失。插件现在分别注入 `settingsScope` 与 `configForms`，都接入同一个结构化卡片控制器。新 `mutate` 返回 `boolean`、旧版返回 `void`；控制器根据订阅后的快照判断写入是否落地，兼容两种结果。
-- **必须适配：Host 设置由独立 section 转为插件 Config 投影。** `dsh-settings` 移除了 `installSection`，改为从插件 `Config` 的 `.volatile()` 字段生成表单，应用的插件配置引用提供实时值。0.1.7 的提交信息配置字段需要 `volatile`，Host 配置表单自动生成关闭，Client 自有页面通过插件 entry id `@dsh-electron/dsh-plugin-git` 读取整个 Config，并将写操作映射到 `commitMessage.*` 路径。`.volatile()` 只存在于 schemastery `3.18.3`（0.1.7-alpha.1）。0.1.5-rc.2、0.1.6-alpha.1 与 0.1.6-alpha.2 的宿主解析到 schemastery `3.18.2`，模块求值期无条件调用 `.volatile()` 会抛出 `volatile is not a function`，插件入口无法加载。适配层先探测该方法是否存在：没有就保持普通字段，旧版仍走 `installSection`。本包对 schemastery 的依赖范围是 `>=3.18.2 <4`，两个宿主副本都满足。
+- **必须适配：Host 设置由独立 section 转为插件 Config 投影。** `dsh-settings` 移除了 `installSection`，改为从插件 `Config` 的 `.volatile()` 字段生成表单，应用的插件配置引用提供实时值。0.1.7 的提交信息配置字段需要 `volatile`，Host 配置表单自动生成关闭，Client 自有页面通过插件 entry id `@dsh-electron/dsh-plugin-git` 读取整个 Config，并将写操作映射到 `commitMessage.*` 路径。`.volatile()` 从 schemastery `3.18.3`（0.1.7-alpha.1）起提供，`3.18.4`（0.1.7-alpha.2 与 0.1.7-rc.1）同样提供。0.1.5-rc.2、0.1.6-alpha.1 与 0.1.6-alpha.2 的宿主解析到 schemastery `3.18.2`，模块求值期无条件调用 `.volatile()` 会抛出 `volatile is not a function`，插件入口无法加载。适配层先探测该方法是否存在：没有就保持普通字段，旧版仍走 `installSection`。本包对 schemastery 的依赖范围是 `>=3.18.2 <4`，两个宿主副本都满足。
 - **必须适配：volatile 字段的运行时值是稳定引用。** schemastery 3.18.3 把 `.volatile()` 字段解析成带 `get()` 的引用；字段缺省时引用仍然存在，`get()` 才返回 `undefined`。提交信息生成若把 `systemPrompt` 当成字符串调用 `trim`，会抛出 `prompt.trim is not a function`。`mode`、`provider`、`model` 与 `maxDiffBytes` 同样是引用，直接传给 LLM 或字节上限会读到对象。读取端用 `Symbol.for('cosmokit.volatile.write')` 识别引用并在每次生成时取 `get()` 快照，因此设置页的修改下一次生成就能生效；旧宿主的普通字符串和数字原样返回。
 - **需关注但未发现阻断：设置 UI slots 的组织方式变化。** `dsh-client-ui-settings-plugins` 从自身提供若干内置配置表单改为只提供 Settings 插件页框架；`settings.plugins.tab` 仍由 feature-owned 页签注册。Git 仍在旧 `settings.plugin.item` 与新 `settings.plugins.tab` 注册贡献，宿主只消费已知插槽。
 - **需适配：primitives 图标导出重命名。** `dsh-client-ui-primitives` 将固定尺寸图标（如 `IconChevronDownOutline14`、`IconBranchOutline16`）改为带权重名的 glyph（如 `IconChevronDownOutlineMedium`）。Git 通过本地兼容层先找旧导出，再映射至新 Medium glyph；Menu API 保持可用。
@@ -43,6 +45,16 @@
 - **Session 与 LLM 风险检查：** Session Controller 重组了 subagent catalog 到 projection baseline 的接口，移除若干 catalog 专用成员；插件不调用这些接口，只按 `sessionId` 从 `useSessions(...).byId[id].cwd` 取工作目录。LLM 类型有所扩充/重排，插件依赖的 `GenerateOptions`、`Message`、`MessageId` 与 `TextBlock` 通过候选版构建验证。
 
 候选版本的直接依赖安装后，类型构建、测试及 artifact 检查用于验证上述兼容判断。新的 `ConfigForms.get` 以宿主 entry id 作为查找键；插件通过 `@dsh-electron/dsh-plugin-git` 插件 entry id 读取 Config 表单，旧版仍使用 `git-commit-message` 独立设置 namespace。
+
+## 0.1.7-alpha.2 与 0.1.7-rc.1 接口差异评估
+
+晋级这两个版本前，对照了本地标签 `dsh-v0.1.7-alpha.1`、`dsh-v0.1.7-alpha.2`、`dsh-v0.1.7-rc.1`，以及 npm 发布包的 manifest 与运行时 bundle。插件直接调用的服务在这三段之间没有破坏性改动，已有结构探测继续工作：
+
+- **设置、进程、LLM、侧栏与插槽保持原调用。** `dsh-settings`、`dsh-subprocess`、`dsh-llm`、右侧栏、slots、设置 UI，以及 `useSessions(...).byId[id].cwd`、`modelCatalog`、`currentSelection` 的源码未改。图标导出名不变。`Tooltip` 增加可选 `gap`，`Modal` 增加可选 `onKeyDownCapture`；本插件不传这些参数。Session 分页的 `turnWindow` 与 Conversation 的 preparing/start 工具阶段本插件不调用。
+- **schemastery 3.18.4 仍用 `volatile`。** 0.1.7-alpha.1 带 3.18.3；alpha.2 与 rc.1 带 3.18.4。`.volatile()` 与 cosmokit volatile 引用都还在。适配层继续按方法是否存在标记字段，并按 `Symbol.for('cosmokit.volatile.write')` 读取快照。
+- **rc.1 宿主按 peer 范围决定是否加载插件。** `app-boot` 的兼容预检用 `semver.satisfies`（含 prerelease）检查每个 `@deepseek-ai/dsh-*` peer。精确 OR 范围里没有该运行时版本时，宿主禁用插件。把 `0.1.7-alpha.2` 与 `0.1.7-rc.1` 写入唯一清单后，peer 范围覆盖这两个宿主。
+- **宿主运行时下限从 caret 改为波浪号。** alpha.1 发布 Cordis `^4.0.3` 与 schemastery `^3.18.3`。alpha.2 与 rc.1 发布 Cordis `~4.0.4` 与 schemastery `~3.18.4`。矩阵车道把这两份依赖钉到该范围的精确版本。本包 Cordis peer 仍是 `>=4.0.2 <5`，schemastery 依赖仍是 `>=3.18.2 <4`，因此 4.0.2 / 3.18.2 的旧宿主仍然可加载。
+- **没有新的未声明 bundle 依赖。** `dsh-client-store` 仍导入 `zustand` 与 `immer`；primitives bundle 仍导入 `diff` 与 `simple-icons`。已有 peer 覆盖这四个包。
 
 ## 静态一致性门禁
 
@@ -55,7 +67,7 @@
 3. 所有 DSH 开发依赖是否 pin 在同一已支持版本；
 4. 当前 `node_modules` 中每个已声明的 DSH 包是否存在且解析到该 pin；
 5. `pnpm-lock.yaml` 的 `packages` 段里，每个 `@deepseek-ai/dsh-*` 是否都等于该 pin；出现任何其他版本即失败；
-6. 已安装的 `@deepseek-ai/dsh-settings` 所声明的 Cordis 与 schemastery caret 下限，是否就是当前解析到的精确版本，且本包的 Cordis peer 与 schemastery 依赖范围接受这个副本。
+6. 已安装的 `@deepseek-ai/dsh-settings` 所声明的 Cordis 与 schemastery caret 或波浪号下限，是否就是当前解析到的精确版本，且本包的 Cordis peer 与 schemastery 依赖范围接受这个副本。
 
 第 6 项挡住「DSH 包是旧版本、Cordis / schemastery 却被漂到新版本」的安装。那种树上类型检查和单测可以通过，真实宿主加载插件时仍会失败。schemastery 的发布范围仍是 `>=3.18.2 <4`，仓库用 `pnpm-workspace.yaml` 的 `overrides` 把当前车道钉到该版本声明的精确副本；Cordis 由开发依赖的精确版本钉住。升级脚本在切换车道时同时改这两处。
 
