@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   git hash-object CHANGELOG.md CHANGELOG.zh.md
-CHANGELOG.md: 77fb77040ffcfdcfcb7022a47002e348b6699d49
-CHANGELOG.zh.md: 6fc76c75dc89c3bc07f3a88f867a90b0fc4b01fb
+CHANGELOG.md: 6ab077c6ee52b1fca4680dff3f750068f7e1903f
+CHANGELOG.zh.md: 78ce20d21026efade1358b58e869cc8b0e3673f4

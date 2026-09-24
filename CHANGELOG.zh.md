@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+## [0.2.2] — 2026-09-24
+
+兼容性版本：精确 DSH 支持清单覆盖至 `0.1.7-rc.1`，`src/compat/` 按结构探测做跨版本适配，peer 改为由该清单生成的 OR 范围，使旧宿主继续加载、新发行版同时可支持。
+
 ### Changed
 
 - 精确 DSH 兼容矩阵现支持 `0.1.5-rc.2`、`0.1.6-alpha.1`、`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2` 与 `0.1.7-rc.1`，开发依赖仍 pin 在 `0.1.5-rc.2`。
@@ -81,7 +85,8 @@
 - 可选的 `ctx.inject(['desktop'], ...)` child fiber，使用 `shell.showItemInFolder`、`shell.openPath` 与 `notification.show`。
 - `docs/` 文档库、`pnpm docs:check` 机器校验、`version:set` 脚本、tag 触发的 release 工作流、双语 README 配对及其 `README.i18n.yaml` hash 记录。
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/cherrchen/dsh-plugin-git/releases/tag/v0.1.0

@@ -41,7 +41,7 @@ kind: "package-bundle"
 <a id="installation"></a>
 ## 安装
 
-本包已发布到 npm：`@dsh-electron/dsh-plugin-git`（当前 `0.2.1`，MIT，带构建 provenance）。仍处于试验开发阶段：API 与版本保持 pre-1.0，minor 版本之间可能变化。
+本包已发布到 npm：`@dsh-electron/dsh-plugin-git`（当前 `0.2.2`，MIT，带构建 provenance）。仍处于试验开发阶段：API 与版本保持 pre-1.0，minor 版本之间可能变化。
 
 **DeepSeek Harness Desktop** — Git 默认预装并启用。不需要仓库 UI 时，可在**设置 → 插件**中禁用。
 
@@ -75,10 +75,10 @@ dsh plugin --profile web add @dsh-electron/dsh-plugin-git
 
 ```sh
 pnpm pack --pack-destination dist
-dsh plugin --profile web add ./dist/dsh-electron-dsh-plugin-git-0.2.1.tgz
+dsh plugin --profile web add ./dist/dsh-electron-dsh-plugin-git-0.2.2.tgz
 ```
 
-`pnpm pack` 产出上述单一 tarball，每个 tag 的 GitHub Release 都附同一个文件 —— `0.2.1` 对应 `https://github.com/cherrchen/dsh-plugin-git/releases/download/v0.2.1/dsh-electron-dsh-plugin-git-0.2.1.tgz`。它同样是预构建产物，因此适合内网或离线 profile。
+`pnpm pack` 产出上述单一 tarball，每个 tag 的 GitHub Release 都附同一个文件 —— `0.2.2` 对应 `https://github.com/cherrchen/dsh-plugin-git/releases/download/v0.2.2/dsh-electron-dsh-plugin-git-0.2.2.tgz`。它同样是预构建产物，因此适合内网或离线 profile。
 
 ### 从 GitHub 安装
 
@@ -97,7 +97,7 @@ allowBuilds:
 然后重新执行 `add` 即可；换 pin 会换 commit，键也随之变化。请把该授权视为**允许该 package 在安装时于你的机器上执行代码**（且不在 agent 运行的任何沙箱之内）。建议锁定 tag，让后续推送无法悄悄改变实际运行的内容：
 
 ```sh
-dsh plugin --profile web add github:cherrchen/dsh-plugin-git#v0.2.1
+dsh plugin --profile web add github:cherrchen/dsh-plugin-git#v0.2.2
 ```
 
 ### 从本地 checkout 安装（开发调试）
@@ -211,7 +211,7 @@ GitHub authentication、hosting-provider workflows、credential prompts、issues
 <a id="npm-publication"></a>
 ## npm 发布
 
-本包已发布到 npm：`@dsh-electron/dsh-plugin-git`（MIT；最新 `0.2.1`）。发布方式为推送 `vX.Y.Z` tag：工作流跑测试与构建、打包 tarball、带构建 provenance 发布到 npm，并把同一个 tarball 附到 GitHub Release。API 与版本保持 pre-1.0。UI 宿主是上游内置的右侧边栏，无需独立安装的第三方配对包。发布步骤与凭据见 [`docs/development/README.md`](docs/development/README.md#发布流程)。
+本包已发布到 npm：`@dsh-electron/dsh-plugin-git`（MIT；最新 `0.2.2`）。发布方式为推送 `vX.Y.Z` tag：工作流跑测试与构建、打包 tarball、带构建 provenance 发布到 npm，并把同一个 tarball 附到 GitHub Release。API 与版本保持 pre-1.0。UI 宿主是上游内置的右侧边栏，无需独立安装的第三方配对包。发布步骤与凭据见 [`docs/development/README.md`](docs/development/README.md#发布流程)。
 
 <a id="development"></a>
 ## 开发

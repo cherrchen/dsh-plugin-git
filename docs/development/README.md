@@ -38,8 +38,8 @@ DSH 版本 pin 由[兼容契约](../reference/dsh-compatibility.md)管理。安�
 pnpm version:patch   # 或 version:set <version> / version:major / version:minor
 git add package.json CHANGELOG.md CHANGELOG.zh.md CHANGELOG.i18n.yaml \
   README.md README.zh.md README.i18n.yaml
-git commit -m "chore(release): 0.2.1"
-git tag v0.2.1
+git commit -m "chore(release): 0.2.2"
+git tag v0.2.2
 git push origin HEAD --follow-tags
 ```
 

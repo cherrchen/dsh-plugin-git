@@ -38,8 +38,8 @@ The version only changes through `pnpm version:*`: those scripts pass `--no-git-
 pnpm version:patch   # or version:set <version> / version:major / version:minor
 git add package.json CHANGELOG.md CHANGELOG.zh.md CHANGELOG.i18n.yaml \
   README.md README.zh.md README.i18n.yaml
-git commit -m "chore(release): 0.2.1"
-git tag v0.2.1
+git commit -m "chore(release): 0.2.2"
+git tag v0.2.2
 git push origin HEAD --follow-tags
 ```
 
