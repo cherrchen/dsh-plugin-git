@@ -2,6 +2,10 @@
 
 - **Status**: Current
 
+## 适配波次状态
+
+自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.1.7-rc.1` 的兼容晋级已于 **2026-09-24** 完成。清单内六个精确 prerelease 均已写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。
+
 ## 已验证并承诺支持的版本
 
 唯一版本清单位于 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)：
@@ -13,7 +17,7 @@
 - `0.1.7-alpha.2`
 - `0.1.7-rc.1`
 
-每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。开发依赖与提交锁文件统一 pin 到 `0.1.5-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。`0.1.6-alpha.1` 是已验证版本，后续加入 alpha.2 与 0.1.7 时应保留在支持清单内；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
+每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。开发依赖与提交锁文件统一 pin 到 `0.1.5-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。清单按晋级顺序累加，已承诺版本不会被后续晋级移除；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
 
 跨版本适配集中在 [`src/compat/`](../../src/compat)，并且只按结构探测、不按版本号分支：提交信息设置适配器在旧版 `settingsScope` 与 0.1.7 的 `configForms` 间转换表单；图标适配器在固定尺寸名称与 0.1.7 权重 glyph 间选择；schema 适配器仅在当前 schemastery 副本提供 `volatile` 时才标记字段。开发 pin 始终保持 `0.1.5-rc.2`，其宿主运行时是 Cordis `4.0.2` 与 schemastery `3.18.2`。0.1.7-alpha.1 的宿主是 Cordis `4.0.3` 与 schemastery `3.18.3`；0.1.7-alpha.2 与 0.1.7-rc.1 的宿主是 Cordis `4.0.4` 与 schemastery `3.18.4`。后两个发行版把这两份依赖写成波浪号，矩阵车道钉的是该范围的精确下限。
 
