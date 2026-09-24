@@ -6,6 +6,11 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 精确 DSH 兼容矩阵加入 `0.1.7-rc.2`。开发依赖仍 pin 在 `0.1.5-rc.2`。`src/compat/` 里已有的设置、schema 与图标结构探测继续覆盖该版本。
+- 升级脚本仅在目标精确版本发布了 `@deepseek-ai/dsh-util-code-language` 与 `@deepseek-ai/dsh-client-shortcuts` 时，才把它们写入该车道的开发依赖。它们不进入 peer OR，因此旧宿主仍可加载。
+
 ## [0.2.2] — 2026-09-24
 
 兼容性版本：精确 DSH 支持清单覆盖至 `0.1.7-rc.1`，`src/compat/` 按结构探测做跨版本适配，peer 改为由该清单生成的 OR 范围，使旧宿主继续加载、新发行版同时可支持。

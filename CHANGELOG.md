@@ -6,6 +6,11 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Changed
+
+- The exact DSH compatibility matrix now includes `0.1.7-rc.2`. Development dependencies stay pinned to `0.1.5-rc.2`. Existing structure probes in `src/compat/` still cover settings, schema, and icons.
+- The upgrade script adds `@deepseek-ai/dsh-util-code-language` and `@deepseek-ai/dsh-client-shortcuts` as development dependencies only when that exact release publishes them. They stay out of the peer OR range so older hosts keep loading.
+
 ## [0.2.2] — 2026-09-24
 
 Compatibility release: one exact DSH support list through `0.1.7-rc.1`, structure-probing adapters in `src/compat/`, and peer OR ranges generated from that list so older hosts keep loading while newer releases are supported.

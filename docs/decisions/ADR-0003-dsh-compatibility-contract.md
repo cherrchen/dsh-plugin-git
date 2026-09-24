@@ -49,6 +49,12 @@
 
 修正：支持清单加入这两个版本，peer OR 随之扩大。升级脚本与 `pnpm compat:check` 把 `^x.y.z` 和 `~x.y.z` 都当成该副本的精确下限。Cordis peer 与 schemastery 依赖下限不抬高。`volatile` 探测不改：3.18.4 仍提供该方法。
 
+## 后续修正（2026-09-25）：0.1.7-rc.2 的未声明 DSH 导入不进入 peer OR
+
+0.1.7-rc.2 的宿主副本仍是 Cordis `~4.0.4` 与 schemastery `~3.18.4`。primitives 发布 bundle 新增顶层导入 `@deepseek-ai/dsh-util-code-language`，右侧栏类型引用 `@deepseek-ai/dsh-client-shortcuts`。这两个包只在 `0.1.7-rc.2` 发布。把它们写成与支持清单相同的 peer OR，会让 `app-boot` 用旧宿主版本做预检失败，也会让 `.pnpmfile.cjs` 在开发 pin `0.1.5-rc.2` 上改写出不存在的版本。
+
+修正：支持清单加入 `0.1.7-rc.2`，已有 peer OR 随之扩大，Cordis 与 schemastery 下限不抬高。升级脚本仅当 `npm view` 能看到这两个包的目标精确版本时，才写入该车道的 devDependencies。开发 pin 的清单和锁文件不加它们。
+
 ## Related Documents
 
 - [DSH 兼容契约](../reference/dsh-compatibility.md)

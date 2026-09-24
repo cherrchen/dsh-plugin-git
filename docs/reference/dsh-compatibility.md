@@ -4,7 +4,7 @@
 
 ## 适配波次状态
 
-自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.1.7-rc.1` 的兼容晋级已于 **2026-09-24** 完成。清单内六个精确 prerelease 均已写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。
+自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.1.7-rc.2` 的兼容晋级已于 **2026-09-25** 完成。清单内七个精确 prerelease 均已写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。
 
 ## 已验证并承诺支持的版本
 
@@ -16,10 +16,11 @@
 - `0.1.7-alpha.1`
 - `0.1.7-alpha.2`
 - `0.1.7-rc.1`
+- `0.1.7-rc.2`
 
 每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。开发依赖与提交锁文件统一 pin 到 `0.1.5-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。清单按晋级顺序累加，已承诺版本不会被后续晋级移除；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
 
-跨版本适配集中在 [`src/compat/`](../../src/compat)，并且只按结构探测、不按版本号分支：提交信息设置适配器在旧版 `settingsScope` 与 0.1.7 的 `configForms` 间转换表单，并同时注册 `settings.plugin.item` 与 `plugins.bundle.config`，由宿主声明的 slot 决定哪一面出现；图标适配器在固定尺寸名称与 0.1.7 权重 glyph 间选择；schema 适配器仅在当前 schemastery 副本提供 `volatile` 时才标记字段。开发 pin 始终保持 `0.1.5-rc.2`，其宿主运行时是 Cordis `4.0.2` 与 schemastery `3.18.2`。0.1.7-alpha.1 的宿主是 Cordis `4.0.3` 与 schemastery `3.18.3`；0.1.7-alpha.2 与 0.1.7-rc.1 的宿主是 Cordis `4.0.4` 与 schemastery `3.18.4`。后两个发行版把这两份依赖写成波浪号，矩阵车道钉的是该范围的精确下限。
+跨版本适配集中在 [`src/compat/`](../../src/compat)，并且只按结构探测、不按版本号分支：提交信息设置适配器在旧版 `settingsScope` 与 0.1.7 的 `configForms` 间转换表单，并同时注册 `settings.plugin.item` 与 `plugins.bundle.config`，由宿主声明的 slot 决定哪一面出现；图标适配器在固定尺寸名称与 0.1.7 权重 glyph 间选择；schema 适配器仅在当前 schemastery 副本提供 `volatile` 时才标记字段。开发 pin 始终保持 `0.1.5-rc.2`，其宿主运行时是 Cordis `4.0.2` 与 schemastery `3.18.2`。0.1.7-alpha.1 的宿主是 Cordis `4.0.3` 与 schemastery `3.18.3`；0.1.7-alpha.2、0.1.7-rc.1 与 0.1.7-rc.2 的宿主是 Cordis `4.0.4` 与 schemastery `3.18.4`。这三个发行版把这两份依赖写成波浪号，矩阵车道钉的是该范围的精确下限。
 
 `dsh-client-ui-primitives` 的发布 bundle 导入 `diff`，但上游没有将其声明为运行时依赖。本插件将 `diff`（`>=9 <10`）声明为 peer。alpha.2 的 bundle 还导入 `simple-icons@16.31.0`，同样未声明运行时依赖；本插件将 `simple-icons`（`>=16.31.0 <17`）声明为 peer，并以 `16.31.0` 做开发依赖 pin。这样严格依赖解析器也能满足上游 bundle 的导入。
 
@@ -59,6 +60,14 @@
 - **rc.1 宿主按 peer 范围决定是否加载插件。** `app-boot` 的兼容预检用 `semver.satisfies`（含 prerelease）检查每个 `@deepseek-ai/dsh-*` peer。精确 OR 范围里没有该运行时版本时，宿主禁用插件。把 `0.1.7-alpha.2` 与 `0.1.7-rc.1` 写入唯一清单后，peer 范围覆盖这两个宿主。
 - **宿主运行时下限从 caret 改为波浪号。** alpha.1 发布 Cordis `^4.0.3` 与 schemastery `^3.18.3`。alpha.2 与 rc.1 发布 Cordis `~4.0.4` 与 schemastery `~3.18.4`。矩阵车道把这两份依赖钉到该范围的精确版本。本包 Cordis peer 仍是 `>=4.0.2 <5`，schemastery 依赖仍是 `>=3.18.2 <4`，因此 4.0.2 / 3.18.2 的旧宿主仍然可加载。
 - **没有新的未声明 bundle 依赖。** `dsh-client-store` 仍导入 `zustand` 与 `immer`；primitives bundle 仍导入 `diff` 与 `simple-icons`。已有 peer 覆盖这四个包。
+
+## 0.1.7-rc.2 接口差异评估
+
+晋级 `0.1.7-rc.2` 前，对照了本地标签 `dsh-v0.1.7-rc.1` 与 `dsh-v0.1.7-rc.2`，以及 npm 上 primitives 的发布 bundle。插件直接调用的服务没有需要新版本分支的破坏性改动，已有结构探测继续工作：
+
+- **设置、进程、schema、图标与侧栏导航保持原调用。** `dsh-settings` 与 `dsh-subprocess` 源码未改。`.volatile()` 与 cosmokit volatile 引用仍在，schemastery 仍是 `3.18.4`。Git 用的 Medium glyph 名称未改。`openTab` / `openResource`、`useSessions(...).byId[id].cwd`、`currentSelection()` 未改。`GenerateOptions` 增加可选 `toolHistory`；`Menu`、`Modal`、`Tooltip` 与 `Button` 只增加可选参数。`SidebarRightTabActions.bindCommands` 与 `refreshShortcut` 由宿主提供，Git 页面不实现该接口。
+- **宿主运行时下限不变。** rc.2 仍发布 Cordis `~4.0.4` 与 schemastery `~3.18.4`。矩阵车道继续钉这两份依赖的精确下限。Cordis peer 与 schemastery 依赖下限不抬高。
+- **rc.2 的 primitives bundle 新增未声明的 DSH 运行时导入。** `@deepseek-ai/dsh-client-ui-primitives@0.1.7-rc.2` 的 `lib/index.js` 顶层导入 `@deepseek-ai/dsh-util-code-language`。该包只在 `0.1.7-rc.2` 发布，上游只把它写成 devDependency。右侧栏类型同时引用只在该版本发布的 `@deepseek-ai/dsh-client-shortcuts`。这两个名字不能写进与支持清单相同的 peer OR：`app-boot` 用宿主版本满足每一个 `@deepseek-ai/dsh-*` peer，而 `.pnpmfile.cjs` 会把这类依赖改写成当前 pin；开发 pin `0.1.5-rc.2` 上这两个包不存在。升级脚本只在 `npm view` 能看到目标精确版本时，把它们写入该车道的 devDependencies。开发 pin 的清单和锁文件不加这两项。已有的 `diff`、`simple-icons`、`zustand` 与 `immer` peer 继续覆盖更早的未声明导入。
 
 ## 静态一致性门禁
 

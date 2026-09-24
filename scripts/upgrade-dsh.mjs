@@ -11,6 +11,11 @@
  * that DSH release (`@deepseek-ai/dsh` and `@deepseek-ai/dsh-settings`). Leaving the
  * baseline 4.0.2 / 3.18.2 pins in a 0.1.7 tree, or floating a newer copy into
  * a 0.1.5 tree, makes the lane pass against a runtime the host does not ship.
+ *
+ * Some upstream bundles import DSH packages that exist only on later releases
+ * and are not declared as runtime dependencies. Those names are lane packages:
+ * the script adds them when `npm view` sees the target version, and removes
+ * them otherwise. They stay out of the committed peer OR range.
  */
 import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -54,7 +59,26 @@ const schemasteryVersion = caretFloor(
   `@deepseek-ai/dsh-settings@${version} schemastery`,
 )
 
-const packages = Object.keys(manifest.devDependencies ?? {}).filter(name => name.startsWith('@deepseek-ai/dsh-'))
+/** Published only on some supported releases; never part of the peer OR range. */
+const laneOnlyPackages = [
+  '@deepseek-ai/dsh-util-code-language',
+  '@deepseek-ai/dsh-client-shortcuts',
+]
+
+function publishedAt(name) {
+  try {
+    execFileSync('npm', ['view', `${name}@${version}`, 'version'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+const packages = Object.keys(manifest.devDependencies ?? {})
+  .filter(name => name.startsWith('@deepseek-ai/dsh-') && !laneOnlyPackages.includes(name))
 if (packages.length === 0) throw new Error('No DSH development dependencies found')
 
 let changed = 0
@@ -66,6 +90,20 @@ for (const name of packages) {
 if (manifest.devDependencies['@deepseek-ai/cordis'] !== cordisVersion) {
   manifest.devDependencies['@deepseek-ai/cordis'] = cordisVersion
   changed += 1
+}
+
+for (const name of laneOnlyPackages) {
+  if (publishedAt(name)) {
+    if (manifest.devDependencies[name] !== version) {
+      manifest.devDependencies[name] = version
+      changed += 1
+    }
+    console.log(`[upgrade] lane package: ${name}@${version}`)
+  } else if (Object.hasOwn(manifest.devDependencies, name)) {
+    delete manifest.devDependencies[name]
+    changed += 1
+    console.log(`[upgrade] lane package removed: ${name}`)
+  }
 }
 
 writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)

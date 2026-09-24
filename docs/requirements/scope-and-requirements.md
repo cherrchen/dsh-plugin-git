@@ -37,7 +37,7 @@
 
 ## 约束
 
-- DSH 兼容版本采用精确清单：`0.1.5-rc.2`、`0.1.6-alpha.1`、`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2` 与 `0.1.7-rc.1`；支持声明、升级候选验证与 CI 门禁见 [DSH 兼容契约](../reference/dsh-compatibility.md)。
+- DSH 兼容版本采用精确清单：`0.1.5-rc.2`、`0.1.6-alpha.1`、`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2`、`0.1.7-rc.1` 与 `0.1.7-rc.2`；支持声明、升级候选验证与 CI 门禁见 [DSH 兼容契约](../reference/dsh-compatibility.md)。
 - Client 主 fiber 包含全部 portable 贡献；原生增强只能放在 `ctx.inject(['desktop'], ...)` 子 fiber，且只声明其消费的结构化方法；provider unload 必须移除增强而保留核心 UI。
 - GitHub 与远端凭据工作流不在本包内（见下"非目标"），直到另行决策加入。
 
