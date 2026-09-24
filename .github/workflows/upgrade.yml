@@ -1,0 +1,83 @@
+name: DSH compatibility matrix
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '23 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Optional exact prerelease candidate (for example 0.1.7-alpha.1)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      dsh-versions: ${{ steps.versions.outputs.dsh-versions }}
+      candidate: ${{ steps.versions.outputs.candidate }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+      - id: versions
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$REQUESTED_VERSION" ]; then
+            if [[ ! "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta|rc)\.[0-9]+$ ]]; then
+              echo "Invalid prerelease version: $REQUESTED_VERSION" >&2
+              exit 1
+            fi
+            echo "dsh-versions=[\"$REQUESTED_VERSION\"]" >> "$GITHUB_OUTPUT"
+            echo "candidate=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "dsh-versions=$(node scripts/check-dsh-compat.mjs --list-non-default)" >> "$GITHUB_OUTPUT"
+            echo "candidate=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  verify:
+    runs-on: ubuntu-latest
+    needs: matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        dsh-version: ${{ fromJSON(needs.matrix.outputs.dsh-versions) }}
+    env:
+      DSH_COMPAT_MODE: ${{ needs.matrix.outputs.candidate == 'true' && 'warn' || '' }}
+      DSH_COMPAT_VERSION: ${{ matrix.dsh-version }}
+      # This lane installs a just-published prerelease. The exemption is
+      # job-wide so later pnpm commands do not fall back to the 24h cooldown.
+      pnpm_config_minimum_release_age: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.19.0
+          cache: pnpm
+      # The committed lockfile is the development pin. Ignore the lane
+      # version until upgrade-dsh.mjs has rewritten the root manifest.
+      - run: pnpm install --frozen-lockfile
+        env:
+          DSH_COMPAT_VERSION: ''
+      - name: Select DSH matrix version
+        run: node scripts/upgrade-dsh.mjs "$DSH_COMPAT_VERSION"
+      - name: Install the selected host runtime
+        run: pnpm install --no-frozen-lockfile
+      - run: pnpm compat:check
+      - run: pnpm test
+      - run: pnpm docs:check
+      - run: pnpm build
+      - run: pnpm test:artifact
+      - run: pnpm pack

@@ -20,6 +20,8 @@ import { GitClientController, type GitDesktopCapability } from './controller.ts'
 import {
   CommitMessageSettingsCardController,
   GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE,
+  type CommitMessageCardSettings,
+  type CommitMessageSettingsForm,
   type CommitMessageCatalogGroup,
   type CommitMessageCatalogLoader,
 } from './settings/commit-message-card-controller.ts'
@@ -35,6 +37,7 @@ import {
 } from './contract.ts'
 import { changesDefinition, diffDefinition, graphDefinition } from './tab-definitions.ts'
 import { en, NS, zh, type GitLocaleKey } from './locales.ts'
+import { injectDshCommitMessageSettings } from '../compat/dsh-client-settings.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -133,7 +136,10 @@ export function apply(ctx: ClientContext): void {
     return () => { controller.setDesktop(undefined) }
   })
 
-  ctx.inject(['settingsScope'], (settingsCtx) => {
+  const mountCommitMessageSettings = (
+    settingsCtx: ClientContext,
+    getForm: () => CommitMessageSettingsForm<CommitMessageCardSettings>,
+  ): { inject: () => { controller: CommitMessageSettingsCardController } } => {
     const loadCatalog: CommitMessageCatalogLoader = async () => {
       const session = settingsCtx.get('remote.session') as {
         modelCatalog?: () => Promise<
@@ -147,16 +153,19 @@ export function apply(ctx: ClientContext): void {
       return { groups: response.value.groups, partial: response.value.failures.length > 0 }
     }
     const card = new CommitMessageSettingsCardController(
-      settingsCtx.settingsScope.bind({ namespace: GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE }),
+      getForm(),
       loadCatalog,
     )
     settingsCtx.effect(() => () => { card.dispose() }, 'git: commit-message settings dispose')
-    settingsCtx.effect(() => settingsCtx.slots.inject('settings.plugin.item', () => settingsCtx.slots.register({
-      name: 'settings.plugin.item',
-      key: GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE,
-      locale: NS,
-      inject: () => ({ controller: card }),
-    }, CommitMessageSettingsCard)), 'git: commit-message settings card')
+    return { inject: () => ({ controller: card }) }
+  }
+
+  // Settings API and slot differences across DSH releases are isolated in compat.
+  injectDshCommitMessageSettings(ctx, {
+    namespace: GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE,
+    entryId: 'dsh-plugin-git',
+    locale: NS,
+    component: CommitMessageSettingsCard,
+    mount: mountCommitMessageSettings,
   })
 }
-

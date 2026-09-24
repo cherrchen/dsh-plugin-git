@@ -10,4 +10,5 @@
 
 ## 条目
 
+- [dsh-compatibility.md](dsh-compatibility.md) —— DSH 精确支持版本、静态一致性门禁与升级候选晋级流程。
 - [git-graph-layout.md](git-graph-layout.md) —— Git Graph Layout Engine：DAG → Layout → Renderer 数据流、lane 语义、分页 continuation、renderer 契约与拓扑不变量。

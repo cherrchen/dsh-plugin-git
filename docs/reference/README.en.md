@@ -10,4 +10,5 @@ Holds **stable, look-up-when-needed technical facts**: internal APIs, schemas, p
 
 ## Entries
 
+- [dsh-compatibility.md](dsh-compatibility.md) — Exact supported DSH releases, the static consistency gate, and candidate upgrade promotion flow.
 - [git-graph-layout.md](git-graph-layout.md) — Git Graph Layout Engine: the DAG → Layout → Renderer data flow, lane semantics, pagination continuation, renderer contract, and topology invariants.

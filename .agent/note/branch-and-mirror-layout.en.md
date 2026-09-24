@@ -26,7 +26,7 @@ The canonical repository for this package is `cherrchen/dsh-plugin-git` on GitHu
 
 ## Upstream version pinning
 
-- devDependencies are pinned to DSH `0.1.5-rc.2` (the npm `next` tag carries every needed package); every `@deepseek-ai/dsh-*` peerDependency uses `>=0.1.5-rc.2 <0.2.0`, explicitly admitting that prerelease baseline and avoiding peer conflicts in strict resolvers.
+- The verified DSH release list, exact peer ranges, and candidate upgrade flow are documented in the [DSH compatibility contract](../../docs/reference/dsh-compatibility.md); the current development pin is `0.1.5-rc.2`. Main CI validates that pin, while the upgrade CI matrix validates the other supported releases.
 - The former third-party UI host `@dsh-electron/dsh-client-ui-details-host` is deprecated: this package migrated to the upstream built-in right sidebar (npm `0.1.5-rc.2`), so the pinned `tests/fixtures/` tarball `file:` devDependency workflow (`0.2.0-alpha.4` and `0.3.0`; integrity-refresh history in commits `c09dc1a` and `b4ba876`) is gone.
 
 ## Related documents

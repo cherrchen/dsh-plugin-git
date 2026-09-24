@@ -1,3 +1,9 @@
+# Baseline host (DSH 0.1.5-rc.2) ships this exact copy. A caret on the
+# package dependency would otherwise float to 3.18.3 and hide the load crash
+# that 3.18.2 produces. The upgrade lane rewrites this pin per release.
+overrides:
+  '@deepseek-ai/schemastery': 3.18.2
+
 allowBuilds:
   '@deepseek-ai/dsh-subprocess-local': true
   koffi: true

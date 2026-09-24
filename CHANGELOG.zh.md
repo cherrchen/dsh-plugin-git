@@ -6,6 +6,19 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 精确 DSH 兼容矩阵现支持 `0.1.5-rc.2`、`0.1.6-alpha.1`、`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2` 与 `0.1.7-rc.1`，开发依赖仍 pin 在 `0.1.5-rc.2`。
+- 所有 `@deepseek-ai/dsh-*` peer 改为由该清单生成的精确 OR 范围，不再使用单一的 `>=0.1.5-rc.2 <0.2.0` 区间。
+- `src/compat/` 内的跨版本适配按结构探测、不按版本号分支：提交信息设置在 `settingsScope` 与 `configForms` 间桥接；图标把旧固定尺寸导出映射到 0.1.7 权重 glyph；schema 仅在宿主 schemastery 副本提供 `.volatile()` 时标记字段，并通过 `readVolatile` 读取 volatile 引用快照。
+- `.pnpmfile.cjs` 把传递链上的 `@deepseek-ai/dsh-*` 统一改写为当前 pin，避免 caret peer 把锁文件漂到更新的 prerelease。
+- `.github/workflows/upgrade.yml` 的回归矩阵由支持清单动态生成；升级脚本把 Cordis 与 schemastery 钉到各发行版声明的 caret 或波浪号下限（含 `0.1.7-alpha.2` 与 `0.1.7-rc.1` 的 `~4.0.4` / `~3.18.4`）。
+- Client 工作区读取和插件设置卡片注册已适配 alpha.2 的 Session 列表与 Plugins 标签页接口变化。
+
+### Fixed
+
+- 在上游 DSH bundle 导入但未声明运行时依赖时，将 `simple-icons`、`zustand` 与 `immer` 声明为 peer（`dsh-client-ui-primitives`、`dsh-client-store`）。
+
 ## [0.2.1] — 2026-09-14
 
 文档与可靠性版本：新增变更日志与贡献指南，[安装](README.zh.md#installation)一节文档化全部四种安装来源，焦点抖动不再叠加仓库刷新。

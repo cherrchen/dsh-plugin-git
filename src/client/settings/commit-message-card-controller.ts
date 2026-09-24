@@ -2,10 +2,25 @@
  * Staged editor for commit-message generation: inherit the session model or
  * pin a provider route, plus an optional system-prompt override.
  */
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client'
-
 /** Settings namespace; spelled here so the Client half never imports Host modules. */
 export const GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE = 'git-commit-message'
+
+type CommitMessageSettingsMutation =
+  | { op: 'set'; path: string[]; value: string }
+  | { op: 'unset'; path: string[] }
+
+/** Shared shape of the namespace editor API before and after DSH 0.1.7. */
+export interface CommitMessageSettingsForm<T> {
+  getSnapshot(): {
+    status: 'loading' | 'ready' | 'unavailable'
+    value: T | undefined
+    revision: number | undefined
+    writable: boolean
+    mode: 'host' | 'memory'
+  }
+  subscribe(listener: () => void): () => void
+  mutate(ops: readonly CommitMessageSettingsMutation[], expectedRevision?: number): Promise<void | boolean>
+}
 
 /** Stored fields this card edits. */
 export interface CommitMessageCardSettings {
@@ -142,7 +157,7 @@ export class CommitMessageSettingsCardController {
    * @param loadCatalog - optional Host model catalog reader.
    */
   constructor(
-    private readonly scope: SettingsScope<CommitMessageCardSettings>,
+    private readonly scope: CommitMessageSettingsForm<CommitMessageCardSettings>,
     private readonly loadCatalog: CommitMessageCatalogLoader | undefined = undefined,
   ) {
     this.snapshot = this.projection()

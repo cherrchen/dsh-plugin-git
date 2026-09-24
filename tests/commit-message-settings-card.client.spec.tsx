@@ -98,6 +98,17 @@ describe('CommitMessageSettingsCard', () => {
     expect(screen.getByRole('button', { name: en['settings.discard'] })).toBeTruthy()
   })
 
+  it('renders a one-line summary and an open page form for the plugin manager', () => {
+    const controller = controllerOf(ready({ mode: 'inherit' }))
+    const summary = render(<CommitMessageSettingsCard controller={controller} view="summary" {...locale} />)
+    expect(summary.getByText(en['settings.description'])).toBeTruthy()
+    expect(summary.container.querySelector('[data-git-commit-message-settings]')).toBeNull()
+    summary.unmount()
+    render(<CommitMessageSettingsCard controller={controller} view="page" {...locale} />)
+    expect(screen.getByRole('radio', { name: en['settings.modelInherit'] })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: `${en['settings.expand']}: ${en['settings.title']}` })).toBeNull()
+  })
+
   it('falls back to typed provider and model ids when the catalog is empty', () => {
     const controller = controllerOf(ready({
       mode: 'custom',

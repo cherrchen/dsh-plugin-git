@@ -6,6 +6,19 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Changed
+
+- The exact DSH compatibility matrix now covers `0.1.5-rc.2`, `0.1.6-alpha.1`, `0.1.6-alpha.2`, `0.1.7-alpha.1`, `0.1.7-alpha.2`, and `0.1.7-rc.1`, with development dependencies still pinned to `0.1.5-rc.2`.
+- `@deepseek-ai/dsh-*` peer dependencies now use the generated exact OR ranges from that list instead of a single `>=0.1.5-rc.2 <0.2.0` band.
+- Cross-release adapters in `src/compat/` probe structure instead of branching on version strings: commit-message settings bridge `settingsScope` and `configForms`; icons map legacy fixed-size exports to 0.1.7 weighted glyphs; schema helpers call `.volatile()` only when the host schemastery copy provides it and snapshot volatile references through `readVolatile`.
+- `.pnpmfile.cjs` rewrites transitive `@deepseek-ai/dsh-*` dependencies to the active pin so lockfiles cannot drift to newer prereleases under caret peers.
+- `.github/workflows/upgrade.yml` regression matrix is generated from the support list; the upgrade script pins Cordis and schemastery to each release's caret or tilde floor (including `~4.0.4` / `~3.18.4` on `0.1.7-alpha.2` and `0.1.7-rc.1`).
+- Client workspace lookup and plugin settings registration span the alpha.2 Session-list and Plugins-tab API changes.
+
+### Fixed
+
+- Declare `simple-icons`, `zustand`, and `immer` as peer dependencies where upstream DSH bundles import them without runtime dependency declarations (`dsh-client-ui-primitives`, `dsh-client-store`).
+
 ## [0.2.1] — 2026-09-14
 
 Documentation and reliability release: the changelog and contribution guide arrive, the installation section documents all four install sources, and window-focus churn no longer stacks repository refreshes.

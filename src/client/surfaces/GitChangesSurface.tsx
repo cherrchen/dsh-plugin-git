@@ -8,7 +8,7 @@ import type { ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { GitClientController } from '../controller.ts'
 import { GitDetailsHeaderActions } from '../GitDetailsHeaderActions.tsx'
-import { useGitWorkspace, type GitSessionsHook } from '../use-git-workspace.ts'
+import { useGitWorkspace } from '../use-git-workspace.ts'
 import { ChangesTab } from '../details/ChangesTab.tsx'
 import { CommitRegion } from '../details/CommitRegion.tsx'
 import css from '../GitDetailsSurface.module.css'
@@ -20,8 +20,7 @@ export type GitChangesSurfaceProps = PropsRuntime<'sidebar.right.pane.tab'> & Pr
 /** Render the Git Changes surface body. */
 export function GitChangesSurface({ controller, t, useSessions, sessionId }: GitChangesSurfaceProps): ReactNode {
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
-  const sessions = useSessions as GitSessionsHook
-  const workspacePath = sessions(list => list.byId[String(sessionId)]?.cwd)
+  const workspacePath = useSessions(list => list.byId[sessionId]?.cwd)
 
   useEffect(() => {
     void controller.refresh()

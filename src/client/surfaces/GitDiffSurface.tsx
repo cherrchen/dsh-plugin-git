@@ -11,7 +11,7 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 import type { GitClientController } from '../controller.ts'
 import { parseGitDiffAddress, type GitDiffPayload } from '../contract.ts'
 import { GitDetailsHeaderActions } from '../GitDetailsHeaderActions.tsx'
-import { useGitWorkspace, type GitSessionsHook } from '../use-git-workspace.ts'
+import { useGitWorkspace } from '../use-git-workspace.ts'
 import { DiffTab } from '../details/DiffTab.tsx'
 import css from '../GitDetailsSurface.module.css'
 
@@ -25,8 +25,7 @@ export type GitDiffSurfaceProps = PropsRuntime<'sidebar.right.pane.tab'> & Props
 /** Render one Git Diff surface body. */
 export function GitDiffSurface({ controller, t, useSessions, sessionId, useTabInfo }: GitDiffSurfaceProps): ReactNode {
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
-  const sessions = useSessions as GitSessionsHook
-  const workspacePath = sessions(list => list.byId[String(sessionId)]?.cwd)
+  const workspacePath = useSessions(list => list.byId[sessionId]?.cwd)
   const { tab } = useTabInfo()
   const { address, revision } = tab.navigation
   const opened = tab.navigation.params as GitDiffPayload | undefined

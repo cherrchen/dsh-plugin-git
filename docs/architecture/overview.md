@@ -15,7 +15,7 @@
 │ 主 fiber：全部 portable 贡献                                    │
 │  · composer 分支选择器 + 变更文件指示器（slot 注入）             │
 │  · 三个右侧边栏 tab type：git.changes / git.diff / git.graph   │
-│  · git-commit-message 设置卡（有 ctx.settingsScope 时）         │
+│  · 提交信息配置（compat：设置卡或组合包详情）               │
 │  · commit message 生成（host LLM runtime，建议式）              │
 │ 子 fiber ctx.inject(['desktop'])：reveal / openPath / 通知      │
 └────────────────────────────────────────────────────────────────┘

@@ -14,3 +14,4 @@ Holds **why important design decisions were made**: why this option won among th
 | --- | --- | --- |
 | [ADR-0001](ADR-0001-graph-lane-not-owned-by-branch.md) | Accepted | Graph lanes are not owned by branches |
 | [ADR-0002](ADR-0002-graph-lane-cap-max-three-lanes.md) | Accepted | The Graph view renders at most 3 lanes |
+| [ADR-0003](ADR-0003-dsh-compatibility-contract.md) | Accepted | Commit to DSH support through an exact release list |

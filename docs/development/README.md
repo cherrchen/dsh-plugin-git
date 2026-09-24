@@ -19,11 +19,14 @@
 | 全量测试 | `pnpm test` |
 | 构建产物 bundle/manifest 断言 | `pnpm test:artifact` |
 | 构建（类型 + bundle） | `pnpm build` |
+| DSH 版本契约检查 | `pnpm compat:check` |
 | 文档机器校验 | `pnpm docs:check` |
 | 设置版本号 | `pnpm version:set <version>`（也接受 `major`/`minor`/`patch` 等 bump 关键字） |
 | 提升版本号 | `pnpm version:major` / `pnpm version:minor` / `pnpm version:patch` |
 
 CI 在 `.github/workflows/ci.yml`（PR 与 main push 跑测试），发布流水线见下节，执行状态见 [npm-first-release 计划](../plans/completed/npm-first-release.md)。贡献者的环境搭建、门禁清单与文档义务见 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)。
+
+DSH 版本 pin 由[兼容契约](../reference/dsh-compatibility.md)管理。安装依赖后运行 `pnpm compat:check`；主 CI 用冻结锁文件验证开发 pin，并要求锁文件里的传递 DSH 包也是这个版本。`.github/workflows/upgrade.yml` 回归其余已支持版本，只在该 job 关闭 pnpm 的 24 小时发布冷却。手动 dispatch 可传入精确 prerelease 版本评估候选，该流程不会更改支持清单。
 
 ## 发布流程
 

@@ -113,17 +113,19 @@ describe('Git client lifecycle', () => {
     )
     expect(registrations.some(entry => entry.name === 'shell.overlay')).toBe(false)
     expect(registrations.some(entry => entry.name === 'settings.plugin.item')).toBe(false)
+    expect(registrations.some(entry => entry.name === 'plugins.bundle.config')).toBe(false)
+    expect(registrations.some(entry => entry.name === 'settings.plugins.tab')).toBe(false)
 
     await fiber.dispose()
   })
 
   it('registers the commit-message card when settingsScope is present', async () => {
     const ctx = new Context()
-    const registrations: Array<{ name?: string; key?: string }> = []
+    const registrations: Array<{ name?: string; key?: string; id?: string; label?: string | (() => string) }> = []
     const sidebar = minimalSidebar()
     ctx.provide('slots', {
       inject: (_name: string, callback: () => unknown) => ctx.effect(() => callback() as () => void),
-      register: (entry: { name?: string; key?: string }) => {
+      register: (entry: { name?: string; key?: string; id?: string; label?: string | (() => string) }) => {
         registrations.push(entry)
         return () => { registrations.splice(registrations.indexOf(entry), 1) }
       },
@@ -157,8 +159,46 @@ describe('Git client lifecycle', () => {
     await fiber.await()
     expect(registrations.filter(entry => entry.name === 'settings.plugin.item').map(entry => entry.key))
       .toEqual(['git-commit-message'])
+    expect(registrations.filter(entry => entry.name === 'plugins.bundle.config').map(entry => entry.key))
+      .toEqual(['@dsh-electron/dsh-plugin-git'])
+    expect(registrations.some(entry => entry.name === 'settings.plugins.tab')).toBe(false)
     await fiber.dispose()
     expect(registrations.some(entry => entry.name === 'settings.plugin.item')).toBe(false)
+    expect(registrations.some(entry => entry.name === 'plugins.bundle.config')).toBe(false)
+  })
+
+  it('reads the config form by the patch row id', async () => {
+    const ctx = new Context()
+    const get = vi.fn(() => ({
+      getSnapshot: () => ({
+        status: 'unavailable',
+        value: undefined,
+        base: undefined,
+        user: undefined,
+        revision: undefined,
+        writable: false,
+      }),
+      subscribe: () => () => {},
+      mutate: vi.fn(async () => {}),
+    }))
+    const sidebar = minimalSidebar()
+    ctx.provide('slots', {
+      inject: (_name: string, callback: () => unknown) => ctx.effect(() => callback() as () => void),
+      register: () => () => {},
+    } as never)
+    ctx.provide('connection', { rpc: { call: vi.fn() } } as never)
+    ctx.provide('locale', {
+      register: () => () => {},
+      bind: () => (key: string) => key,
+      subscribe: () => () => {},
+    } as never)
+    ctx.provide('sidebarRight', sidebar.sidebarRight as never)
+    ctx.provide('sidebarRightTabs', sidebar.sidebarRightTabs as never)
+    ctx.provide('configForms', { get } as never)
+    const fiber = ctx.plugin({ inject, apply })
+    await fiber.await()
+    expect(get).toHaveBeenCalledWith('dsh-plugin-git')
+    await fiber.dispose()
   })
 
   it('loads the model catalog through remote.session.modelCatalog', async () => {

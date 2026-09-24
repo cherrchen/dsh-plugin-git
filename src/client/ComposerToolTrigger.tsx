@@ -2,7 +2,7 @@
 
 import { forwardRef } from 'react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
-import { IconChevronDownOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconChevronDownOutline14 } from '../compat/dsh-icons.tsx'
 import css from './ComposerToolTrigger.module.css'
 
 export interface ComposerToolTriggerProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'children'> {

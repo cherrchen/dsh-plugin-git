@@ -18,6 +18,7 @@ import {
   validateCommitMessageSettings,
   type CommitMessageSettings,
 } from './commit-message-settings.ts'
+import { markVolatile, readVolatile } from './compat/dsh-schema.ts'
 import { GitService } from './service.ts'
 import type { GitCommitMessageCapability, GitFileChange } from './types.ts'
 
@@ -50,11 +51,11 @@ export const Config = z.object({
   maxOutputBytes: z.natural().min(1024).default(8 * 1024 * 1024),
   graceMs: z.natural().min(1).default(3000),
   commitMessage: z.object({
-    mode: z.union([z.const('inherit'), z.const('custom')]),
-    provider: z.string(),
-    model: z.string(),
-    systemPrompt: z.string(),
-    maxDiffBytes: z.natural().min(1024),
+    mode: markVolatile(z.union([z.const('inherit'), z.const('custom')])),
+    provider: markVolatile(z.string()),
+    model: markVolatile(z.string()),
+    systemPrompt: markVolatile(z.string()),
+    maxDiffBytes: markVolatile(z.natural().min(1024)),
   }),
 })
 
@@ -117,12 +118,12 @@ class GenerationAssembly {
  * @returns The mutable assembly consumed by the RPC adapter.
  */
 function assembleGeneration(ctx: Context, config: CommitMessageSettings | undefined): GenerationAssembly {
-  if (config?.mode === 'custom') validateCommitMessageSettings(config)
   const generation = new GenerationAssembly()
   const entry: CommitMessageSettings = config ?? {}
   let readSettings: (() => CommitMessageSettings) | undefined
   let readHostDefault: (() => CommitMessageSelection) | undefined
-  const resolved = (): CommitMessageSettings => readSettings?.() ?? entry
+  const resolved = (): CommitMessageSettings => plainCommitMessageSettings(readSettings?.() ?? entry)
+  if (resolved().mode === 'custom') validateCommitMessageSettings(resolved())
   const resolveSelection = (): CommitMessageSelection | undefined => {
     const source = resolved()
     if (source.mode !== 'inherit' && source.provider !== undefined && source.model !== undefined) {
@@ -155,14 +156,53 @@ function assembleGeneration(ctx: Context, config: CommitMessageSettings | undefi
   // Plugin configuration edits this section live; without a settings provider
   // the composition entry above is the only source.
   ctx.inject(['settings'], (settingsCtx) => {
-    settingsCtx.settings.installSection(ctx, GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE, GIT_COMMIT_MESSAGE_SETTINGS_SCHEMA, entry, {
-      setSource: (current) => { readSettings = current },
-      onChange: () => {},
-      validate: validateCommitMessageSettings,
-    })
+    const settings = settingsCtx.settings as unknown as {
+      installSection?: (
+        owner: Context,
+        namespace: string,
+        schema: typeof GIT_COMMIT_MESSAGE_SETTINGS_SCHEMA,
+        initialValue: CommitMessageSettings,
+        hooks: { setSource: (current: () => CommitMessageSettings) => void; onChange: () => void; validate: typeof validateCommitMessageSettings },
+      ) => void
+      configure?: (presentation: { auto?: boolean }, owner?: unknown) => () => void
+    }
+    if (settings.installSection !== undefined) {
+      settings.installSection(ctx, GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE, GIT_COMMIT_MESSAGE_SETTINGS_SCHEMA, entry, {
+        setSource: (current) => { readSettings = current },
+        onChange: () => {},
+        validate: validateCommitMessageSettings,
+      })
+    } else if (settings.configure !== undefined) {
+      // DSH 0.1.7 derives edit forms from this plugin's volatile Config fields.
+      // Our Client page owns the UI, while the plugin keeps reading the live Config.
+      return settingsCtx.effect(() => settings.configure!({ auto: false }, settingsCtx.fiber), 'git: custom config page')
+    }
     return () => { readSettings = undefined }
   })
   return generation
+}
+
+/**
+ * Copy commit-message settings into plain values.
+ * On DSH 0.1.7 each field is a volatile reference and must be snapshotted per
+ * read so a settings edit applies to the next generation. Older hosts and the
+ * legacy settings section already store plain values.
+ * @param source - Composition entry, or the live settings section.
+ * @returns Settings safe to treat as strings and numbers.
+ */
+function plainCommitMessageSettings(source: CommitMessageSettings | undefined): CommitMessageSettings {
+  const mode = readVolatile(source?.mode)
+  const provider = readVolatile(source?.provider)
+  const model = readVolatile(source?.model)
+  const systemPrompt = readVolatile(source?.systemPrompt)
+  const maxDiffBytes = readVolatile(source?.maxDiffBytes)
+  return {
+    ...(mode === 'inherit' || mode === 'custom' ? { mode } : {}),
+    ...(typeof provider === 'string' ? { provider } : {}),
+    ...(typeof model === 'string' ? { model } : {}),
+    ...(typeof systemPrompt === 'string' ? { systemPrompt } : {}),
+    ...(typeof maxDiffBytes === 'number' ? { maxDiffBytes } : {}),
+  }
 }
 
 /** Current capability answer for the generation backend, including why it is unavailable. */

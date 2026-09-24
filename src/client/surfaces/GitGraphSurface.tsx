@@ -14,7 +14,7 @@ import type { GitClientController } from '../controller.ts'
 import { GitDetailsHeaderActions } from '../GitDetailsHeaderActions.tsx'
 import { GIT_GRAPH_LANE_GAP } from '../graph-geometry.ts'
 import { GitGraphCanvas } from '../GitGraphCanvas.tsx'
-import { useGitWorkspace, type GitSessionsHook } from '../use-git-workspace.ts'
+import { useGitWorkspace } from '../use-git-workspace.ts'
 import css from '../GitGraphSurface.module.css'
 
 /** Full composed props for the Git Graph tab body. */
@@ -33,8 +33,7 @@ function scopeLabelKey(scope: GitLogScope): 'graph.scope.auto' | 'graph.scope.al
 /** Render the Git Graph surface body. */
 export function GitGraphSurface({ controller, t, useSessions, sessionId }: GitGraphSurfaceProps): ReactNode {
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
-  const sessions = useSessions as GitSessionsHook
-  const workspacePath = sessions(list => list.byId[String(sessionId)]?.cwd)
+  const workspacePath = useSessions(list => list.byId[sessionId]?.cwd)
   const [hoveredRowIndex, setHoveredRowIndex] = useState<number | undefined>(undefined)
 
   useGitWorkspace(controller, workspacePath)
