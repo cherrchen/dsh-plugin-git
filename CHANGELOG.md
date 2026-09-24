@@ -6,6 +6,10 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.2.3] — 2026-09-25
+
+Compatibility release extending the exact DSH support list to `0.1.7-rc.2`, with upgrade-lane conditional devDependencies for rc.2-only packages.
+
 ### Changed
 
 - The exact DSH compatibility matrix now includes `0.1.7-rc.2`. Development dependencies stay pinned to `0.1.5-rc.2`. Existing structure probes in `src/compat/` still cover settings, schema, and icons.
@@ -90,7 +94,8 @@ First tagged version: one portable Host service, one Client bundle, and an optio
 - Optional `ctx.inject(['desktop'], ...)` child fiber using `shell.showItemInFolder`, `shell.openPath`, and `notification.show`.
 - Documentation library under `docs/`, the `pnpm docs:check` machine check, the `version:set` script, a tag-triggered release workflow, the bilingual README pair, and its `README.i18n.yaml` hash record.
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.1.0...v0.2.0

@@ -41,7 +41,7 @@ This repo currently verifies against **DeepSeek Harness `0.1.5-rc.2`, `0.1.6-alp
 <a id="installation"></a>
 ## Installation
 
-The package is published to npm as `@dsh-electron/dsh-plugin-git` (current `0.2.2`, MIT, with build provenance). It is still experimental development: the API and versioning remain pre-1.0 and may change between minor releases.
+The package is published to npm as `@dsh-electron/dsh-plugin-git` (current `0.2.3`, MIT, with build provenance). It is still experimental development: the API and versioning remain pre-1.0 and may change between minor releases.
 
 **DeepSeek Harness Desktop** — Git is pre-installed and enabled by default. Disable it from **Settings → Plugins** when you do not need repository UI.
 
@@ -75,10 +75,10 @@ The registry holds the prebuilt artifact, so no package code runs on your machin
 
 ```sh
 pnpm pack --pack-destination dist
-dsh plugin --profile web add ./dist/dsh-electron-dsh-plugin-git-0.2.2.tgz
+dsh plugin --profile web add ./dist/dsh-electron-dsh-plugin-git-0.2.3.tgz
 ```
 
-`pnpm pack` produces that single tarball, and every tag's GitHub Release carries the same one — for `0.2.2`, `https://github.com/cherrchen/dsh-plugin-git/releases/download/v0.2.2/dsh-electron-dsh-plugin-git-0.2.2.tgz`. It is prebuilt as well, which makes it the form to use for an offline or air-gapped profile.
+`pnpm pack` produces that single tarball, and every tag's GitHub Release carries the same one — for `0.2.3`, `https://github.com/cherrchen/dsh-plugin-git/releases/download/v0.2.3/dsh-electron-dsh-plugin-git-0.2.3.tgz`. It is prebuilt as well, which makes it the form to use for an offline or air-gapped profile.
 
 ### From GitHub
 
@@ -97,7 +97,7 @@ allowBuilds:
 then run the `add` again. Moving the pin moves the commit, so the key moves with it. Treat that allowance as **permission for the package to execute code on your machine at install time**, outside any sandbox the agent runs under. Pin a tag so a later push cannot silently change what runs:
 
 ```sh
-dsh plugin --profile web add github:cherrchen/dsh-plugin-git#v0.2.2
+dsh plugin --profile web add github:cherrchen/dsh-plugin-git#v0.2.3
 ```
 
 ### From a local checkout (development)
@@ -211,7 +211,7 @@ GitHub authentication, hosting-provider workflows, credential prompts, issues, p
 <a id="npm-publication"></a>
 ## npm publication
 
-The package is published to npm as `@dsh-electron/dsh-plugin-git` (MIT; latest `0.2.2`). Releases are cut by pushing a `vX.Y.Z` tag: the workflow runs the tests and build, packs the tarball, publishes it to npm with build provenance, and attaches the same tarball to a GitHub Release. API and versioning remain pre-1.0. The UI host is the upstream built-in right sidebar; no separately installed third-party pairing package is required. Release steps and credentials are documented in [`docs/development/README.en.md`](docs/development/README.en.md#release-process).
+The package is published to npm as `@dsh-electron/dsh-plugin-git` (MIT; latest `0.2.3`). Releases are cut by pushing a `vX.Y.Z` tag: the workflow runs the tests and build, packs the tarball, publishes it to npm with build provenance, and attaches the same tarball to a GitHub Release. API and versioning remain pre-1.0. The UI host is the upstream built-in right sidebar; no separately installed third-party pairing package is required. Release steps and credentials are documented in [`docs/development/README.en.md`](docs/development/README.en.md#release-process).
 
 <a id="development"></a>
 ## Development

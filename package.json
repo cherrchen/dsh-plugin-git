@@ -1,7 +1,7 @@
 {
   "name": "@dsh-electron/dsh-plugin-git",
   "description": "Portable Git repository service and DSH client experience",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "publishConfig": {
     "access": "public"
   },

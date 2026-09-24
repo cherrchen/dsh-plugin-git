@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+## [0.2.3] — 2026-09-25
+
+兼容性版本：精确 DSH 支持清单扩展至 `0.1.7-rc.2`，升级车道对仅 rc.2 发布的包使用条件 devDependencies。
+
 ### Changed
 
 - 精确 DSH 兼容矩阵加入 `0.1.7-rc.2`。开发依赖仍 pin 在 `0.1.5-rc.2`。`src/compat/` 里已有的设置、schema 与图标结构探测继续覆盖该版本。
@@ -90,7 +94,8 @@
 - 可选的 `ctx.inject(['desktop'], ...)` child fiber，使用 `shell.showItemInFolder`、`shell.openPath` 与 `notification.show`。
 - `docs/` 文档库、`pnpm docs:check` 机器校验、`version:set` 脚本、tag 触发的 release 工作流、双语 README 配对及其 `README.i18n.yaml` hash 记录。
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.1.0...v0.2.0
