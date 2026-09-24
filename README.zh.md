@@ -164,7 +164,7 @@ declare module '@deepseek-ai/dsh-client-ui-sidebar-right/client' {
 
 在会话输入区左侧，Git 贡献 branch selector 与 changed-files indicator。点击任一控件会在右侧边栏打开 `git.changes` 标签页。创建分支会打开共享的 conversation Modal；在仅有 `git init`、尚无提交（unborn HEAD）时，菜单以禁用态展示符号默认分支，说明需要先完成首次提交，并在 HEAD 存在前禁用创建。
 
-**Changes** surface 顶部展示当前 branch 与 refresh，其下是默认一行、随内容增高的 commit message 输入框，带魔法棒 **Generate** 控件，以及分裂式 **Commit** 按钮（Commit、Amend、Commit & Push、Commit & Sync）。Staged、unstaged 与 untracked 路径以图标操作分区列出：plus／minus 切换 index，undo 在两步确认后 discard，porcelain 字母标记行状态。点击路径打开对应 diff。**Diff** surface 在右上角展示 refresh，并在每个标签页渲染一个文件的 working-tree 或 staged diff。**Graph** surface 顶部在同一行展示自动／全部／首父链与 refresh，其下以 canvas 绘制的 lane graph 展示提交历史——整页共享一个连续坐标系，rail 与 merge 边不会在行边界断裂——包含 subject、author、date、hash 与 HEAD／branch／tag 装饰徽标，并通过 load-more 控件增量分页。当 host 暴露 LLM runtime 时，staged diff 会发送到会话模型——或发送到 **设置 → 插件 → 插件配置 → Git** 里配置的自定义 provider/model——流式生成的建议写入可编辑输入框。同一张卡片也可以编辑生成所用的 system message。生成绝不 stage、commit 或 push 任何内容。在 Electron 上，optional Desktop enhancement 在 Desktop provider 存在时提供 reveal-in-folder 与 open-path 操作。
+**Changes** surface 顶部展示当前 branch 与 refresh，其下是默认一行、随内容增高的 commit message 输入框，带魔法棒 **Generate** 控件，以及分裂式 **Commit** 按钮（Commit、Amend、Commit & Push、Commit & Sync）。Staged、unstaged 与 untracked 路径以图标操作分区列出：plus／minus 切换 index，undo 在两步确认后 discard，porcelain 字母标记行状态。点击路径打开对应 diff。**Diff** surface 在右上角展示 refresh，并在每个标签页渲染一个文件的 working-tree 或 staged diff。**Graph** surface 顶部在同一行展示自动／全部／首父链与 refresh，其下以 canvas 绘制的 lane graph 展示提交历史——整页共享一个连续坐标系，rail 与 merge 边不会在行边界断裂——包含 subject、author、date、hash 与 HEAD／branch／tag 装饰徽标，并通过 load-more 控件增量分页。当 host 暴露 LLM runtime 时，staged diff 会发送到会话模型——或发送到插件配置里的自定义 provider/model——流式生成的建议写入可编辑输入框。同一张配置页也可以编辑生成所用的 system message。`0.1.6-alpha.1` 及更早在 **设置 → 插件 → 插件配置**；自 `0.1.6-alpha.2` 起在插件管理页该组合包的详情页。生成绝不 stage、commit 或 push 任何内容。在 Electron 上，optional Desktop enhancement 在 Desktop provider 存在时提供 reveal-in-folder 与 open-path 操作。
 
 <a id="composition"></a>
 ## 组合
@@ -173,7 +173,7 @@ Host plugin 要求 `ctx.subprocess`，提供 `ctx.git`，并使用 executable �
 
 Client plugin 要求 Connection、locale、renderer、conversation UI、primitives、session UI 与上游右侧边栏（`ctx.sidebarRight` / `ctx.sidebarRightTabs`，仅类型级 import）。Business components 通过 slot injection 接收 controller 与 `openDetails()`，不访问 Cordis context。
 
-当 `ctx.settingsScope` 存在时，Client 还会把一张卡片注册进 **设置 → 插件 → 插件配置**，命名空间为 `git-commit-message`。Host 不提供该命名空间时，卡片不会出现。
+当 `ctx.settingsScope` 或 `ctx.configForms` 存在时，Client 通过 [`src/compat/dsh-client-settings.ts`](src/compat/dsh-client-settings.ts) 注册提交信息配置。`0.1.5-rc.2` 与 `0.1.6-alpha.1` 消费 `settings.plugin.item`，命名空间为 `git-commit-message`，出现在 **设置 → 插件 → 插件配置**。自 `0.1.6-alpha.2` 起，宿主改消费 `plugins.bundle.config`，键为包名 `@dsh-electron/dsh-plugin-git`，出现在插件管理页该组合包详情的描述与组件列表之间。0.1.7 起表单数据来自补丁行 id `dsh-plugin-git`，不是包名。宿主未声明对应 slot、或未提供该命名空间时，配置不会出现。
 
 Client main fiber 不要求 `desktop`。Child `ctx.inject(['desktop'], ...)` fiber 只接受 `shell.showItemInFolder`、`shell.openPath` 与 `notification.show`；缺少这些能力时，repository、status、diff、stage、commit 与 branch operations 仍可用，native actions 不显示。
 
@@ -193,7 +193,7 @@ Client main fiber 不要求 `desktop`。Child `ctx.inject(['desktop'], ...)` fib
 | `commitMessage.systemPrompt` | 内置 | 提交信息生成的 system prompt。空或缺省使用 package 默认值。 |
 | `commitMessage.maxDiffBytes` | 48 KiB | 生成 prompt 构建前对 staged diff 施加的字节上限（validated 最小值 1024）。 |
 
-整个 `commitMessage` 节是 optional，同时也是 `git-commit-message` 设置命名空间。可在 **设置 → 插件 → 插件配置 → Git** 中编辑，或作为 composition entry。Host 未暴露 LLM runtime，或既没有会话模型也没有可解析的自定义路由时，commit message 生成不可用，Client 报告 `git/generation-unavailable`。
+整个 `commitMessage` 节是 optional，同时也是 `git-commit-message` 设置命名空间。可在上面的插件配置入口编辑，或作为 composition entry。Host 未暴露 LLM runtime，或既没有会话模型也没有可解析的自定义路由时，commit message 生成不可用，Client 报告 `git/generation-unavailable`。
 
 <a id="git-operations"></a>
 ## Git 操作
