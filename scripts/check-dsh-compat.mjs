@@ -46,6 +46,7 @@ function readHostRuntime(require) {
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
+const { lockfileDrift } = require('./dsh-release-wave.cjs')
 const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 const contract = readFileSync(join(root, 'src/compat/dsh-version.ts'), 'utf8')
 const match = /export const SUPPORTED_DSH_RELEASES = \[([^\]]*)\]/u.exec(contract)
@@ -106,6 +107,11 @@ for (const name of packages) {
 for (const [name, version] of installedVersions) {
   if (version === undefined) failures.push(`${name} is declared but not installed; run pnpm install`)
   else if (version !== pin) failures.push(`${name} resolves to ${version}, while the development pin is ${pin}`)
+}
+
+if (pin !== undefined) {
+  const lockText = readFileSync(join(root, 'pnpm-lock.yaml'), 'utf8')
+  for (const drift of lockfileDrift(lockText, pin)) failures.push(drift)
 }
 
 // The DSH packages declare the cordis and schemastery copies a real host of

@@ -26,7 +26,7 @@ The `prepare` script is `pnpm run build` (tsc declarations plus both bundle face
 
 CI runs in `.github/workflows/ci.yml` (tests on PRs and main pushes); the release pipeline is below, and its execution status lives in the [npm-first-release plan](../plans/completed/npm-first-release.md). Contributor setup, the gate list, and the documentation duty are in [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
 
-DSH release pins are governed by the [compatibility contract](../reference/dsh-compatibility.md). Run `pnpm compat:check` after installing dependencies; main CI validates the development pin, while `.github/workflows/upgrade.yml` covers the other supported releases. Manually dispatch it with an exact prerelease to evaluate a candidate without changing the support list.
+DSH release pins are governed by the [compatibility contract](../reference/dsh-compatibility.md). Run `pnpm compat:check` after installing dependencies. Main CI validates the development pin with a frozen lockfile and requires every transitive DSH package in that lockfile to be the same version. `.github/workflows/upgrade.yml` covers the other supported releases and is the only job that disables pnpm's 24-hour release cooldown. Manually dispatch it with an exact prerelease to evaluate a candidate without changing the support list.
 
 ## Release process
 

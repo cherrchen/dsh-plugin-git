@@ -54,6 +54,9 @@ jobs:
     env:
       DSH_COMPAT_MODE: ${{ needs.matrix.outputs.candidate == 'true' && 'warn' || '' }}
       DSH_COMPAT_VERSION: ${{ matrix.dsh-version }}
+      # This lane installs a just-published prerelease. The exemption is
+      # job-wide so later pnpm commands do not fall back to the 24h cooldown.
+      pnpm_config_minimum_release_age: "0"
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -63,14 +66,15 @@ jobs:
         with:
           node-version: 22.19.0
           cache: pnpm
+      # The committed lockfile is the development pin. Ignore the lane
+      # version until upgrade-dsh.mjs has rewritten the root manifest.
       - run: pnpm install --frozen-lockfile
+        env:
+          DSH_COMPAT_VERSION: ''
       - name: Select DSH matrix version
         run: node scripts/upgrade-dsh.mjs "$DSH_COMPAT_VERSION"
-      # Re-resolve after the pin change. minimumReleaseAge=0 lets a newly
-      # published prerelease install; the compat check then rejects a tree
-      # whose cordis or schemastery is not the copy that release ships.
       - name: Install the selected host runtime
-        run: pnpm install --no-frozen-lockfile --config.minimumReleaseAge=0
+        run: pnpm install --no-frozen-lockfile
       - run: pnpm compat:check
       - run: pnpm test
       - run: pnpm docs:check

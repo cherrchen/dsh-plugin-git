@@ -78,4 +78,4 @@ writeFileSync(workspacePath, workspace.replace(overrideLine, `$1${schemasteryVer
 console.log(`[upgrade] DSH packages set to ${version} (${changed} manifest entries changed)`)
 console.log(`[upgrade] cordis pin: ${cordisVersion}`)
 console.log(`[upgrade] schemastery pin: ${schemasteryVersion}`)
-console.log('[upgrade] next: pnpm install --no-frozen-lockfile --config.minimumReleaseAge=0')
+console.log('[upgrade] next: pnpm install --no-frozen-lockfile')
