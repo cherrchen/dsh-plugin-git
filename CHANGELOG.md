@@ -6,6 +6,12 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+Compatibility release extending the exact DSH support list to `0.2.0-rc.2`.
+
+### Changed
+
+- The exact DSH compatibility matrix now includes `0.2.0-rc.1` and `0.2.0-rc.2`. Development dependencies stay pinned to `0.1.5-rc.2`. Existing structure probes in `src/compat/` still cover settings, schema, and icons.
+
 ## [0.2.3] — 2026-09-25
 
 Compatibility release extending the exact DSH support list to `0.1.7-rc.2`, with upgrade-lane conditional devDependencies for rc.2-only packages.
