@@ -55,6 +55,12 @@
 
 修正：支持清单加入 `0.1.7-rc.2`，已有 peer OR 随之扩大，Cordis 与 schemastery 下限不抬高。升级脚本仅当 `npm view` 能看到这两个包的目标精确版本时，才写入该车道的 devDependencies。开发 pin 的清单和锁文件不加它们。
 
+## 后续修正（2026-09-30）：开发 pin 未满冷却窗口时写入精确 exclude
+
+开发 pin 切到 `0.2.0-rc.2` 后，主 CI 冻结安装在 pnpm 11 的 24 小时发布冷却下失败：锁文件里 78 个 `@deepseek-ai/dsh-*@0.2.0-rc.2` 条目发布未满一天。矩阵 job 已设 `pnpm_config_minimum_release_age=0`，不受影响。
+
+修正：把该 pin 在锁文件中的精确包版本写入 `minimumReleaseAgeExclude`，并清掉旧 pin 的同名条目。pnpm 11.7 对同一个包名只认第一条 `name@version`；把 `0.2.0-rc.2` 追加在 `0.1.5-rc.2` 后面时，那 23 个曾出现在旧 pin 里的包仍然被冷却拦住。不关闭主 CI 冷却，也不为未列入清单的 prerelease 开白名单。下次切换开发 pin 时，若新 pin 仍未满 24 小时，用新 pin **替换**这份列表。
+
 ## Related Documents
 
 - [DSH 兼容契约](../reference/dsh-compatibility.md)

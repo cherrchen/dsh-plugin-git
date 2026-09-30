@@ -4,7 +4,7 @@
 
 ## 适配波次状态
 
-自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.1.7-rc.2` 的兼容晋级已于 **2026-09-25** 完成。清单内七个精确 prerelease 均已写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。
+自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.2.0-rc.2` 的兼容晋级已于 **2026-09-30** 完成。清单内九个精确 prerelease 均已写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。
 
 ## 已验证并承诺支持的版本
 
@@ -17,10 +17,12 @@
 - `0.1.7-alpha.2`
 - `0.1.7-rc.1`
 - `0.1.7-rc.2`
+- `0.2.0-rc.1`
+- `0.2.0-rc.2`
 
-每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。开发依赖与提交锁文件统一 pin 到 `0.1.5-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。清单按晋级顺序累加，已承诺版本不会被后续晋级移除；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
+每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。开发依赖与提交锁文件统一 pin 到 `0.2.0-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。清单按晋级顺序累加，已承诺版本不会被后续晋级移除；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
 
-跨版本适配集中在 [`src/compat/`](../../src/compat)，并且只按结构探测、不按版本号分支：提交信息设置适配器在旧版 `settingsScope` 与 0.1.7 的 `configForms` 间转换表单，并同时注册 `settings.plugin.item` 与 `plugins.bundle.config`，由宿主声明的 slot 决定哪一面出现；图标适配器在固定尺寸名称与 0.1.7 权重 glyph 间选择；schema 适配器仅在当前 schemastery 副本提供 `volatile` 时才标记字段。开发 pin 始终保持 `0.1.5-rc.2`，其宿主运行时是 Cordis `4.0.2` 与 schemastery `3.18.2`。0.1.7-alpha.1 的宿主是 Cordis `4.0.3` 与 schemastery `3.18.3`；0.1.7-alpha.2、0.1.7-rc.1 与 0.1.7-rc.2 的宿主是 Cordis `4.0.4` 与 schemastery `3.18.4`。这三个发行版把这两份依赖写成波浪号，矩阵车道钉的是该范围的精确下限。
+跨版本适配集中在 [`src/compat/`](../../src/compat)，并且只按结构探测、不按版本号分支：提交信息设置适配器在旧版 `settingsScope` 与 0.1.7 的 `configForms` 间转换表单，并同时注册 `settings.plugin.item` 与 `plugins.bundle.config`，由宿主声明的 slot 决定哪一面出现；图标适配器在固定尺寸名称与 0.1.7 权重 glyph 间选择；schema 适配器仅在当前 schemastery 副本提供 `volatile` 时才标记字段。开发 pin 是 `0.2.0-rc.2`，其宿主运行时是 Cordis `4.0.4` 与 schemastery `3.18.4`。0.1.5-rc.2 到 0.1.6-alpha.2 的宿主是 Cordis `4.0.2` 与 schemastery `3.18.2`；0.1.7-alpha.1 的宿主是 Cordis `4.0.3` 与 schemastery `3.18.3`；0.1.7-alpha.2、0.1.7-rc.1、0.1.7-rc.2、0.2.0-rc.1 与 0.2.0-rc.2 的宿主是 Cordis `4.0.4` 与 schemastery `3.18.4`。后五个发行版把这两份依赖写成波浪号，矩阵车道钉的是该范围的精确下限。本包 Cordis peer 与 schemastery 依赖下限不抬高。
 
 `dsh-client-ui-primitives` 的发布 bundle 导入 `diff`，但上游没有将其声明为运行时依赖。本插件将 `diff`（`>=9 <10`）声明为 peer。alpha.2 的 bundle 还导入 `simple-icons@16.31.0`，同样未声明运行时依赖；本插件将 `simple-icons`（`>=16.31.0 <17`）声明为 peer，并以 `16.31.0` 做开发依赖 pin。这样严格依赖解析器也能满足上游 bundle 的导入。
 
@@ -29,7 +31,7 @@
 晋级 `0.1.6-alpha.2` 前，对比了本插件直接依赖的 alpha.1 与 alpha.2 发布 manifest 和声明文件，并用候选依赖执行构建与回归：
 
 - `dsh-api-session-controller` 调整 Session 管理契约：列表不再暴露 `current` 选择字段，快照移除了 transient queue；选择与生命周期改由 Session 引用和状态接口表达。本插件只根据注入的 `sessionId` 通过稳定的 `useSessions(...byId[id].cwd)` 取工作目录，因此移除了对 `current` 的结构假设。
-- `dsh-client-ui-settings` / `dsh-client-ui-settings-plugins` 从 `0.1.6-alpha.2` 起退役 `settings.plugin.item`。该插槽在 `0.1.5-rc.2` 与 `0.1.6-alpha.1` 仍由「插件」分区的 `configurable` 标签页声明。新宿主把社区插件配置放到插件管理页的 `plugins.bundle.config`，键为包名 `@dsh-electron/dsh-plugin-git`，表单出现在该组合包详情页的描述与组件列表之间。`settings.plugins.tab` 只剩功能标签外壳，不是 Git 的配置入口。适配层在 [`src/compat/dsh-client-settings.ts`](../../src/compat/dsh-client-settings.ts) 同时注册两个 slot；宿主没声明的那个保持挂起，因此六条已声明版本各自只显示自己拥有的一面。
+- `dsh-client-ui-settings` / `dsh-client-ui-settings-plugins` 从 `0.1.6-alpha.2` 起退役 `settings.plugin.item`。该插槽在 `0.1.5-rc.2` 与 `0.1.6-alpha.1` 仍由「插件」分区的 `configurable` 标签页声明。新宿主把社区插件配置放到插件管理页的 `plugins.bundle.config`，键为包名 `@dsh-electron/dsh-plugin-git`，表单出现在该组合包详情页的描述与组件列表之间。`settings.plugins.tab` 只剩功能标签外壳，不是 Git 的配置入口。适配层在 [`src/compat/dsh-client-settings.ts`](../../src/compat/dsh-client-settings.ts) 同时注册两个 slot；宿主没声明的那个保持挂起，因此各已声明版本只显示自己拥有的一面。
 - `dsh-client-ui-slots`、`dsh-client-ui-renderer` 与 `dsh-client-ui-conversation` 增加 Factory、显式 Session scope target 等机制，且调整了多个 Conversation 插槽契约。Git 用到的 `conversation.input.left`、`sidebar.right.pane.tab`、`sidebar.right.pane.tab.title` 和这两个设置贡献的注册运行时形态可以继续工作；对设置插槽名的声明差异经小型结构接口隔离。
 - `dsh-subprocess` 保留插件实际使用的 `resolveExecutable` 与 `spawn`。alpha.2 增加的 terminal activity 能力与本插件无关；右侧栏 `openTab` / `openResource` 也保留当前调用形态。
 
@@ -69,6 +71,17 @@
 - **宿主运行时下限不变。** rc.2 仍发布 Cordis `~4.0.4` 与 schemastery `~3.18.4`。矩阵车道继续钉这两份依赖的精确下限。Cordis peer 与 schemastery 依赖下限不抬高。
 - **rc.2 的 primitives bundle 新增未声明的 DSH 运行时导入。** `@deepseek-ai/dsh-client-ui-primitives@0.1.7-rc.2` 的 `lib/index.js` 顶层导入 `@deepseek-ai/dsh-util-code-language`。该包只在 `0.1.7-rc.2` 发布，上游只把它写成 devDependency。右侧栏类型同时引用只在该版本发布的 `@deepseek-ai/dsh-client-shortcuts`。这两个名字不能写进与支持清单相同的 peer OR：`app-boot` 用宿主版本满足每一个 `@deepseek-ai/dsh-*` peer，而 `.pnpmfile.cjs` 会把这类依赖改写成当前 pin；开发 pin `0.1.5-rc.2` 上这两个包不存在。升级脚本只在 `npm view` 能看到目标精确版本时，把它们写入该车道的 devDependencies。开发 pin 的清单和锁文件不加这两项。已有的 `diff`、`simple-icons`、`zustand` 与 `immer` peer 继续覆盖更早的未声明导入。
 
+## 0.2.0-rc.1 与 0.2.0-rc.2 接口差异评估
+
+晋级这两个版本前，对照了本地标签 `dsh-v0.1.7-rc.2`、`dsh-v0.2.0-rc.1`、`dsh-v0.2.0-rc.2`，以及 npm 发布包。`0.1.7-rc.2` 之后没有 0.1.8 / 0.1.9。两候选均以 `DSH_COMPAT_MODE=warn` 通过兼容检查、测试、构建与 artifact 检查；写入清单后对全部九个精确版本重建安装树并正式门禁通过。已有结构探测继续工作，没有新增 `src/compat/` 分支。
+
+- **必须处理：peer OR。** 每个 `@deepseek-ai/dsh-*` 包随发行版 lockstep 升到 `0.2.0-rc.1` / `0.2.0-rc.2`。`app-boot` 仍用 `semver.satisfies`（含 prerelease）预检；精确 OR 没有这两个版本时新宿主禁用插件。清单加入后 peer 范围覆盖这两个宿主。
+- **插件直接调用的服务源码未改。** `dsh-subprocess` 的 `resolveExecutable` / `spawn`、`dsh-settings.configure({ auto: false })`、`dsh-llm` 的 `GenerateOptions` 与 `stream` `text-delta`、`configForms.get`、slots `conversation.input.left` / `sidebar.right.pane.tab`、`useSessions(...).byId[id].cwd`、`openTab` / `openResource` 方法签名均保持。`Button`、`Menu`/`MenuEntry`（含 `type: 'label'` 与 `text`）、`Tooltip` 的 `label` / `side` / `delayMs`，以及 Git 使用的五个 Medium glyph 仍导出；primitives 只增加可选参数与 `MenuGroup`。
+- **宿主运行时下限不变。** 两个 0.2.0 发行版仍发布 Cordis `~4.0.4` 与 schemastery `~3.18.4`。矩阵车道钉该范围的精确下限。本包 Cordis peer 与 schemastery 依赖下限不抬高。
+- **0.2.0-rc.2 右侧栏内部重构（rc.1 仍为旧模型）。** 公开类型 `SidebarRightBinding` 被删除；`ISidebarRight.mounted` 从「seat 已 bind 的 session」改为「屏幕上的 session」，并在 React 渲染前发布。本插件不导入 `SidebarRightBinding`、不读 `mounted`、不调 `bind`，只调用 `openTab` 与 `openResource`。无 session 选中时仍抛 `sidebarRight: no session surface is mounted`。仓库测试使用 fake，不覆盖真实 `mounted` 时序。
+- **0.2.0 新增包不进入 peer OR。** `@deepseek-ai/dsh-client-product-analytics`、`dsh-otel`、`dsh-experimental-schedule-bundle` 与 `dsh-client-ui-settings-session-log` 仅从 0.2.0-rc.1 发布。conversation 对 product-analytics 是类型侧 `import type {}` 与 devDependency；候选类型构建与测试未要求安装该包。把它们写成与支持清单相同的 peer OR，会让旧宿主的 `app-boot` 预检失败。
+- **车道专用包继续按发布探测。** `dsh-util-code-language` 与 `dsh-client-shortcuts` 在 `0.1.7-rc.2`、`0.2.0-rc.1` 与 `0.2.0-rc.2` 均有发布。开发 pin 现为 `0.2.0-rc.2`，提交锁文件包含这两项；它们仍不进入 peer OR。升级脚本只在 `npm view` 看到目标精确版本时把它们写入该车道的 devDependencies，切到更早发行版时再移除。0.2.0 的 primitives 发布 bundle 仍顶层导入 `dsh-util-code-language`，并额外导入 `dsh-util-workspace-path`；后者由传递依赖装上，不进入 peer OR。已有的 `diff`、`simple-icons`、`zustand` 与 `immer` peer 继续覆盖更早的未声明导入。
+
 ## 静态一致性门禁
 
 上游 DSH 包把同级依赖写成 caret，例如 `^0.1.5-rc.2`。这个范围接受同一 core 上更后的 prerelease，pnpm 在 `autoInstallPeers` 下会装成 registry 里当前最高的匹配版本。只钉住根清单时，锁文件仍会混入 `0.1.5-rc.3`、`0.1.7-alpha.1` 或更旧的 `0.1.1-rc.2`。`.pnpmfile.cjs` 在每次安装时把传递依赖、可选依赖和 peer 里的全部 `@deepseek-ai/dsh-*` 改成当前精确版本。目标版本优先取 `DSH_COMPAT_VERSION`，否则取根 devDependency 的唯一 pin。根清单自己的 devDependency pin 和多版本 peer OR 范围保持不变。
@@ -84,7 +97,7 @@
 
 第 6 项挡住「DSH 包是旧版本、Cordis / schemastery 却被漂到新版本」的安装。那种树上类型检查和单测可以通过，真实宿主加载插件时仍会失败。schemastery 的发布范围仍是 `>=3.18.2 <4`，仓库用 `pnpm-workspace.yaml` 的 `overrides` 把当前车道钉到该版本声明的精确副本；Cordis 由开发依赖的精确版本钉住。升级脚本在切换车道时同时改这两处。
 
-主 CI 使用已提交锁文件中的开发 pin，冻结安装后运行兼容门禁、测试、文档检查、构建与 artifact 检查，并保留 pnpm 11 默认的 24 小时发布冷却。`.github/workflows/upgrade.yml` 通过 `scripts/check-dsh-compat.mjs --list-non-default` 从唯一版本清单中动态生成非开发 pin 的矩阵，避免再复制维护版本数组。每个车道切换至对应精确版本后非冻结安装；该 job 设置 `pnpm_config_minimum_release_age=0`，因为这条车道要安装刚发布的 prerelease，豁免不写入 `pnpm-workspace.yaml`。随后运行同一组门禁。两条工作流均不会静默改变支持清单。
+主 CI 使用已提交锁文件中的开发 pin，冻结安装后运行兼容门禁、测试、文档检查、构建与 artifact 检查，并保留 pnpm 11 默认的 24 小时发布冷却。开发 pin 若发布未满 24 小时，把该 pin 在锁文件中的精确 `@deepseek-ai/dsh-*` 版本写入 `pnpm-workspace.yaml` 的 `minimumReleaseAgeExclude`，并整表替换旧 pin，让冻结安装能解析已提交锁文件。pnpm 11.7 对同一个包名只认第一条 `name@version`，追加新 pin 不会覆盖旧条目。这不是给未列入清单、也不是给混装的 prerelease 开白名单。`.github/workflows/upgrade.yml` 通过 `scripts/check-dsh-compat.mjs --list-non-default` 从唯一版本清单中动态生成非开发 pin 的矩阵，避免再复制维护版本数组。每个车道切换至对应精确版本后非冻结安装；该 job 设置 `pnpm_config_minimum_release_age=0`，因为这条车道要安装刚发布的 prerelease，豁免不写入 `pnpm-workspace.yaml`。随后运行同一组门禁。两条工作流均不会静默改变支持清单。
 
 该检查保证锁文件中的 DSH 包是同一个版本，不承诺非 DSH 的宿主依赖树没有上游 peer 警告。全宿主依赖图的整合验证需由上游组合仓库负责。
 
