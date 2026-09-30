@@ -1,3 +1,5 @@
+中文 | [English](minimum-release-age-dev-pin.en.md)
+
 # 主 CI 冻结安装因 `minimumReleaseAge` 拒绝开发 pin
 
 ## 症状
