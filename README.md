@@ -36,7 +36,7 @@ Standard DSH/Cordis Git plugin with one portable Host service, one Client bundle
 <a id="dsh-compatibility"></a>
 ## DSH compatibility
 
-This repo currently verifies against **DeepSeek Harness `0.1.5-rc.2`, `0.1.6-alpha.1`, `0.1.6-alpha.2`, `0.1.7-alpha.1`, `0.1.7-alpha.2`, `0.1.7-rc.1`, `0.1.7-rc.2`, `0.2.0-rc.1`, and `0.2.0-rc.2`**. The development pin is `0.1.5-rc.2`; see the [compatibility contract](docs/reference/dsh-compatibility.md) for the compatibility matrix and candidate upgrade process.
+This repo currently verifies against **DeepSeek Harness `0.1.5-rc.2`, `0.1.6-alpha.1`, `0.1.6-alpha.2`, `0.1.7-alpha.1`, `0.1.7-alpha.2`, `0.1.7-rc.1`, `0.1.7-rc.2`, `0.2.0-rc.1`, and `0.2.0-rc.2`**. The development pin is `0.2.0-rc.2`; see the [compatibility contract](docs/reference/dsh-compatibility.md) for the compatibility matrix and candidate upgrade process.
 
 <a id="installation"></a>
 ## Installation

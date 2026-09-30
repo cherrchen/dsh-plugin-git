@@ -20,9 +20,9 @@
 - `0.2.0-rc.1`
 - `0.2.0-rc.2`
 
-每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。开发依赖与提交锁文件统一 pin 到 `0.1.5-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。清单按晋级顺序累加，已承诺版本不会被后续晋级移除；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
+每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。开发依赖与提交锁文件统一 pin 到 `0.2.0-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。清单按晋级顺序累加，已承诺版本不会被后续晋级移除；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
 
-跨版本适配集中在 [`src/compat/`](../../src/compat)，并且只按结构探测、不按版本号分支：提交信息设置适配器在旧版 `settingsScope` 与 0.1.7 的 `configForms` 间转换表单，并同时注册 `settings.plugin.item` 与 `plugins.bundle.config`，由宿主声明的 slot 决定哪一面出现；图标适配器在固定尺寸名称与 0.1.7 权重 glyph 间选择；schema 适配器仅在当前 schemastery 副本提供 `volatile` 时才标记字段。开发 pin 始终保持 `0.1.5-rc.2`，其宿主运行时是 Cordis `4.0.2` 与 schemastery `3.18.2`。0.1.7-alpha.1 的宿主是 Cordis `4.0.3` 与 schemastery `3.18.3`；0.1.7-alpha.2、0.1.7-rc.1、0.1.7-rc.2、0.2.0-rc.1 与 0.2.0-rc.2 的宿主是 Cordis `4.0.4` 与 schemastery `3.18.4`。后五个发行版把这两份依赖写成波浪号，矩阵车道钉的是该范围的精确下限。
+跨版本适配集中在 [`src/compat/`](../../src/compat)，并且只按结构探测、不按版本号分支：提交信息设置适配器在旧版 `settingsScope` 与 0.1.7 的 `configForms` 间转换表单，并同时注册 `settings.plugin.item` 与 `plugins.bundle.config`，由宿主声明的 slot 决定哪一面出现；图标适配器在固定尺寸名称与 0.1.7 权重 glyph 间选择；schema 适配器仅在当前 schemastery 副本提供 `volatile` 时才标记字段。开发 pin 是 `0.2.0-rc.2`，其宿主运行时是 Cordis `4.0.4` 与 schemastery `3.18.4`。0.1.5-rc.2 到 0.1.6-alpha.2 的宿主是 Cordis `4.0.2` 与 schemastery `3.18.2`；0.1.7-alpha.1 的宿主是 Cordis `4.0.3` 与 schemastery `3.18.3`；0.1.7-alpha.2、0.1.7-rc.1、0.1.7-rc.2、0.2.0-rc.1 与 0.2.0-rc.2 的宿主是 Cordis `4.0.4` 与 schemastery `3.18.4`。后五个发行版把这两份依赖写成波浪号，矩阵车道钉的是该范围的精确下限。本包 Cordis peer 与 schemastery 依赖下限不抬高。
 
 `dsh-client-ui-primitives` 的发布 bundle 导入 `diff`，但上游没有将其声明为运行时依赖。本插件将 `diff`（`>=9 <10`）声明为 peer。alpha.2 的 bundle 还导入 `simple-icons@16.31.0`，同样未声明运行时依赖；本插件将 `simple-icons`（`>=16.31.0 <17`）声明为 peer，并以 `16.31.0` 做开发依赖 pin。这样严格依赖解析器也能满足上游 bundle 的导入。
 
@@ -80,7 +80,7 @@
 - **宿主运行时下限不变。** 两个 0.2.0 发行版仍发布 Cordis `~4.0.4` 与 schemastery `~3.18.4`。矩阵车道钉该范围的精确下限。本包 Cordis peer 与 schemastery 依赖下限不抬高。
 - **0.2.0-rc.2 右侧栏内部重构（rc.1 仍为旧模型）。** 公开类型 `SidebarRightBinding` 被删除；`ISidebarRight.mounted` 从「seat 已 bind 的 session」改为「屏幕上的 session」，并在 React 渲染前发布。本插件不导入 `SidebarRightBinding`、不读 `mounted`、不调 `bind`，只调用 `openTab` 与 `openResource`。无 session 选中时仍抛 `sidebarRight: no session surface is mounted`。仓库测试使用 fake，不覆盖真实 `mounted` 时序。
 - **0.2.0 新增包不进入 peer OR。** `@deepseek-ai/dsh-client-product-analytics`、`dsh-otel`、`dsh-experimental-schedule-bundle` 与 `dsh-client-ui-settings-session-log` 仅从 0.2.0-rc.1 发布。conversation 对 product-analytics 是类型侧 `import type {}` 与 devDependency；候选类型构建与测试未要求安装该包。把它们写成与支持清单相同的 peer OR，会让旧宿主的 `app-boot` 预检失败。
-- **车道专用包继续按发布探测。** `dsh-util-code-language` 与 `dsh-client-shortcuts` 在 `0.1.7-rc.2`、`0.2.0-rc.1` 与 `0.2.0-rc.2` 均有发布。升级脚本仍只在 `npm view` 看到目标精确版本时写入该车道的 devDependencies。0.2.0 的 primitives 发布 bundle 仍顶层导入 `dsh-util-code-language`，并额外导入 `dsh-util-workspace-path`；后者由传递依赖装上，不进入 peer OR。已有的 `diff`、`simple-icons`、`zustand` 与 `immer` peer 继续覆盖更早的未声明导入。
+- **车道专用包继续按发布探测。** `dsh-util-code-language` 与 `dsh-client-shortcuts` 在 `0.1.7-rc.2`、`0.2.0-rc.1` 与 `0.2.0-rc.2` 均有发布。开发 pin 现为 `0.2.0-rc.2`，提交锁文件包含这两项；它们仍不进入 peer OR。升级脚本只在 `npm view` 看到目标精确版本时把它们写入该车道的 devDependencies，切到更早发行版时再移除。0.2.0 的 primitives 发布 bundle 仍顶层导入 `dsh-util-code-language`，并额外导入 `dsh-util-workspace-path`；后者由传递依赖装上，不进入 peer OR。已有的 `diff`、`simple-icons`、`zustand` 与 `immer` peer 继续覆盖更早的未声明导入。
 
 ## 静态一致性门禁
 

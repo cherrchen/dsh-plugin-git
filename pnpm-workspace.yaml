@@ -1,8 +1,7 @@
-# Baseline host (DSH 0.1.5-rc.2) ships this exact copy. A caret on the
-# package dependency would otherwise float to 3.18.3 and hide the load crash
-# that 3.18.2 produces. The upgrade lane rewrites this pin per release.
+# Development pin (DSH 0.2.0-rc.2) ships this exact copy. Matrix lanes rewrite
+# the pin per release so older hosts still see 3.18.2, which has no volatile.
 overrides:
-  '@deepseek-ai/schemastery': 3.18.2
+  '@deepseek-ai/schemastery': 3.18.4
 
 allowBuilds:
   '@deepseek-ai/dsh-subprocess-local': true

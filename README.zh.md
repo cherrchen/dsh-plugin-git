@@ -36,7 +36,7 @@ kind: "package-bundle"
 <a id="dsh-compatibility"></a>
 ## DSH 兼容性
 
-本仓库当前验证支持 **DeepSeek Harness `0.1.5-rc.2`、`0.1.6-alpha.1`、`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2`、`0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1` 与 `0.2.0-rc.2`**。开发 pin 为 `0.1.5-rc.2`；兼容矩阵与候选升级流程见[兼容契约](docs/reference/dsh-compatibility.md)。
+本仓库当前验证支持 **DeepSeek Harness `0.1.5-rc.2`、`0.1.6-alpha.1`、`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2`、`0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1` 与 `0.2.0-rc.2`**。开发 pin 为 `0.2.0-rc.2`；兼容矩阵与候选升级流程见[兼容契约](docs/reference/dsh-compatibility.md)。
 
 <a id="installation"></a>
 ## 安装

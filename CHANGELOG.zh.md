@@ -6,11 +6,11 @@
 
 ## [Unreleased]
 
-兼容性版本：精确 DSH 支持清单扩展至 `0.2.0-rc.2`。
+兼容性版本：精确 DSH 支持清单扩展至 `0.2.0-rc.2`，开发 pin 同步切到该发行版。
 
 ### Changed
 
-- 精确 DSH 兼容矩阵加入 `0.2.0-rc.1` 与 `0.2.0-rc.2`。开发依赖仍 pin 在 `0.1.5-rc.2`。`src/compat/` 里已有的设置、schema 与图标结构探测继续覆盖这两个版本。
+- 精确 DSH 兼容矩阵加入 `0.2.0-rc.1` 与 `0.2.0-rc.2`。开发依赖与提交锁文件 pin 在 `0.2.0-rc.2`（Cordis `4.0.4`、schemastery `3.18.4`）。`src/compat/` 里已有的设置、schema 与图标结构探测继续覆盖这两个版本。该 pin 发布的车道专用包（`dsh-util-code-language`、`dsh-client-shortcuts`）只作为开发依赖，不进入 peer OR。
 
 ## [0.2.3] — 2026-09-25
 
