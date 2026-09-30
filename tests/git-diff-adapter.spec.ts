@@ -61,6 +61,32 @@ describe('Git patch → official file changes', () => {
     })
   })
 
+  it.each([
+    ['both missing', 'before', 'after', false],
+    ['both present', 'before\n', 'after\n', false],
+    ['newline added', 'same', 'same\n', true],
+    ['newline removed', 'same\n', 'same', true],
+    ['shared unterminated context', 'before\ntail', 'after\ntail', false],
+  ] as const)('compares terminal newline states: %s', (_label, before, after, newlineChanged) => {
+    const { root, git } = repository()
+    const path = 'newline.txt'
+    writeFileSync(join(root, path), before)
+    git('add', '--', path)
+    git('commit', '-m', 'initial')
+    writeFileSync(join(root, path), after)
+    const patch = git('diff', '--no-color', '--', path)
+    expect(gitFileComparison(path, patch)).toEqual({
+      kind: 'text', newlineChanged, diffs: [{ path, oldText: before, newText: after }],
+    })
+    expect(gitFileComparison(path, patch, false)).toEqual({
+      kind: 'text', newlineChanged, diffs: [{
+        path,
+        oldText: before.replace('tail', ''),
+        newText: after.replace('tail', ''),
+      }],
+    })
+  })
+
   it('recognizes binary and rename-only changes instead of showing a clean file', () => {
     const { root, git } = repository()
     writeFileSync(join(root, 'binary.dat'), Buffer.from([0, 1, 2]))

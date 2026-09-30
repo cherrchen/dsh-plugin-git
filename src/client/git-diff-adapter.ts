@@ -24,6 +24,8 @@ export function gitFileComparison(path: string, text: string, context = true): G
     const diffs: DiffHunk[] = []
     let newlineChanged = false
     for (const patch of patches) {
+      let oldMissingNewline = false
+      let newMissingNewline = false
       for (const hunk of patch.hunks) {
         let oldText = ''
         let newText = ''
@@ -36,9 +38,14 @@ export function gitFileComparison(path: string, text: string, context = true): G
         for (const line of hunk.lines) {
           const operation = line[0]
           if (operation === '\\') {
-            if (previous === '-' || previous === ' ') oldText = oldText.slice(0, -1)
-            if (previous === '+' || previous === ' ') newText = newText.slice(0, -1)
-            if (previous === '-' || previous === '+') newlineChanged = true
+            if (previous === '-' || previous === ' ') {
+              oldText = oldText.slice(0, -1)
+              oldMissingNewline = true
+            }
+            if (previous === '+' || previous === ' ') {
+              newText = newText.slice(0, -1)
+              newMissingNewline = true
+            }
           } else if (operation === ' ' && !context) {
             flush()
           } else {
@@ -49,6 +56,7 @@ export function gitFileComparison(path: string, text: string, context = true): G
         }
         flush()
       }
+      newlineChanged ||= oldMissingNewline !== newMissingNewline
     }
     return diffs.length === 0 ? { kind: 'metadata' } : { kind: 'text', diffs, newlineChanged }
   } catch {
