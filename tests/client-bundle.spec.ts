@@ -6,6 +6,15 @@ import { SUPPORTED_DSH_RELEASES } from '../src/compat/dsh-version.ts'
 const packageRoot = resolve(import.meta.dirname, '..')
 
 describe('Git client bundle', () => {
+  it('uses the host-owned DiffBlock without bundling a private renderer', () => {
+    const client = readFileSync(join(packageRoot, 'lib/client.js'), 'utf8')
+    expect(client).toMatch(/\.DiffBlock\b/)
+    expect(client).not.toMatch(/function (DiffBlock|DiffLine)\b/)
+    expect(client).not.toContain('diffPlain')
+    expect(client).not.toContain('diffAdd')
+    expect(client).not.toContain('diffDel')
+  })
+
   it('erases the sidebar type-only import from the client artifact', () => {
     const client = readFileSync(join(packageRoot, 'lib/client.js'), 'utf8')
     expect(client).not.toContain('@dsh-electron/dsh-client-ui-details-host')

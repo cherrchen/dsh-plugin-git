@@ -10,6 +10,8 @@
 
 ### Changed
 
+- Git 文件比较改为复用官方 DSH `DiffBlock`，删除插件自写的逐行渲染器与样式。插件保留 Git 取数和侧栏地址，继续支持现有 DSH 矩阵，并区分二进制、仅元数据、空 patch、不完整输出及末尾换行变化。复制和折叠由 DSH 提供，新宿主还提供换行控件。
+
 - 精确 DSH 兼容矩阵加入 `0.2.0-rc.1` 与 `0.2.0-rc.2`。开发依赖与提交锁文件 pin 在 `0.2.0-rc.2`（Cordis `4.0.4`、schemastery `3.18.4`）。`src/compat/` 里已有的设置、schema 与图标结构探测继续覆盖这两个版本。该 pin 发布的车道专用包（`dsh-util-code-language`、`dsh-client-shortcuts`）只作为开发依赖，不进入 peer OR。
 
 ### Fixed
