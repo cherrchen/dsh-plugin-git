@@ -14,7 +14,7 @@
 
 ### Fixed
 
-- 主 CI 冻结安装可以在 pnpm 24 小时发布冷却到期前解析开发 pin `0.2.0-rc.2`：锁文件中的精确 `@deepseek-ai/dsh-*@0.2.0-rc.2` 列入 `minimumReleaseAgeExclude`。未列入清单的 prerelease 不进该列表。
+- 主 CI 冻结安装可以在 pnpm 24 小时发布冷却到期前解析开发 pin `0.2.0-rc.2`：`minimumReleaseAgeExclude` 只保留该 pin 在锁文件中的精确包。pnpm 11.7 会忽略同一包名的后续 `name@version` 行，因此不再把旧 pin 条目留在旁边。未列入清单的 prerelease 不进该列表。
 
 ## [0.2.3] — 2026-09-25
 

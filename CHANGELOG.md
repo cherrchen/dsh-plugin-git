@@ -14,7 +14,7 @@ Compatibility release extending the exact DSH support list to `0.2.0-rc.2`, with
 
 ### Fixed
 
-- Frozen main CI can install the `0.2.0-rc.2` development pin before pnpm's 24-hour release-age window: the lockfile's exact `@deepseek-ai/dsh-*@0.2.0-rc.2` packages are listed in `minimumReleaseAgeExclude`. Unlisted prereleases stay out of that list.
+- Frozen main CI can install the `0.2.0-rc.2` development pin before pnpm's 24-hour release-age window: `minimumReleaseAgeExclude` lists only that pin's exact lockfile packages. pnpm 11.7 ignores later same-name `name@version` rows, so older pin entries are not kept beside it. Unlisted prereleases stay out of that list.
 
 ## [0.2.3] — 2026-09-25
 

@@ -14,10 +14,12 @@
 
 ## 解法（已验证）
 
-把**当前开发 pin**在 `pnpm-lock.yaml` `packages` 段里的每个 `@deepseek-ai/dsh-*@<pin>` 精确写入 `pnpm-workspace.yaml` 的 `minimumReleaseAgeExclude`。不要：
+把**当前开发 pin**在 `pnpm-lock.yaml` `packages` 段里的每个 `@deepseek-ai/dsh-*@<pin>` 精确写入 `pnpm-workspace.yaml` 的 `minimumReleaseAgeExclude`，并**整表替换**，不要把新 pin 追加在旧 pin 后面。
+
+pnpm 11.7 对同一个包名只采用第一条 `name@version` 规则（[pnpm#12463](https://github.com/pnpm/pnpm/issues/12463)）。旧 pin 的条目会让新 pin 的同名包继续受 24 小时冷却约束。若必须保留多个版本，写成一条 `name@a || b`，不要拆成两行。不要：
 
 - 在 `.github/workflows/ci.yml` 把 `pnpm_config_minimum_release_age` 设为 `0`；
 - 写入 `@deepseek-ai/*` 这类范围豁免；
 - 把未列入支持清单、或不等于当前 pin 的版本写进 exclude。
 
-验证：同一条 `pnpm install --frozen-lockfile` 在保留默认冷却时通过，随后 `pnpm compat:check` 仍只接受锁文件中的 pin 版本。下次再切开发 pin，若新 pin 仍未满 24 小时，同步替换这份精确列表。
+验证：同一条 `pnpm install --frozen-lockfile` 在保留默认冷却时通过，随后 `pnpm compat:check` 仍只接受锁文件中的 pin 版本。下次再切开发 pin，若新 pin 仍未满 24 小时，用新 pin **替换**这份精确列表。

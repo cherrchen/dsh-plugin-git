@@ -11,5 +11,5 @@
 ## 条目
 
 - [`git-rpc-channel-405.md`](git-rpc-channel-405.md) —— `/git` RPC 通道 405：cordis 嵌套 fiber 属性访问不可见 `webServer`，通道静默未注册，客户端 UI 全部空白。
-- [`minimum-release-age-dev-pin.md`](minimum-release-age-dev-pin.md) —— 主 CI 冻结安装因 pnpm 24 小时发布冷却拒绝未满一天的开发 pin；把该 pin 的精确锁文件条目写入 `minimumReleaseAgeExclude`。
+- [`minimum-release-age-dev-pin.md`](minimum-release-age-dev-pin.md) —— 主 CI 冻结安装因 pnpm 24 小时发布冷却拒绝未满一天的开发 pin；用当前 pin 整表替换 `minimumReleaseAgeExclude`（同名包只认第一条版本）。
 - [`windows-desktop-console-flood.md`](windows-desktop-console-flood.md) —— Windows 桌面端终端窗口风暴与 Git 界面空白：宿主 `CreateProcessW` 缺 `CREATE_NO_WINDOW` 放大焦点事件，客户端刷新无合并且轮次互相判旧。
