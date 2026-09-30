@@ -12,6 +12,10 @@
 
 - 精确 DSH 兼容矩阵加入 `0.2.0-rc.1` 与 `0.2.0-rc.2`。开发依赖与提交锁文件 pin 在 `0.2.0-rc.2`（Cordis `4.0.4`、schemastery `3.18.4`）。`src/compat/` 里已有的设置、schema 与图标结构探测继续覆盖这两个版本。该 pin 发布的车道专用包（`dsh-util-code-language`、`dsh-client-shortcuts`）只作为开发依赖，不进入 peer OR。
 
+### Fixed
+
+- 主 CI 冻结安装可以在 pnpm 24 小时发布冷却到期前解析开发 pin `0.2.0-rc.2`：锁文件中的精确 `@deepseek-ai/dsh-*@0.2.0-rc.2` 列入 `minimumReleaseAgeExclude`。未列入清单的 prerelease 不进该列表。
+
 ## [0.2.3] — 2026-09-25
 
 兼容性版本：精确 DSH 支持清单扩展至 `0.1.7-rc.2`，升级车道对仅 rc.2 发布的包使用条件 devDependencies。

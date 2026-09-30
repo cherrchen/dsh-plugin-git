@@ -12,6 +12,10 @@ Compatibility release extending the exact DSH support list to `0.2.0-rc.2`, with
 
 - The exact DSH compatibility matrix now includes `0.2.0-rc.1` and `0.2.0-rc.2`. Development dependencies and the committed lockfile pin `0.2.0-rc.2` (Cordis `4.0.4`, schemastery `3.18.4`). Existing structure probes in `src/compat/` still cover settings, schema, and icons. Lane-only packages that this pin publishes (`dsh-util-code-language`, `dsh-client-shortcuts`) are development dependencies only; they stay out of the peer OR.
 
+### Fixed
+
+- Frozen main CI can install the `0.2.0-rc.2` development pin before pnpm's 24-hour release-age window: the lockfile's exact `@deepseek-ai/dsh-*@0.2.0-rc.2` packages are listed in `minimumReleaseAgeExclude`. Unlisted prereleases stay out of that list.
+
 ## [0.2.3] — 2026-09-25
 
 Compatibility release extending the exact DSH support list to `0.1.7-rc.2`, with upgrade-lane conditional devDependencies for rc.2-only packages.
