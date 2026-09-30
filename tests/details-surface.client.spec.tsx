@@ -102,7 +102,7 @@ function controllerOf(state: ReturnType<GitClientController['getSnapshot']>) {
       return () => { listeners.delete(listener) }
     },
     refresh: vi.fn(async () => {}),
-    fetchDiff: vi.fn(async (path: string, staged: boolean) => ({ repository: '/repo', path, staged, text: '+added\n' })),
+    fetchDiff: vi.fn(async (path: string, staged: boolean) => ({ repository: '/repo', path, staged, text: 'diff --git a/file b/file\n--- a/file\n+++ b/file\n@@ -1,1 +1,1 @@\n-old\n+added\n' })),
     openDiff: vi.fn(),
     stage: vi.fn(async () => {}),
     unstage: vi.fn(async () => {}),
@@ -172,13 +172,44 @@ describe('GitDiffSurface', () => {
       useTabInfo: tabInfoOf(gitDiffAddress('src/a.ts', false), { path: 'src/a.ts', staged: false }),
     }) as unknown as GitDiffSurfaceProps
 
-  it('loads the payload diff and renders the file header', async () => {
+  it('loads the payload and delegates file changes to the official DiffBlock', async () => {
     const controller = controllerOf(baseState())
     render(<GitDiffSurface {...props(controller)} />)
     expect(controller.fetchDiff).toHaveBeenCalledWith('src/a.ts', false)
     expect(screen.getByText('a.ts')).toBeTruthy()
     expect(screen.getByText(en['details.workingTree'])).toBeTruthy()
-    await waitFor(() => { expect(screen.getByText('+added')).toBeTruthy() })
+    await waitFor(() => { expect(screen.getByText('added')).toBeTruthy() })
+    expect(document.querySelector('[data-diff]')).toBeTruthy()
+    expect(screen.getByRole('button', { name: en['diff.copy'] })).toBeTruthy()
+  })
+
+  it.each([
+    ['', 'details.noChangesDiff'],
+    ['diff --git a/file b/file\nBinary files a/file and b/file differ\n', 'diff.binary'],
+    ['diff --git a/file b/file\nold mode 100644\nnew mode 100755\n', 'diff.metadata'],
+    ['+only the collector tail\n', 'diff.invalid'],
+  ] as const)('shows the non-text state for %s', async (text, key) => {
+    const controller = controllerOf(baseState())
+    controller.fetchDiff.mockResolvedValue({ repository: '/repo', path: 'src/a.ts', staged: false, text })
+    const { container } = render(<GitDiffSurface {...props(controller)} />)
+    await waitFor(() => { expect(screen.getByText(en[key])).toBeTruthy() })
+    expect(container.querySelector('[data-diff]')).toBeNull()
+  })
+
+  it('uses official folding controls to reveal the complete comparison', async () => {
+    const controller = controllerOf(baseState())
+    const lines = Array.from({ length: 30 }, (_, index) => `+line ${index}`)
+    controller.fetchDiff.mockResolvedValue({
+      repository: '/repo', path: 'src/a.ts', staged: false,
+      text: `diff --git a/file b/file\n--- /dev/null\n+++ b/file\n@@ -0,0 +1,30 @@\n${lines.join('\n')}\n`,
+    })
+    render(<GitDiffSurface {...props(controller)} />)
+    await waitFor(() => { expect(screen.getByText('line 0')).toBeTruthy() })
+    expect(screen.queryByText('line 15')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /hidden lines/ }))
+    expect(screen.getByText('line 15')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: en['diff.collapseAria'] }))
+    expect(screen.queryByText('line 15')).toBeNull()
   })
 
   it('renders the untracked empty state for an untracked payload', () => {
@@ -189,7 +220,7 @@ describe('GitDiffSurface', () => {
       {...props(controller)}
       useTabInfo={tabInfoOf(gitDiffAddress('notes.txt', false), { path: 'notes.txt', staged: false })}
     />)
-    // Untracked paths never hit the diff RPC: DiffTab shows the notice from
+    // Untracked paths never hit the diff RPC: the adapter shows the notice from
     // the repository snapshot alone.
     expect(controller.fetchDiff).not.toHaveBeenCalled()
     expect(screen.getByText(en['details.untrackedDiff'])).toBeTruthy()

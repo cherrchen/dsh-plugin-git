@@ -111,7 +111,7 @@ function release(harness: ReturnType<typeof createHarness>, path: string, staged
   const index = harness.diffs.findIndex(entry => pathOf(entry.payload) === path && stagedOf(entry.payload) === staged)
   const entry = harness.diffs[index]!
   harness.diffs.splice(index, 1)
-  entry.resolve({ ok: true, value: { repository: '/repo', path, staged, text } })
+  entry.resolve({ ok: true, value: { repository: '/repo', path, staged, text: `diff --git a/file b/file\n--- /dev/null\n+++ b/file\n@@ -0,0 +1,1 @@\n${text}\n` } })
 }
 
 function fail(harness: ReturnType<typeof createHarness>, path: string, staged: boolean, message: string): void {
@@ -143,12 +143,12 @@ describe('concurrent Diff panels', () => {
     release(harness, 'src/a.ts', false, '+a-line')
     const panelA = container.querySelector<HTMLElement>('[data-panel="a"]')!
     const panelB = container.querySelector<HTMLElement>('[data-panel="b"]')!
-    await waitFor(() => { expect(within(panelA).getByText('+a-line')).toBeTruthy() })
-    await waitFor(() => { expect(within(panelB).getByText('+b-line')).toBeTruthy() })
+    await waitFor(() => { expect(within(panelA).getByText('a-line')).toBeTruthy() })
+    await waitFor(() => { expect(within(panelB).getByText('b-line')).toBeTruthy() })
     expect(within(panelA).getByText('a.ts')).toBeTruthy()
-    expect(within(panelA).queryByText('+b-line')).toBeNull()
+    expect(within(panelA).queryByText('b-line')).toBeNull()
     expect(within(panelB).getByText('b.ts')).toBeTruthy()
-    expect(within(panelB).queryByText('+a-line')).toBeNull()
+    expect(within(panelB).queryByText('a-line')).toBeNull()
   })
 
   it('keeps staged and worktree panels of one file apart', async () => {
@@ -168,10 +168,10 @@ describe('concurrent Diff panels', () => {
     release(harness, 'src/a.ts', false, '+worktree-line')
     const panelStaged = container.querySelector<HTMLElement>('[data-panel="staged"]')!
     const panelWorktree = container.querySelector<HTMLElement>('[data-panel="worktree"]')!
-    await waitFor(() => { expect(within(panelStaged).getByText('+staged-line')).toBeTruthy() })
-    await waitFor(() => { expect(within(panelWorktree).getByText('+worktree-line')).toBeTruthy() })
-    expect(within(panelStaged).queryByText('+worktree-line')).toBeNull()
-    expect(within(panelWorktree).queryByText('+staged-line')).toBeNull()
+    await waitFor(() => { expect(within(panelStaged).getByText('staged-line')).toBeTruthy() })
+    await waitFor(() => { expect(within(panelWorktree).getByText('worktree-line')).toBeTruthy() })
+    expect(within(panelStaged).queryByText('worktree-line')).toBeNull()
+    expect(within(panelWorktree).queryByText('staged-line')).toBeNull()
     expect(within(panelStaged).getByText(en['details.stagedLabel'])).toBeTruthy()
     expect(within(panelWorktree).getByText(en['details.workingTree'])).toBeTruthy()
   })
@@ -196,7 +196,7 @@ describe('concurrent Diff panels', () => {
     await waitFor(() => { expect(harness.diffs).toHaveLength(1) })
     release(harness, 'src/a.ts', false, '+a-line')
     const panelA = container.querySelector<HTMLElement>('[data-panel="a"]')!
-    await waitFor(() => { expect(within(panelA).getByText('+a-line')).toBeTruthy() })
+    await waitFor(() => { expect(within(panelA).getByText('a-line')).toBeTruthy() })
     await harness.controller.refresh()
     await waitFor(() => { expect(within(panelA).getByText('status exploded')).toBeTruthy() })
     // The diff is not refetched: the repository snapshot never changed.

@@ -1,10 +1,11 @@
 /**
- * Git Diff surface: one changed path per tab. The tab's navigation carries
+ * Git comparison adapter: the official DSH DiffBlock draws one changed path per tab.
+ * The tab's navigation carries
  * the compared sides (worktree↔index or index↔HEAD): `params` when the
  * opener supplied them, otherwise decoded from the resource address (which
  * session restore replays without params).
  */
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { GitDiff } from '../../types.ts'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
@@ -12,7 +13,10 @@ import type { GitClientController } from '../controller.ts'
 import { parseGitDiffAddress, type GitDiffPayload } from '../contract.ts'
 import { GitDetailsHeaderActions } from '../GitDetailsHeaderActions.tsx'
 import { useGitWorkspace } from '../use-git-workspace.ts'
-import { DiffTab } from '../details/DiffTab.tsx'
+import { DiffBlock } from '@deepseek-ai/dsh-client-ui-primitives'
+import { dshDiffLabels, dshDiffSupportsContext } from '../../compat/dsh-diff.ts'
+import { gitFileComparison } from '../git-diff-adapter.ts'
+import { splitRepoPath } from '../path-display.ts'
 import css from '../GitDetailsSurface.module.css'
 
 /** Identity of one panel's diff result: repository root plus tab address. */
@@ -49,7 +53,7 @@ export function GitDiffSurface({ controller, t, useSessions, sessionId, useTabIn
   useEffect(() => {
     if (payload === undefined) return
     if (state.repository === undefined || state.repository === null) return
-    if (state.repository.untracked.includes(payload.path)) return // DiffTab renders the untracked notice from `repository` alone
+    if (state.repository.untracked.includes(payload.path)) return // The repository snapshot supplies the untracked notice.
     const root = state.repository.root
     let active = true
     setResult({ key: keyOf(root, address), diff: undefined, error: undefined })
@@ -70,6 +74,13 @@ export function GitDiffSurface({ controller, t, useSessions, sessionId, useTabIn
       ? state.error
       : `${state.error}\n${fetchError}`
 
+  const comparison = useMemo(() => payload === undefined || result?.diff === undefined
+    ? undefined
+    : gitFileComparison(payload.path, result.diff.text, dshDiffSupportsContext), [payload?.path, result?.diff])
+  const labels = dshDiffLabels(t)
+  const current = state.repository != null && result?.key === keyOf(state.repository.root, address)
+  const untracked = payload !== undefined && state.repository?.untracked.includes(payload.path) === true
+
   return (
     <div className={`${css.root} ${css.diffRoot}`} data-git-diff-surface="">
       <div className={css.diffToolbar} data-git-diff-toolbar="">
@@ -79,17 +90,26 @@ export function GitDiffSurface({ controller, t, useSessions, sessionId, useTabIn
         {payload === undefined && <p className={css.empty}>{t('details.missingDiff')}</p>}
         {state.workspacePath === undefined && <p className={css.empty}>{t('details.noWorkspace')}</p>}
         {state.repository === null && <p className={css.empty}>{t('details.notRepository')}</p>}
-        {payload !== undefined && state.repository !== undefined && state.repository !== null && (
-          state.repository.untracked.includes(payload.path) || result?.key === keyOf(state.repository.root, address)
-        ) && (
-          <DiffTab
-            repository={state.repository}
-            payload={{ path: payload.path, staged: payload.staged }}
-            diff={result?.diff}
-            clean={false}
-            t={t}
-            error={error}
-          />
+        {error !== undefined && <p className={css.error} role="alert">{error}</p>}
+        {untracked && <p className={css.empty}>{t('details.untrackedDiff')}</p>}
+        {payload !== undefined && state.repository != null && !untracked && (
+          <div className={css.diffTabBody}>
+            <header className={css.diffHeader}>
+              <strong>{splitRepoPath(payload.path).name}</strong>
+              <span>{payload.path}</span>
+              <span className={css.diffMode}>{t(payload.staged ? 'details.stagedLabel' : 'details.workingTree')}</span>
+            </header>
+            {!current || comparison === undefined
+              ? error === undefined && <p className={css.empty}>{t('details.loading')}</p>
+              : comparison.kind === 'text'
+                ? <>
+                    {comparison.newlineChanged && <p className={css.empty}>{t('diff.newline')}</p>}
+                    <DiffBlock key={`${state.repository.root}:${address}`} diffs={comparison.diffs} labels={labels} />
+                  </>
+                : <p className={css.empty} role={comparison.kind === 'invalid' ? 'alert' : undefined}>
+                    {t(comparison.kind === 'empty' ? 'details.noChangesDiff' : `diff.${comparison.kind}`)}
+                  </p>}
+          </div>
         )}
       </div>
     </div>

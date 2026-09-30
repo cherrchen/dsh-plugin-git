@@ -14,7 +14,7 @@
 | --- | --- |
 | FR-1 | 仓库发现、Git 版本、当前分支与 HEAD 读取 |
 | FR-2 | staged / unstaged / untracked 状态查询（porcelain v2，NUL 路径分隔） |
-| FR-3 | 工作区与暂存区 diff 读取 |
+| FR-3 | 工作区与暂存区 diff 读取；复用官方 `DiffBlock` 显示文件比较，插件只拥有 Git 数据与侧栏适配 |
 | FR-4 | stage / unstage / commit / amend / push / rebase-then-push 同步 |
 | FR-5 | 丢弃单条变更（含暂存后修改的 add/rename），两步显式确认 |
 | FR-6 | 本地分支创建与切换；unborn HEAD 时禁用创建并说明原因 |

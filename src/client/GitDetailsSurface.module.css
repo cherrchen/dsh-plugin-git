@@ -374,39 +374,6 @@
   color: var(--dsw-alias-label-secondary);
 }
 
-.diffBody {
-  overflow: auto;
-  border: 0.5px solid var(--dsw-alias-border-l2);
-  border-radius: 8px;
-  background: var(--dsw-specific-sidebar-fill);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-.diffPlain,
-.diffMeta,
-.diffAdd,
-.diffDel {
-  padding: 0 10px;
-  white-space: pre;
-}
-
-.diffMeta {
-  color: var(--dsw-alias-label-tertiary);
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
-.diffAdd {
-  color: var(--dsw-alias-state-success-primary);
-  background: rgb(46 160 67 / 8%);
-}
-
-.diffDel {
-  color: var(--dsw-alias-state-error-primary);
-  background: rgb(207 34 46 / 8%);
-}
-
 .generateButton {
   position: absolute;
   right: 6px;

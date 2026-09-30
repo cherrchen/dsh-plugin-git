@@ -82,6 +82,16 @@
 - **0.2.0 新增包不进入 peer OR。** `@deepseek-ai/dsh-client-product-analytics`、`dsh-otel`、`dsh-experimental-schedule-bundle` 与 `dsh-client-ui-settings-session-log` 仅从 0.2.0-rc.1 发布。conversation 对 product-analytics 是类型侧 `import type {}` 与 devDependency；候选类型构建与测试未要求安装该包。把它们写成与支持清单相同的 peer OR，会让旧宿主的 `app-boot` 预检失败。
 - **车道专用包继续按发布探测。** `dsh-util-code-language` 与 `dsh-client-shortcuts` 在 `0.1.7-rc.2`、`0.2.0-rc.1` 与 `0.2.0-rc.2` 均有发布。开发 pin 现为 `0.2.0-rc.2`，提交锁文件包含这两项；它们仍不进入 peer OR。升级脚本只在 `npm view` 看到目标精确版本时把它们写入该车道的 devDependencies，切到更早发行版时再移除。0.2.0 的 primitives 发布 bundle 仍顶层导入 `dsh-util-code-language`，并额外导入 `dsh-util-workspace-path`；后者由传递依赖装上，不进入 peer OR。已有的 `diff`、`simple-icons`、`zustand` 与 `immer` peer 继续覆盖更早的未声明导入。
 
+## 官方 DiffBlock 接入
+
+Git Client 从 primitives 的公开入口复用 `DiffBlock`，不导入官方 `ui-deliverables` 的私有 `FileDiff` 源码，也不要求改动 DSH 宿主。官方完整 `changes-review` 页面绑定会话回合的变更记录，不能直接代替 Git 的 index/HEAD/worktree 比较；本插件保留原有 `git.diff` 地址与取数适配，只删除自写的 patch 行渲染与样式。渲染职责见[架构总览](../architecture/overview.md)。
+
+`0.1.5-rc.2` 的组件把 old/new 片段中的每行当作移除/添加；自 `0.1.6-alpha.1` 起，组件比较片段并保留共享上下文。`src/compat/dsh-diff.ts` 用公开纯函数 `diffTotals` 对相同文本的计数探测该行为：支持上下文时传完整 hunk，否则只传由上下文隔开的修改片段，避免把未修改行当成更改。旧版的 `files(count)` labels 与新版的 code/wrap/unwrap labels 同时提供，中文和英文都由 Git 字典拥有。支持清单和开发 pin 不变。
+
+新增的 `tests/dsh-diff.client.spec.ts` 在矩阵每个车道使用该车道实际安装的官方组件计数，验证共享上下文不会增加编辑数；详情面板与并发面板测试直接渲染官方组件，覆盖复制控件、折叠、地址恢复、再次导航与结果隔离。新增 adapter 规格用临时仓库的真实 Git patch 验证增删、暂存/工作区、Unicode 路径、二进制、重命名与缺少末尾换行，并拒绝截断输出。
+
+本次迁移对开发 pin `0.2.0-rc.2` 运行完整测试、构建与产物检查；其余八个支持版本分别在临时目录重建安装树，通过兼容门禁、78 项相关回归、构建与产物检查。实际开发安装树、manifest 与 lockfile 保持原 pin。未进行真实 Web/Desktop 浏览器交互验证。
+
 ## 静态一致性门禁
 
 上游 DSH 包把同级依赖写成 caret，例如 `^0.1.5-rc.2`。这个范围接受同一 core 上更后的 prerelease，pnpm 在 `autoInstallPeers` 下会装成 registry 里当前最高的匹配版本。只钉住根清单时，锁文件仍会混入 `0.1.5-rc.3`、`0.1.7-alpha.1` 或更旧的 `0.1.1-rc.2`。`.pnpmfile.cjs` 在每次安装时把传递依赖、可选依赖和 peer 里的全部 `@deepseek-ai/dsh-*` 改成当前精确版本。目标版本优先取 `DSH_COMPAT_VERSION`，否则取根 devDependency 的唯一 pin。根清单自己的 devDependency pin 和多版本 peer OR 范围保持不变。

@@ -17,7 +17,6 @@
     "src/client/GitBranchControl.tsx",
     "src/client/GitDetailsHeaderActions.tsx",
     "src/client/details/ChangesTab.tsx",
-    "src/client/details/DiffTab.tsx",
     "src/client/details/ChangeSection.tsx",
     "src/client/details/ChangeRow.tsx",
     "src/client/locales.ts",
