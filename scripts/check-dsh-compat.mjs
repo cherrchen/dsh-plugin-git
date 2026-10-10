@@ -5,7 +5,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 function caretFloor(range, label) {
-  const match = /^[~^](\d+\.\d+\.\d+)$/u.exec(range ?? '')
+  const match = /^[~^](\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/u.exec(range ?? '')
   if (!match) {
     failures.push(`${label} must be a single caret or tilde range; found ${range ?? '(missing)'}`)
     return undefined
@@ -22,11 +22,24 @@ function compareVersions(left, right) {
   return 0
 }
 
-/** Whether `>=x.y.z <a.b.c` accepts an exact version. */
+/** Whether one declared range clause accepts an exact version. */
+function clauseAllows(range, version) {
+  const match = /^>=(\d+\.\d+\.\d+) <(\d+\.\d+\.\d+)$/u.exec(range)
+  if (match) {
+    if (version.includes('-')) return false
+    return compareVersions(version, match[1]) >= 0 && compareVersions(version, match[2]) < 0
+  }
+  const tilde = /^[~^](\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/u.exec(range)
+  if (!tilde) return false
+  const floor = tilde[1]
+  if (version === floor) return true
+  const release = floor.split('-')[0]
+  return !version.includes('-') && version === release
+}
+
+/** Whether a peer or dependency range, including `||` alternatives, accepts an exact version. */
 function rangeAllows(range, version) {
-  const match = /^>=(\d+\.\d+\.\d+) <(\d+\.\d+\.\d+)$/u.exec(range ?? '')
-  if (!match) return false
-  return compareVersions(version, match[1]) >= 0 && compareVersions(version, match[2]) < 0
+  return String(range ?? '').split('||').some(part => clauseAllows(part.trim(), version))
 }
 
 function readHostRuntime(require) {

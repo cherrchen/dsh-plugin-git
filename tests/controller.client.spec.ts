@@ -3,6 +3,7 @@ import type { GitRepositorySnapshot } from '../src/types.ts'
 import { changedPathCount } from '../src/client/changed-path-count.ts'
 import type { GitRpcResult } from '../src/client/controller.ts'
 import { GitClientController } from '../src/client/controller.ts'
+import { GitSessionControllers } from '../src/client/session-controllers.ts'
 
 function snapshot(overrides: Partial<GitRepositorySnapshot> = {}): GitRepositorySnapshot {
   return {
@@ -614,5 +615,66 @@ describe('GitClientController', () => {
     await controller.setWorkspace('/workspace')
     await controller.commit('ship', { followUp: 'push' })
     expect(endpoints.filter(endpoint => endpoint === 'commit' || endpoint === 'push')).toEqual(['commit', 'push'])
+  })
+
+  it('aborts an in-flight commit when the workspace changes and does not apply it to the new checkout', async () => {
+    let commitSignal: AbortSignal | undefined
+    const rpc = {
+      call: vi.fn(async (_channel: string, endpoint: string, payload: unknown, signal?: AbortSignal) => {
+        if (endpoint === 'discover') return { ok: true as const, value: (payload as { path: string }).path === '/new' ? '/repo-b' : '/repo-a' }
+        if (endpoint === 'status') return { ok: true as const, value: snapshot({ root: (payload as { repository: string }).repository, branch: (payload as { repository: string }).repository }) }
+        if (endpoint === 'log' || endpoint === 'commit-message-capability' || endpoint === 'directory-capability') {
+          return { ok: true as const, value: endpoint === 'directory-capability' ? { available: false } : endpoint === 'log' ? [] : { available: false } }
+        }
+        if (endpoint === 'commit') {
+          commitSignal = signal
+          return await new Promise((_resolve, reject) => {
+            signal?.addEventListener('abort', () => {
+              const error = new Error('The operation was aborted.')
+              error.name = 'AbortError'
+              reject(error)
+            })
+          })
+        }
+        return { ok: true as const, value: null }
+      }),
+    }
+    const controller = new GitClientController(rpc, 'session-a')
+    await controller.setWorkspace('/old')
+    const pending = controller.commit('ship it')
+    await vi.waitFor(() => { expect(commitSignal).toBeDefined() })
+    await controller.setWorkspace('/new')
+    await pending
+    expect(commitSignal?.aborted).toBe(true)
+    expect(controller.getSnapshot().workspacePath).toBe('/new')
+    expect(controller.getSnapshot().repository?.root).toBe('/repo-b')
+    expect(controller.getSnapshot().error).toBeUndefined()
+  })
+
+  it('keeps two sessions on different checkouts', async () => {
+    const payloads: Array<{ endpoint: string; sessionId?: string; path?: string; repository?: string }> = []
+    const rpc = {
+      call: vi.fn(async (_channel: string, endpoint: string, payload: unknown) => {
+        const body = payload as { sessionId?: string; path?: string; repository?: string }
+        payloads.push({ endpoint, ...body })
+        if (endpoint === 'discover') return { ok: true as const, value: body.path === '/wt-b' ? '/repo-b' : '/repo-a' }
+        if (endpoint === 'status') return { ok: true as const, value: snapshot({ root: body.repository, branch: body.repository === '/repo-b' ? 'feature' : 'main' }) }
+        if (endpoint === 'directory-capability') return { ok: true as const, value: { available: true } }
+        if (endpoint === 'log') return { ok: true as const, value: [] }
+        if (endpoint === 'commit-message-capability') return { ok: true as const, value: { available: false } }
+        return { ok: true as const, value: null }
+      }),
+    }
+    const sessions = new GitSessionControllers(rpc)
+    const first = sessions.controllerFor('session-a')
+    const second = sessions.controllerFor('session-b')
+    await first.setWorkspace('/wt-a')
+    await second.setWorkspace('/wt-b')
+    expect(first.getSnapshot().repository).toMatchObject({ root: '/repo-a', branch: 'main' })
+    expect(second.getSnapshot().repository).toMatchObject({ root: '/repo-b', branch: 'feature' })
+    expect(first.getSnapshot().workspacePath).toBe('/wt-a')
+    await vi.waitFor(() => { expect(second.getSnapshot().directorySwitchAvailable).toBe(true) })
+    expect(payloads.filter(entry => entry.endpoint === 'discover').map(entry => entry.sessionId)).toEqual(['session-a', 'session-b'])
+    sessions.dispose()
   })
 })

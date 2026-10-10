@@ -225,6 +225,59 @@ describe('GitBranchControl', () => {
     expect(await screen.findByText(/No commits yet/i)).toBeTruthy()
     expect(screen.getByRole<HTMLButtonElement>('menuitem', { name: 'Create new branch' }).disabled).toBe(true)
   })
+
+  it('follows a projected working directory ahead of the original project cwd', async () => {
+    const controller = controllerOf({
+      workspacePath: undefined,
+      repository: undefined,
+      loading: true,
+      error: undefined,
+      desktopAvailable: false,
+    })
+    const list = sessionsOf({ [SESSION_A]: '/projects/alpha' })
+    list.byId[SESSION_A] = {
+      ...list.byId[SESSION_A]!,
+      projectionValues: { workingDirectory: '/projects/alpha/nested' } as never,
+    }
+    render(<GitBranchControl {...baseProps(controller, list)} sessionId={SESSION_A} />)
+    await waitFor(() => {
+      expect(controller.setWorkspace).toHaveBeenCalledWith('/projects/alpha/nested')
+    })
+  })
+
+  it('falls back to the header cwd when the projection has no directory', async () => {
+    const controller = controllerOf({
+      workspacePath: '/projects/alpha',
+      repository: snapshot(),
+      loading: false,
+      error: undefined,
+      desktopAvailable: false,
+    })
+    const list = sessionsOf({ [SESSION_A]: '/projects/alpha' })
+    list.byId[SESSION_A] = {
+      ...list.byId[SESSION_A]!,
+      projectionValues: { workingDirectory: null } as never,
+    }
+    render(<GitBranchControl {...baseProps(controller, list)} sessionId={SESSION_A} />)
+    await waitFor(() => {
+      expect(controller.setWorkspace).toHaveBeenCalledWith('/projects/alpha')
+    })
+    expect(screen.queryByText(en['worktree.linked'])).toBeNull()
+  })
+
+  it('marks a linked checkout without changing the branch action', () => {
+    const controller = controllerOf({
+      workspacePath: '/projects/alpha-wt',
+      repository: snapshot({ checkout: { kind: 'linked' }, branch: 'feature' }),
+      loading: false,
+      error: undefined,
+      desktopAvailable: false,
+    })
+    const list = sessionsOf({ [SESSION_A]: '/projects/alpha-wt' })
+    render(<GitBranchControl {...baseProps(controller, list)} sessionId={SESSION_A} />)
+    expect(screen.getByText(en['worktree.linked'])).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'feature' })).toBeTruthy()
+  })
 })
 
 describe('createBranchErrorMessage', () => {

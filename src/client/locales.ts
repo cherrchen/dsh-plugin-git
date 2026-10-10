@@ -110,6 +110,12 @@ export const en = {
   'settings.systemPrompt': 'System message',
   'settings.systemPromptHint': 'Leave blank to use the built-in commit-message prompt.',
   'settings.systemPromptPlaceholder': 'You write Git commit messages.',
+  'worktree.linked': 'Linked worktree',
+  'worktree.bare': 'Bare repository',
+  'worktree.detached': 'Detached',
+  'worktree.list': 'Other checkouts',
+  'worktree.use': 'Use in this session',
+  'worktree.unavailable': 'This host cannot change the session directory. The list is read-only.',
 } as const
 
 export const zh: Record<keyof typeof en, string> = {
@@ -220,6 +226,12 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.systemPrompt': 'System message',
   'settings.systemPromptHint': '留空则使用内置的提交信息提示词。',
   'settings.systemPromptPlaceholder': 'You write Git commit messages.',
+  'worktree.linked': '链接的工作树',
+  'worktree.bare': '裸仓库',
+  'worktree.detached': '分离头指针',
+  'worktree.list': '其他检出',
+  'worktree.use': '在此会话中使用',
+  'worktree.unavailable': '当前宿主不能改变会话目录。此列表只读。',
 }
 
 export type GitLocaleKey = keyof typeof en

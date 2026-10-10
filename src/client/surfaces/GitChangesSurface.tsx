@@ -8,6 +8,9 @@ import type { ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { GitClientController } from '../controller.ts'
 import { GitDetailsHeaderActions } from '../GitDetailsHeaderActions.tsx'
+import { branchWithCheckout, checkoutSuffix, GitWorktreeList } from '../GitWorktreeList.tsx'
+import { resolveGitController, type GitSessionControllers } from '../session-controllers.ts'
+import { effectiveWorkspacePath } from '../workspace-path.ts'
 import { useGitWorkspace } from '../use-git-workspace.ts'
 import { ChangesTab } from '../details/ChangesTab.tsx'
 import { CommitRegion } from '../details/CommitRegion.tsx'
@@ -15,12 +18,15 @@ import css from '../GitDetailsSurface.module.css'
 
 /** Full composed props for the Git Changes tab body. */
 export type GitChangesSurfaceProps = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'git'>
-  & { controller: GitClientController }
+  & { controller?: GitClientController; gitSessions?: GitSessionControllers }
 
 /** Render the Git Changes surface body. */
-export function GitChangesSurface({ controller, t, useSessions, sessionId }: GitChangesSurfaceProps): ReactNode {
+export function GitChangesSurface({
+  controller: controllerProp, gitSessions, t, useSessions, sessionId,
+}: GitChangesSurfaceProps): ReactNode {
+  const controller = resolveGitController({ controller: controllerProp, gitSessions, sessionId })
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
-  const workspacePath = useSessions(list => list.byId[sessionId]?.cwd)
+  const workspacePath = useSessions(list => effectiveWorkspacePath(list.byId[sessionId]))
 
   useEffect(() => {
     void controller.refresh()
@@ -30,7 +36,10 @@ export function GitChangesSurface({ controller, t, useSessions, sessionId }: Git
 
   const repository = state.repository
   const branchLabel = repository !== undefined && repository !== null
-    ? (repository.branch ?? repository.head?.slice(0, 8) ?? 'HEAD')
+    ? branchWithCheckout(
+      repository.branch ?? repository.head?.slice(0, 8) ?? 'HEAD',
+      checkoutSuffix(repository.checkout?.kind, t),
+    )
     : undefined
 
   return (
@@ -39,12 +48,22 @@ export function GitChangesSurface({ controller, t, useSessions, sessionId }: Git
         <span
           className={css.branchChip}
           {...(repository !== undefined && repository !== null ? { title: repository.root } : {})}
+          {...(repository?.checkout?.kind !== undefined ? { 'data-git-checkout': repository.checkout.kind } : {})}
           aria-label={t('details.currentBranch')}
         >
           {branchLabel ?? t('details.currentBranch')}
         </span>
         <GitDetailsHeaderActions controller={controller} t={t} compact />
       </div>
+      {repository !== undefined && repository !== null ? (
+        <GitWorktreeList
+          worktrees={repository.worktrees ?? []}
+          directorySwitchAvailable={state.directorySwitchAvailable === true}
+          entering={state.loading}
+          onEnter={(path) => { void controller.enterWorktree(path) }}
+          t={t}
+        />
+      ) : null}
       {state.loading && repository === undefined && <p className={css.empty}>{t('details.loading')}</p>}
       {!state.loading && workspacePath === undefined && <p className={css.empty}>{t('details.noWorkspace')}</p>}
       {!state.loading && repository === null && <p className={css.empty}>{t('details.notRepository')}</p>}

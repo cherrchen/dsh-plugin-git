@@ -403,3 +403,81 @@
   color: var(--dsw-alias-label-tertiary);
   cursor: default;
 }
+
+.worktreeList {
+  display: grid;
+  gap: 6px;
+  margin: 0 12px 8px;
+  padding: 8px 0 0;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.worktreeHeading,
+.worktreeNote {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.worktreeNote {
+  font-weight: 400;
+}
+
+.worktreeItems {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.worktreeItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.worktreeName,
+.worktreePath {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.worktreeName {
+  color: var(--dsw-alias-label-primary);
+}
+
+.worktreePath {
+  flex: 1;
+  color: var(--dsw-alias-label-tertiary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.worktreeEnter {
+  flex: none;
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.worktreeEnter:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+.worktreeEnter:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}

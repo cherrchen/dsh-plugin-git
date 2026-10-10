@@ -17,6 +17,32 @@ export interface GitBranch {
   readonly current: boolean
 }
 
+/** How the current checkout relates to the repository's common Git directory. */
+export type GitCheckoutKind = 'main' | 'linked' | 'bare' | 'unknown'
+
+/** Identity of the checkout Git commands are running in. */
+export interface GitCheckout {
+  readonly kind: GitCheckoutKind
+  /** Canonical git directory of this checkout, when Git reported one. */
+  readonly gitDir?: string
+  /** Canonical common git directory shared by the repository's checkouts. */
+  readonly commonDir?: string
+}
+
+/** One checkout from `git worktree list`. */
+export interface GitWorktree {
+  /** Checkout directory Git reported. */
+  readonly path: string
+  /** Checked-out commit, or null for a bare record. */
+  readonly head: string | null
+  /** Short branch name, when the checkout is attached to one. */
+  readonly branch: string | null
+  readonly detached: boolean
+  readonly bare: boolean
+  /** True when this record is the checkout the snapshot was read from. */
+  readonly current: boolean
+}
+
 /** Complete repository state required by the first Git client experience. */
 export interface GitRepositorySnapshot {
   readonly root: string
@@ -27,6 +53,10 @@ export interface GitRepositorySnapshot {
   readonly unstaged: readonly GitFileChange[]
   readonly untracked: readonly string[]
   readonly branches: readonly GitBranch[]
+  /** Current checkout identity. Absent only on snapshots built by older callers. */
+  readonly checkout?: GitCheckout
+  /** Other and current checkouts of the same repository. */
+  readonly worktrees?: readonly GitWorktree[]
 }
 
 /** History scope of a `git log` query. */

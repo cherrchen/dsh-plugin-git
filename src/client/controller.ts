@@ -15,7 +15,7 @@ export interface GitRpcClient {
    * @param payload - Endpoint request payload.
    * @returns Host success or error result.
    */
-  call(channel: string, endpoint: string, payload: unknown): Promise<GitRpcResult>
+  call(channel: string, endpoint: string, payload: unknown, signal?: AbortSignal): Promise<GitRpcResult>
 }
 
 /** Exact Desktop methods consumed by this plugin's optional enhancement. */
@@ -65,6 +65,8 @@ export interface GitClientState {
   /** Why generation is unavailable; absent when available or unknown. */
   readonly generationReason: GitGenerationUnavailableReason | undefined
   readonly generationError: string | undefined
+  /** Whether this host can change the bound session's directory. */
+  readonly directorySwitchAvailable: boolean
 }
 
 /** Follow-up remote action after a successful local commit. */
@@ -99,8 +101,11 @@ export class GitClientController {
     generationAvailable: false,
     generationReason: undefined,
     generationError: undefined,
+    directorySwitchAvailable: false,
   }
   private readonly listeners = new Set<() => void>()
+  /** Cancels Git RPC started for the current workspace when that workspace changes. */
+  private operations = new AbortController()
   private desktop: GitDesktopCapability | undefined
   private operationGeneration = 0
   /**
@@ -127,7 +132,12 @@ export class GitClientController {
   /** Lane continuation state between loaded graph pages. */
   private graphContinuation: GraphContinuationState | undefined
 
-  constructor(private readonly rpc: GitRpcClient) {}
+  /**
+   * @param rpc - Connection caller for the `/git` channel.
+   * @param sessionId - Session this controller belongs to. Included on RPC payloads
+   * so the host can bind writes to that session's directory. Omitted by direct tests.
+   */
+  constructor(private readonly rpc: GitRpcClient, private readonly sessionId?: string) {}
 
   /**
    * Read the current immutable view consumed by React external-store hooks.
@@ -187,6 +197,10 @@ export class GitClientController {
     if (binding !== undefined
       && binding.generation === this.operationGeneration
       && binding.path === workspacePath) return
+    // Stop reads and writes that still name the previous checkout.
+    this.operations.abort()
+    this.operations = new AbortController()
+    const signal = this.operations.signal
     const generation = ++this.operationGeneration
     this.boundWorkspace = { path: workspacePath, generation }
     this.patch({
@@ -203,16 +217,26 @@ export class GitClientController {
       commitMessage: '',
       generating: false,
       generationError: undefined,
+      directorySwitchAvailable: false,
     })
     this.graphContinuation = undefined
     if (workspacePath === undefined) {
       this.patch({ loading: false })
       return
     }
-    await this.loadRepository(generation, workspacePath)
-    if (generation !== this.operationGeneration) return
+    await this.loadRepository(generation, workspacePath, signal)
+    if (generation !== this.operationGeneration || signal.aborted) return
     void this.loadGraph(true)
     void this.loadGenerationCapability()
+    void this.loadDirectoryCapability(generation, signal)
+  }
+
+  /**
+   * Drop in-flight Git RPC. Called when the owning session controller is released.
+   */
+  dispose(): void {
+    this.operations.abort()
+    this.listeners.clear()
   }
 
   /**
@@ -229,6 +253,7 @@ export class GitClientController {
    * @returns Completion after the burst's last Host discovery and status calls settle.
    */
   async refresh(workspacePath = this.state.workspacePath): Promise<void> {
+    const signal = this.operations.signal
     if (workspacePath === undefined) {
       this.patch({ workspacePath, repository: undefined, loading: false, error: undefined })
       return
@@ -244,14 +269,14 @@ export class GitClientController {
     const generation = ++this.operationGeneration
     const burst = { read: false, repeat: false }
     const run = (async (): Promise<void> => {
-      await this.reloadRepository(generation, workspacePath, () => { burst.read = true })
+      await this.reloadRepository(generation, workspacePath, signal, () => { burst.read = true })
       // A requested trailing read runs even when this round failed: the request
       // that set it asked for a read of its own, and a transient discovery or
       // status failure must not absorb it. Bounded to exactly one extra read —
       // deeper chaining would let this controller's own Host traffic (the focus
       // events the Windows console windows raise) re-arm the burst forever.
-      if (!burst.repeat || !burst.read || generation !== this.operationGeneration) return
-      await this.reloadRepository(generation, workspacePath)
+      if (!burst.repeat || !burst.read || generation !== this.operationGeneration || signal.aborted) return
+      await this.reloadRepository(generation, workspacePath, signal)
     })()
     this.refreshing = { path: workspacePath, generation, promise: run, burst }
     try {
@@ -270,10 +295,11 @@ export class GitClientController {
   private async reloadRepository(
     generation: number,
     workspacePath: string,
+    signal: AbortSignal,
     onRepositoryRead?: () => void,
   ): Promise<void> {
-    await this.loadRepository(generation, workspacePath, onRepositoryRead)
-    if (generation !== this.operationGeneration || this.state.error !== undefined) return
+    await this.loadRepository(generation, workspacePath, signal, onRepositoryRead)
+    if (signal.aborted || generation !== this.operationGeneration || this.state.error !== undefined) return
     // Keep the binding bookkeeping current so surface remounts after a
     // refresh stay idempotent.
     this.boundWorkspace = { path: workspacePath, generation }
@@ -290,8 +316,30 @@ export class GitClientController {
    * @returns The decoded diff.
    */
   async fetchDiff(path: string, staged: boolean): Promise<GitDiff> {
+    const signal = this.operations.signal
     const repository = this.requireRepository()
-    return decodeDiff(await this.call('diff', { repository: repository.root, path, staged }))
+    return decodeDiff(await this.call('diff', { repository: repository.root, path, staged }, signal))
+  }
+
+  /**
+   * Ask the host to point this session at another checkout of the current repository.
+   * The host performs the change through its working-directory service. This
+   * controller waits for the session projection to publish the new path.
+   * @param path - Checkout directory from the current worktree list.
+   * @returns Completion after the host accepts the change.
+   */
+  async enterWorktree(path: string): Promise<void> {
+    const signal = this.operations.signal
+    const generation = this.operationGeneration
+    const repositoryRoot = this.requireRepository().root
+    try {
+      await this.call('set-directory', { repository: repositoryRoot, path }, signal)
+    } catch (error) {
+      if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) return
+      const message = error instanceof Error ? error.message : String(error)
+      this.patch({ error: message })
+      throw error instanceof Error ? error : new Error(message)
+    }
   }
 
   /**
@@ -313,6 +361,7 @@ export class GitClientController {
    * @returns Completion after the Host log call settles.
    */
   async loadGraph(reset = true): Promise<void> {
+    const signal = this.operations.signal
     const repository = this.state.repository
     if (repository === undefined || repository === null) {
       this.graphContinuation = undefined
@@ -331,8 +380,8 @@ export class GitClientController {
         limit: GIT_GRAPH_PAGE_SIZE,
         skip,
         scope,
-      }))
-      if (!this.isRequestCurrent(bindingGeneration, repositoryRoot, requestGeneration, () => this.graphRequestGeneration)) return
+      }, signal))
+      if (signal.aborted || !this.isRequestCurrent(bindingGeneration, repositoryRoot, requestGeneration, () => this.graphRequestGeneration)) return
       const graph = reset ? commits : [...this.state.graph, ...commits]
       if (reset) this.graphContinuation = undefined
       const layout = layoutGitGraph(commits, {
@@ -352,8 +401,8 @@ export class GitClientController {
     } catch (error) {
       // A settled failure counts as loaded: the empty-history auto effect must
       // not turn a failing `git log` into an infinite retry loop. Recovery is
-      // an explicit refresh.
-      if (!this.isRequestCurrent(bindingGeneration, repositoryRoot, requestGeneration, () => this.graphRequestGeneration)) return
+      // an explicit refresh. Cancellation belongs to the replacement binding.
+      if (signal.aborted || !this.isRequestCurrent(bindingGeneration, repositoryRoot, requestGeneration, () => this.graphRequestGeneration)) return
       this.patch({
         graphLoading: false,
         graphError: error instanceof Error ? error.message : String(error),
@@ -393,6 +442,7 @@ export class GitClientController {
    * @returns Completion after the proposal lands in `commitMessage`.
    */
   async generateCommitMessage(): Promise<void> {
+    const signal = this.operations.signal
     const repository = this.requireRepository()
     if (repository.staged.length === 0) {
       this.patch({ generationError: 'stage-changes-first' })
@@ -403,13 +453,13 @@ export class GitClientController {
     const requestGeneration = ++this.generationRequestGeneration
     this.patch({ generating: true, generationError: undefined })
     try {
-      const staged = decodeDiff(await this.call('diff', { repository: repositoryRoot, staged: true }))
-      if (!this.isRequestCurrent(generation, repositoryRoot, requestGeneration, () => this.generationRequestGeneration)) return
+      const staged = decodeDiff(await this.call('diff', { repository: repositoryRoot, staged: true }, signal))
+      if (signal.aborted || !this.isRequestCurrent(generation, repositoryRoot, requestGeneration, () => this.generationRequestGeneration)) return
       const proposal = await this.call('generate-commit-message', {
         repository: repositoryRoot,
         stagedDiff: staged.text,
-      })
-      if (!this.isRequestCurrent(generation, repositoryRoot, requestGeneration, () => this.generationRequestGeneration)) return
+      }, signal)
+      if (signal.aborted || !this.isRequestCurrent(generation, repositoryRoot, requestGeneration, () => this.generationRequestGeneration)) return
       if (typeof proposal !== 'string' || proposal.trim().length === 0) {
         throw new Error('generation returned an empty message')
       }
@@ -417,19 +467,20 @@ export class GitClientController {
     } catch (error) {
       // Stale requests (workspace switched, repository reloaded) publish
       // neither their proposal nor their failure.
-      if (!this.isRequestCurrent(generation, repositoryRoot, requestGeneration, () => this.generationRequestGeneration)) return
+      if (signal.aborted || !this.isRequestCurrent(generation, repositoryRoot, requestGeneration, () => this.generationRequestGeneration)) return
       this.patch({ generating: false, generationError: error instanceof Error ? error.message : String(error) })
     }
   }
 
   private async loadGenerationCapability(): Promise<void> {
+    const signal = this.operations.signal
     const repository = this.state.repository
     if (repository === undefined || repository === null) return
     const bindingGeneration = this.operationGeneration
     const requestGeneration = ++this.capabilityRequestGeneration
     try {
-      const capability = await this.call('commit-message-capability', {}) as Partial<GitCommitMessageCapability>
-      if (!this.isRequestCurrent(bindingGeneration, repository.root, requestGeneration, () => this.capabilityRequestGeneration)) return
+      const capability = await this.call('commit-message-capability', {}, signal) as Partial<GitCommitMessageCapability>
+      if (signal.aborted || !this.isRequestCurrent(bindingGeneration, repository.root, requestGeneration, () => this.capabilityRequestGeneration)) return
       const reason = capability.reason
       this.patch({
         generationAvailable: capability.available === true,
@@ -438,8 +489,20 @@ export class GitClientController {
           : undefined,
       })
     } catch {
-      if (!this.isRequestCurrent(bindingGeneration, repository.root, requestGeneration, () => this.capabilityRequestGeneration)) return
+      if (signal.aborted || !this.isRequestCurrent(bindingGeneration, repository.root, requestGeneration, () => this.capabilityRequestGeneration)) return
       this.patch({ generationAvailable: false, generationReason: undefined })
+    }
+  }
+
+  private async loadDirectoryCapability(generation: number, signal: AbortSignal): Promise<void> {
+    try {
+      const value = await this.call('directory-capability', {}, signal)
+      if (signal.aborted || generation !== this.operationGeneration) return
+      const available = isRecord(value) && value['available'] === true
+      this.patch({ directorySwitchAvailable: available })
+    } catch {
+      if (signal.aborted || generation !== this.operationGeneration) return
+      this.patch({ directorySwitchAvailable: false })
     }
   }
 
@@ -499,11 +562,16 @@ export class GitClientController {
     await this.desktop?.shell.showItemInFolder(repository.root)
   }
 
-  private async loadRepository(generation: number, workspacePath: string, onRepositoryRead?: () => void): Promise<void> {
+  private async loadRepository(
+    generation: number,
+    workspacePath: string,
+    signal: AbortSignal,
+    onRepositoryRead?: () => void,
+  ): Promise<void> {
     this.patch({ workspacePath, loading: true, error: undefined })
     try {
-      const root = decodeRoot(await this.call('discover', { path: workspacePath }))
-      if (!this.isWorkspaceCurrent(generation)) return
+      const root = decodeRoot(await this.call('discover', { path: workspacePath }, signal))
+      if (signal.aborted || !this.isWorkspaceCurrent(generation)) return
       if (root === null) {
         this.patch({ repository: null, loading: false })
         return
@@ -511,14 +579,14 @@ export class GitClientController {
       // From here on this round reads the repository as it is now: a refresh
       // requested after this point must not be answered by this snapshot.
       onRepositoryRead?.()
-      const snapshot = decodeSnapshot(await this.call('status', { repository: root }))
-      if (!this.isWorkspaceCurrent(generation)) return
+      const snapshot = decodeSnapshot(await this.call('status', { repository: root }, signal))
+      if (signal.aborted || !this.isWorkspaceCurrent(generation)) return
       this.patch({
         repository: snapshot,
         loading: false,
       })
     } catch (error) {
-      if (!this.isWorkspaceCurrent(generation)) return
+      if (signal.aborted || !this.isWorkspaceCurrent(generation)) return
       this.patch({ loading: false, error: error instanceof Error ? error.message : String(error) })
     }
   }
@@ -531,24 +599,24 @@ export class GitClientController {
    * @returns `true` when this binding still owns the published snapshot.
    */
   private async mutate(endpoint: string, fields: Record<string, unknown>): Promise<boolean> {
+    const signal = this.operations.signal
     const generation = this.operationGeneration
     const repositoryRoot = this.requireRepository().root
     const run = async (): Promise<boolean> => {
-      if (!this.isBindingCurrent(generation, repositoryRoot)) return false
+      if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) return false
       this.patch({ loading: true, error: undefined })
       try {
-        const next = decodeSnapshot(await this.call(endpoint, { repository: repositoryRoot, ...fields }))
-        if (!this.isBindingCurrent(generation, repositoryRoot)) return false
+        const next = decodeSnapshot(await this.call(endpoint, { repository: repositoryRoot, ...fields }, signal))
+        if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) return false
         // Commits, discards, and branch switches may change history: invalidate
         // the loaded graph so the Graph surface reloads instead of rendering the
         // pre-mutation log.
         this.patch({ repository: next, loading: false, graphLoaded: false })
         return true
       } catch (error) {
+        if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) return false
         const message = error instanceof Error ? error.message : String(error)
-        if (this.isBindingCurrent(generation, repositoryRoot)) {
-          this.patch({ loading: false, error: message })
-        }
+        this.patch({ loading: false, error: message })
         throw error instanceof Error ? error : new Error(message)
       }
     }
@@ -583,8 +651,12 @@ export class GitClientController {
     return requestGeneration === latestRequestGeneration() && this.isBindingCurrent(bindingGeneration, repositoryRoot)
   }
 
-  private async call(endpoint: string, payload: unknown): Promise<unknown> {
-    const result = await this.rpc.call('/git', endpoint, payload)
+  private async call(endpoint: string, payload: unknown, signal: AbortSignal): Promise<unknown> {
+    if (signal.aborted) throw abortError()
+    const fields = isRecord(payload) ? { ...payload } : {}
+    if (this.sessionId !== undefined && this.sessionId.length > 0) fields['sessionId'] = this.sessionId
+    const result = await this.rpc.call('/git', endpoint, fields, signal)
+    if (signal.aborted) throw abortError()
     if (!result.ok) throw new Error(result.error.message)
     return result.value
   }
@@ -593,6 +665,16 @@ export class GitClientController {
     this.state = { ...this.state, ...patch }
     for (const listener of [...this.listeners]) listener()
   }
+}
+
+function abortError(): Error {
+  const error = new Error('The operation was aborted.')
+  error.name = 'AbortError'
+  return error
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function decodeRoot(value: unknown): string | null {

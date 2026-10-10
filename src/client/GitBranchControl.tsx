@@ -10,12 +10,18 @@ import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { ComposerToolTrigger } from './ComposerToolTrigger.tsx'
 import { changedPathCount } from './changed-path-count.ts'
 import type { GitClientController } from './controller.ts'
+import { checkoutSuffix } from './GitWorktreeList.tsx'
+import { resolveGitController, type GitSessionControllers } from './session-controllers.ts'
+import { effectiveWorkspacePath } from './workspace-path.ts'
 import { formatLocale } from './locales.ts'
 import css from './GitBranchControl.module.css'
 
 export type GitBranchControlProps = PropsRuntime<'conversation.input.left'> & PropsLocale<'git'>
   & {
-    controller: GitClientController
+    /** Direct controller used by tests. Production injects `gitSessions` instead. */
+    controller?: GitClientController
+    /** Per-session controllers. Wins over `controller` when both are present. */
+    gitSessions?: GitSessionControllers
     openDetails: () => void
   }
 
@@ -43,9 +49,12 @@ export function createBranchErrorMessage(
 }
 
 /** Branch selector and changed-files chip for the composer `conversation.input.left` slot. */
-export function GitBranchControl({ controller, openDetails, t, sessionId, useSessions }: GitBranchControlProps): ReactNode {
+export function GitBranchControl({
+  controller: controllerProp, gitSessions, openDetails, t, sessionId, useSessions,
+}: GitBranchControlProps): ReactNode {
+  const controller = resolveGitController({ controller: controllerProp, gitSessions, sessionId })
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
-  const workspacePath = useSessions(list => list.byId[sessionId]?.cwd)
+  const workspacePath = useSessions(list => effectiveWorkspacePath(list.byId[sessionId]))
   const [menuOpen, setMenuOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [branchName, setBranchName] = useState('')
@@ -107,6 +116,7 @@ export function GitBranchControl({ controller, openDetails, t, sessionId, useSes
   )
   const count = changedPathCount(repository)
   const changesLabel = formatLocale(t('changes.indicator'), { count })
+  const checkoutKind = checkoutSuffix(repository.checkout?.kind, t)
 
   const closeCreate = (): void => {
     setCreating(false)
@@ -166,6 +176,7 @@ export function GitBranchControl({ controller, openDetails, t, sessionId, useSes
           />
         )}
       />
+      {checkoutKind === undefined ? null : <span className={css.checkoutKind}>{checkoutKind}</span>}
       {state.error !== undefined && menuOpen && (
         <span className={css.menuError} role="alert">{state.error}</span>
       )}

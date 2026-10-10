@@ -66,6 +66,7 @@ function baseState(overrides: Partial<ReturnType<GitClientController['getSnapsho
     generationAvailable: false,
     generationReason: undefined,
     generationError: undefined,
+    directorySwitchAvailable: false,
     ...overrides,
   }
 }
@@ -119,6 +120,7 @@ function controllerOf(state: ReturnType<GitClientController['getSnapshot']>) {
     setGraphScope: vi.fn(async () => {}),
     setCommitMessage: vi.fn(),
     generateCommitMessage: vi.fn(async () => {}),
+    enterWorktree: vi.fn(async () => {}),
   }
 }
 
@@ -150,6 +152,44 @@ describe('GitChangesSurface', () => {
     expect(screen.getByText('main')).toBeTruthy()
     expect(container.querySelector('[data-git-changes-surface]')).toBeTruthy()
     expect(container.querySelector('[data-git-commit-region]')).toBeTruthy()
+  })
+
+  it('labels a linked checkout and enters another worktree for this session', () => {
+    const controller = controllerOf(baseState({
+      directorySwitchAvailable: true,
+      repository: snapshot({
+        branch: 'feature',
+        root: '/repo-wt',
+        checkout: { kind: 'linked', gitDir: '/repo/.git/worktrees/wt', commonDir: '/repo/.git' },
+        worktrees: [
+          { path: '/repo', head: 'abc123', branch: 'main', detached: false, bare: false, current: false },
+          { path: '/repo-wt', head: 'abc123', branch: 'feature', detached: false, bare: false, current: true },
+        ],
+      }),
+    }))
+    render(<GitChangesSurface {...props(controller)} />)
+    expect(screen.getByText('feature · Linked worktree')).toBeTruthy()
+    expect(document.querySelector('[data-git-checkout="linked"]')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: en['worktree.use'] }))
+    expect(controller.enterWorktree).toHaveBeenCalledWith('/repo')
+    expect(controller.setWorkspace).not.toHaveBeenCalledWith('/repo')
+  })
+
+  it('keeps other checkouts read-only when the host cannot change directories', () => {
+    const controller = controllerOf(baseState({
+      directorySwitchAvailable: false,
+      repository: snapshot({
+        checkout: { kind: 'main' },
+        worktrees: [
+          { path: '/repo', head: 'abc123', branch: 'main', detached: false, bare: false, current: true },
+          { path: '/repo-wt', head: 'def456', branch: 'feature', detached: false, bare: false, current: false },
+        ],
+      }),
+    }))
+    render(<GitChangesSurface {...props(controller)} />)
+    expect(screen.getByText(en['worktree.list'])).toBeTruthy()
+    expect(screen.getByText(en['worktree.unavailable'])).toBeTruthy()
+    expect(screen.queryByRole('button', { name: en['worktree.use'] })).toBeNull()
   })
 
   it('shows empty states for a missing workspace and a non-repository', () => {

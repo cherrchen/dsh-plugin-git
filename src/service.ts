@@ -3,8 +3,10 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { SubprocessRuntime } from '@deepseek-ai/dsh-subprocess'
 import { GIT_LOG_FORMAT, parseGitLog } from './log.ts'
+import { canonicalPath } from './path-identity.ts'
 import { parseBranches, parsePorcelainV2 } from './status.ts'
-import type { GitCommitSummary, GitDiff, GitFileChange, GitLogScope, GitRepositorySnapshot } from './types.ts'
+import type { GitCheckout, GitCommitSummary, GitDiff, GitFileChange, GitLogScope, GitRepositorySnapshot, GitWorktree } from './types.ts'
+import { parseWorktreeList } from './worktrees.ts'
 
 /** Extra `git log` arguments implementing one history scope. */
 function logScopeArgs(scope: GitLogScope): readonly string[] {
@@ -64,10 +66,12 @@ export class GitService {
    */
   async status(repository: string, signal?: AbortSignal): Promise<GitRepositorySnapshot> {
     const root = (await this.run(repository, ['rev-parse', '--show-toplevel'], signal)).trim()
-    const [versionText, statusText, branchText] = await Promise.all([
+    const [versionText, statusText, branchText, checkout, worktrees] = await Promise.all([
       this.run(root, ['--version'], signal),
       this.run(root, ['status', '--porcelain=v2', '--branch', '-z', '--untracked-files=all'], signal),
       this.run(root, ['for-each-ref', '--format=%(refname:short)%00%(objectname)%00%(HEAD)', 'refs/heads'], signal),
+      this.readCheckout(root, signal),
+      this.readWorktrees(root, signal),
     ])
     const parsed = parsePorcelainV2(statusText)
     return {
@@ -75,7 +79,21 @@ export class GitService {
       version: versionText.trim().replace(/^git version\s+/u, ''),
       ...parsed,
       branches: parseBranches(branchText),
+      checkout,
+      worktrees,
     }
+  }
+
+  /**
+   * List checkouts registered for the repository that contains a path.
+   * A failure to list worktrees yields an empty list so status and diff still work.
+   * @param repository - Existing path inside the repository.
+   * @param signal - Optional command cancellation signal.
+   * @returns Checkout records, with `current` set on the checkout that contains `repository`.
+   */
+  async listWorktrees(repository: string, signal?: AbortSignal): Promise<readonly GitWorktree[]> {
+    const root = (await this.run(repository, ['rev-parse', '--show-toplevel'], signal)).trim()
+    return this.readWorktrees(root, signal)
   }
 
   /**
@@ -268,6 +286,45 @@ export class GitService {
   async switchBranch(repository: string, branch: string, signal?: AbortSignal): Promise<GitRepositorySnapshot> {
     await this.run(repository, ['switch', requireBranch(branch)], signal)
     return this.status(repository, signal)
+  }
+
+  /** Classify this checkout without failing the snapshot when Git cannot answer. */
+  private async readCheckout(root: string, signal?: AbortSignal): Promise<GitCheckout> {
+    try {
+      const [gitDirText, commonDirText, bareText] = await Promise.all([
+        this.run(root, ['rev-parse', '--git-dir'], signal),
+        this.run(root, ['rev-parse', '--git-common-dir'], signal),
+        this.run(root, ['rev-parse', '--is-bare-repository'], signal),
+      ])
+      const gitDir = canonicalPath(gitDirText, root)
+      const commonDir = canonicalPath(commonDirText, root)
+      const bare = bareText.trim() === 'true'
+      return {
+        kind: bare ? 'bare' : gitDir === commonDir ? 'main' : 'linked',
+        gitDir,
+        commonDir,
+      }
+    } catch {
+      return { kind: 'unknown' }
+    }
+  }
+
+  /** Read worktree porcelain; an unsupported or failing Git still leaves the snapshot usable. */
+  private async readWorktrees(root: string, signal?: AbortSignal): Promise<readonly GitWorktree[]> {
+    let text = ''
+    try {
+      text = await this.run(root, ['worktree', 'list', '--porcelain', '-z'], signal)
+    } catch {
+      try {
+        text = await this.run(root, ['worktree', 'list', '--porcelain'], signal)
+      } catch {
+        return []
+      }
+    }
+    return parseWorktreeList(text).map(entry => ({
+      ...entry,
+      current: canonicalPath(entry.path, root) === canonicalPath(root, root),
+    }))
   }
 
   private async run(cwd: string, args: readonly string[], signal?: AbortSignal): Promise<string> {

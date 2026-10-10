@@ -16,7 +16,8 @@ import { GitChangesSurface } from './surfaces/GitChangesSurface.tsx'
 import { GitDiffSurface } from './surfaces/GitDiffSurface.tsx'
 import { GitPageTitle } from './GitPageTitle.tsx'
 import { GitGraphSurface } from './surfaces/GitGraphSurface.tsx'
-import { GitClientController, type GitDesktopCapability } from './controller.ts'
+import type { GitDesktopCapability } from './controller.ts'
+import { GitSessionControllers } from './session-controllers.ts'
 import {
   CommitMessageSettingsCardController,
   GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE,
@@ -51,7 +52,7 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
-export { GitBranchControl, GitDetailsHeaderActions, GitChangesSurface, GitDiffSurface, GitGraphSurface, GitClientController }
+export { GitBranchControl, GitDetailsHeaderActions, GitChangesSurface, GitDiffSurface, GitGraphSurface }
 export {
   GIT_CHANGES_ID,
   GIT_CHANGES_KIND,
@@ -66,14 +67,15 @@ export {
   type GitDiffPayload,
   type GitGraphPayload,
 } from './contract.ts'
-export type { GitCommitFollowUp, GitCommitOptions, GitDesktopCapability } from './controller.ts'
+export { GitClientController, type GitCommitFollowUp, type GitCommitOptions, type GitDesktopCapability } from './controller.ts'
 
 export const inject = ['slots', 'connection', 'locale', 'sidebarRight', 'sidebarRightTabs']
 
 /** Register portable UI first, then activate native enhancement in an optional child fiber. */
 export function apply(ctx: ClientContext): void {
   const connection = ctx.get('connection') as ConnectionHandle
-  const controller = new GitClientController(connection.rpc)
+  const gitSessions = new GitSessionControllers(connection.rpc)
+  ctx.effect(() => () => { gitSessions.dispose() }, 'git: session controllers')
 
   // Unified navigation: every Git entry point (composer chip, changes rows,
   // guide) converges on the right sidebar. Changes and Graph are singleton
@@ -85,7 +87,7 @@ export function apply(ctx: ClientContext): void {
   const openDiff = (path: string, staged: boolean): void => {
     ctx.sidebarRight.openResource(gitDiffAddress(path, staged), { params: { path, staged } })
   }
-  controller.setDiffNavigator(openDiff)
+  gitSessions.setDiffNavigator(openDiff)
 
   ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'git: dictionaries')
   const t = ctx.locale.bind(NS)
@@ -97,7 +99,7 @@ export function apply(ctx: ClientContext): void {
     name: 'conversation.input.left',
     id: 'git-context',
     locale: NS,
-    inject: () => ({ controller, openDetails: openChanges }),
+    inject: () => ({ gitSessions, openDetails: openChanges }),
   }, GitBranchControl))
 
   // Stage two: one body per tab type, keyed by the definition id. The sidebar
@@ -112,7 +114,7 @@ export function apply(ctx: ClientContext): void {
       name: 'sidebar.right.pane.tab',
       key: body.key,
       locale: NS,
-      inject: () => ({ controller }),
+      inject: () => ({ gitSessions }),
     }, body.component)), `git: ${body.key} body`)
   }
 
@@ -132,8 +134,8 @@ export function apply(ctx: ClientContext): void {
   }
 
   ctx.inject(['desktop'], (desktopCtx) => {
-    controller.setDesktop(desktopCtx.desktop)
-    return () => { controller.setDesktop(undefined) }
+    gitSessions.setDesktop(desktopCtx.desktop)
+    return () => { gitSessions.setDesktop(undefined) }
   })
 
   const mountCommitMessageSettings = (

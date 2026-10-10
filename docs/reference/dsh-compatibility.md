@@ -92,6 +92,21 @@ Git Client 从 primitives 的公开入口复用 `DiffBlock`，不导入官方 `u
 
 本次迁移对开发 pin `0.2.0-rc.2` 运行完整测试、构建与产物检查；其余八个支持版本分别在临时目录重建安装树，通过兼容门禁、78 项相关回归、构建与产物检查。实际开发安装树、manifest 与 lockfile 保持原 pin。未进行真实 Web/Desktop 浏览器交互验证。
 
+## 0.2.1-alpha.1 与 0.2.1-alpha.2 候选评估
+
+这两个精确版本**尚未**写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，peer OR 与开发 pin 仍停在已支持清单。候选安装只作为验证证据。
+
+对照本地标签 `dsh-v0.2.0-rc.2`、`dsh-v0.2.1-alpha.1`、`dsh-v0.2.1-alpha.2` 的公开源码后，和本插件有关的差异如下。工作目录与 worktree 只在 `0.2.1-alpha.2` 出现；`0.2.1-alpha.1` 没有这两个包。
+
+- **必须适配：有效目录不再等于会话头 `cwd`。** `0.2.1-alpha.2` 的 `ctx.workingDirectory` 把原始项目路径留在会话头，把有效目录记成投影 `workingDirectory`，并由 Session Controller 的控制帧推到客户端 `projectionValues`。`useSessions(...byId[id].cwd)` 仍是原始项目路径，不会随 `working-directory/change` 更新。插件在投影值为非空字符串时使用它，否则继续用会话头 `cwd`。旧宿主没有该键，行为与原来一致。
+- **必须适配：写操作不能停在上一个检出。** 目录变化时，该会话的 Client 控制器中止尚未完成的 `/git` RPC。宿主在 `agents.get` 与 `workingDirectory.get` 都能调用、且会话 agent 仍活着时，拒绝仓库根与该有效目录检出不一致的写请求。没有这两个服务、没有活 agent，或请求没带 `sessionId` 时，仍使用调用方给出的仓库路径。不使用进程级 `process.cwd()`。
+- **协作而不重做 worktree 创建。** `ctx.worktrees.create` 与模型工具 `create_worktree` 负责创建检出并调用 `workingDirectory.set`。本插件不注册竞争工具，也不删除、修剪分支或检出。它用 `git worktree list --porcelain` 只读发现检出，区分主检出与 linked checkout。用户选择「在此会话中使用」时，宿主只对列表中的路径调用 `workingDirectory.set`。服务不存在时该操作不可用，Changes / Diff / Graph / Commit 仍可用。
+- **插件直接调用的其他服务没有新的版本分支。** `dsh-subprocess` 的 `resolveExecutable` / `spawn` 签名保持。`0.2.1-alpha.2` 的 subprocess-local 只调整 Windows 终端 host，Git 的管道 spawn 不依赖它。右侧栏 `openTab` / `openResource` 保持；内部 reveal 规则有调整，本插件不读 `mounted`。设置 slot `settings.plugin.item` 与 `plugins.bundle.config` 仍在。`GenerateOptions` 与 `stream` 的 `text-delta` 仍是提交信息生成所用的形状；`prepareCall` 增加的可选参数本插件不传。Conversation 的 `bindDraftMirror` 改名为 `bindDraftPersistence`，Git 不使用该回调。
+- **不能写进 peer OR 的新包。** `@deepseek-ai/dsh-working-directory`、`@deepseek-ai/dsh-tool-working-directory`、`@deepseek-ai/dsh-experimental-worktree` 与 `@deepseek-ai/dsh-experimental-tool-worktree` 从 `0.2.1-alpha.2` 起才存在。把它们写成与支持清单相同的 peer OR 会让旧宿主的 `app-boot` 预检失败。插件用方法形状探测 `agents` 与 `workingDirectory`，不从这些包导入。
+- **宿主运行时下限带 prerelease。** 两个 0.2.1 候选把 Cordis 写成 `~4.0.5-alpha.1`、schemastery 写成 `~3.18.5-alpha.1`。只认 `x.y.z` 的升级脚本无法切换这两条车道。本包 Cordis peer 在 `>=4.0.2 <5` 之外增加 `|| ~4.0.5-alpha.1`，schemastery 依赖在 `>=3.18.2 <4` 之外增加 `|| ~3.18.5-alpha.1`。旧宿主的 4.0.2 / 3.18.2 下限不抬高。矩阵车道把下限钉成该 prerelease 本身。
+
+候选验证于 2026-10-10 在开发机完成。以 `DSH_COMPAT_MODE=warn` 分别安装 `0.2.1-alpha.1` 与 `0.2.1-alpha.2` 后，两条车道的 `pnpm compat:check`、`pnpm test`（207）、`pnpm docs:check`、`pnpm build` 与 `pnpm test:artifact` 都通过。没有启动真实 DSH Web 或 Desktop 浏览器会话。候选安装树对上游 `@deepseek-ai/cordis-plugin-include@~1.0.10-alpha.1` 与 `@deepseek-ai/cordis-plugin-group@~1.0.5-alpha.1` 有 peer 警告；那两个包不是本插件的 peer。验证结束后开发 pin 与锁文件恢复为 `0.2.0-rc.2`。这次通过不把两个候选写入支持清单。
+
 ## 静态一致性门禁
 
 上游 DSH 包把同级依赖写成 caret，例如 `^0.1.5-rc.2`。这个范围接受同一 core 上更后的 prerelease，pnpm 在 `autoInstallPeers` 下会装成 registry 里当前最高的匹配版本。只钉住根清单时，锁文件仍会混入 `0.1.5-rc.3`、`0.1.7-alpha.1` 或更旧的 `0.1.1-rc.2`。`.pnpmfile.cjs` 在每次安装时把传递依赖、可选依赖和 peer 里的全部 `@deepseek-ai/dsh-*` 改成当前精确版本。目标版本优先取 `DSH_COMPAT_VERSION`，否则取根 devDependency 的唯一 pin。根清单自己的 devDependency pin 和多版本 peer OR 范围保持不变。
@@ -105,7 +120,7 @@ Git Client 从 primitives 的公开入口复用 `DiffBlock`，不导入官方 `u
 5. `pnpm-lock.yaml` 的 `packages` 段里，每个 `@deepseek-ai/dsh-*` 是否都等于该 pin；出现任何其他版本即失败；
 6. 已安装的 `@deepseek-ai/dsh-settings` 所声明的 Cordis 与 schemastery caret 或波浪号下限，是否就是当前解析到的精确版本，且本包的 Cordis peer 与 schemastery 依赖范围接受这个副本。
 
-第 6 项挡住「DSH 包是旧版本、Cordis / schemastery 却被漂到新版本」的安装。那种树上类型检查和单测可以通过，真实宿主加载插件时仍会失败。schemastery 的发布范围仍是 `>=3.18.2 <4`，仓库用 `pnpm-workspace.yaml` 的 `overrides` 把当前车道钉到该版本声明的精确副本；Cordis 由开发依赖的精确版本钉住。升级脚本在切换车道时同时改这两处。
+第 6 项挡住「DSH 包是旧版本、Cordis / schemastery 却被漂到新版本」的安装。那种树上类型检查和单测可以通过，真实宿主加载插件时仍会失败。schemastery 依赖保持 `>=3.18.2 <4`，并另有一条 `|| ~3.18.5-alpha.1` 以接受 0.2.1 候选宿主的 prerelease 副本；Cordis peer 同样在 `>=4.0.2 <5` 之外接受 `~4.0.5-alpha.1`。仓库用 `pnpm-workspace.yaml` 的 `overrides` 把当前车道钉到该版本声明的精确副本；Cordis 由开发依赖的精确版本钉住。升级脚本在切换车道时同时改这两处，波浪号下限里的 prerelease 也算精确 pin。
 
 主 CI 使用已提交锁文件中的开发 pin，冻结安装后运行兼容门禁、测试、文档检查、构建与 artifact 检查，并保留 pnpm 11 默认的 24 小时发布冷却。开发 pin 若发布未满 24 小时，把该 pin 在锁文件中的精确 `@deepseek-ai/dsh-*` 版本写入 `pnpm-workspace.yaml` 的 `minimumReleaseAgeExclude`，并整表替换旧 pin，让冻结安装能解析已提交锁文件。pnpm 11.7 对同一个包名只认第一条 `name@version`，追加新 pin 不会覆盖旧条目。这不是给未列入清单、也不是给混装的 prerelease 开白名单。`.github/workflows/upgrade.yml` 通过 `scripts/check-dsh-compat.mjs --list-non-default` 从唯一版本清单中动态生成非开发 pin 的矩阵，避免再复制维护版本数组。每个车道切换至对应精确版本后非冻结安装；该 job 设置 `pnpm_config_minimum_release_age=0`，因为这条车道要安装刚发布的 prerelease，豁免不写入 `pnpm-workspace.yaml`。随后运行同一组门禁。两条工作流均不会静默改变支持清单。
 
