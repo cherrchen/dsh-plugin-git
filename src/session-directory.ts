@@ -39,6 +39,13 @@ export interface SessionDirectory {
    * @returns The directory the host committed.
    */
   set(sessionId: string, path: string, signal: AbortSignal): Promise<string>
+  /**
+   * Whether this session has a live agent that can accept a directory change.
+   * Cold and archived sessions do not, and `set` rejects them.
+   * @param sessionId - Session the capability would apply to.
+   * @returns True when `agents.get` currently returns that session.
+   */
+  hasLiveAgent(sessionId: string): boolean
 }
 
 const WRITE_ENDPOINTS = new Set([
@@ -86,7 +93,28 @@ export function bindSessionDirectory(agents: unknown, workingDirectory: unknown)
       }
       return cwd
     },
+    hasLiveAgent(sessionId: string): boolean {
+      return agents.get(sessionId) !== undefined
+    },
   }
+}
+
+/**
+ * Whether this request may offer a session directory change.
+ * The host services must be bound, and the named session must have a live agent.
+ * A missing session id is not treated as a live session.
+ * @param directory - Bound directory service, when the host has one.
+ * @param request - RPC payload, including `sessionId` when the client has one.
+ * @returns True only for a live session that `set` can address.
+ */
+export function sessionDirectoryAvailable(
+  directory: SessionDirectory | undefined,
+  request: Record<string, unknown>,
+): boolean {
+  if (directory === undefined) return false
+  const sessionId = optionalString(request, 'sessionId')
+  if (sessionId === undefined) return false
+  return directory.hasLiveAgent(sessionId)
 }
 
 /**

@@ -67,6 +67,7 @@ function baseState(overrides: Partial<ReturnType<GitClientController['getSnapsho
     generationReason: undefined,
     generationError: undefined,
     directorySwitchAvailable: false,
+    enteringWorktree: false,
     ...overrides,
   }
 }
@@ -173,6 +174,21 @@ describe('GitChangesSurface', () => {
     fireEvent.click(screen.getByRole('button', { name: en['worktree.use'] }))
     expect(controller.enterWorktree).toHaveBeenCalledWith('/repo')
     expect(controller.setWorkspace).not.toHaveBeenCalledWith('/repo')
+  })
+
+  it('disables worktree actions while a directory change is in flight', () => {
+    const controller = controllerOf(baseState({
+      directorySwitchAvailable: true,
+      enteringWorktree: true,
+      repository: snapshot({
+        worktrees: [
+          { path: '/repo', head: 'abc123', branch: 'main', detached: false, bare: false, current: true },
+          { path: '/repo-wt', head: 'def456', branch: 'feature', detached: false, bare: false, current: false },
+        ],
+      }),
+    }))
+    render(<GitChangesSurface {...props(controller)} />)
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: en['worktree.use'] }).disabled).toBe(true)
   })
 
   it('keeps other checkouts read-only when the host cannot change directories', () => {

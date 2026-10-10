@@ -677,4 +677,60 @@ describe('GitClientController', () => {
     expect(payloads.filter(entry => entry.endpoint === 'discover').map(entry => entry.sessionId)).toEqual(['session-a', 'session-b'])
     sessions.dispose()
   })
+
+  it('runs overlapping worktree entries one at a time and keeps the action in flight', async () => {
+    const started: string[] = []
+    let releaseFirst: () => void = () => {}
+    const firstGate = new Promise<void>((resolve) => { releaseFirst = resolve })
+    const rpc = {
+      call: vi.fn(async (_channel: string, endpoint: string, payload: unknown) => {
+        const body = payload as { path?: string }
+        if (endpoint === 'discover') return { ok: true as const, value: '/repo' }
+        if (endpoint === 'status') return { ok: true as const, value: snapshot() }
+        if (endpoint === 'log') return { ok: true as const, value: [] }
+        if (endpoint === 'commit-message-capability' || endpoint === 'directory-capability') {
+          return { ok: true as const, value: { available: false } }
+        }
+        if (endpoint === 'set-directory') {
+          started.push(body.path ?? '')
+          if (started.length === 1) await firstGate
+          return { ok: true as const, value: { cwd: body.path } }
+        }
+        return { ok: true as const, value: null }
+      }),
+    }
+    const controller = new GitClientController(rpc, 'session-a')
+    await controller.setWorkspace('/repo')
+    const first = controller.enterWorktree('/wt-a')
+    const second = controller.enterWorktree('/wt-b')
+    expect(controller.getSnapshot().enteringWorktree).toBe(true)
+    await vi.waitFor(() => { expect(started).toEqual(['/wt-a']) })
+    await Promise.resolve()
+    expect(started).toEqual(['/wt-a'])
+    releaseFirst()
+    await first
+    await second
+    expect(started).toEqual(['/wt-a', '/wt-b'])
+    expect(controller.getSnapshot().enteringWorktree).toBe(false)
+  })
+
+  it('clears the in-flight worktree entry when the directory change fails', async () => {
+    const rpc = {
+      call: vi.fn(async (_channel: string, endpoint: string) => {
+        if (endpoint === 'discover') return { ok: true as const, value: '/repo' }
+        if (endpoint === 'status') return { ok: true as const, value: snapshot() }
+        if (endpoint === 'log') return { ok: true as const, value: [] }
+        if (endpoint === 'commit-message-capability' || endpoint === 'directory-capability') {
+          return { ok: true as const, value: { available: false } }
+        }
+        if (endpoint === 'set-directory') return { ok: false as const, error: { message: 'git: path is not a worktree of this repository' } }
+        return { ok: true as const, value: null }
+      }),
+    }
+    const controller = new GitClientController(rpc, 'session-a')
+    await controller.setWorkspace('/repo')
+    await expect(controller.enterWorktree('/nope')).rejects.toThrow(/not a worktree/)
+    expect(controller.getSnapshot().enteringWorktree).toBe(false)
+    expect(controller.getSnapshot().error).toMatch(/not a worktree/)
+  })
 })

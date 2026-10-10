@@ -138,8 +138,12 @@ describe('session directory binding', { timeout: 20_000 }, () => {
     const entered: string[] = []
     const host = await mounted({ cwd: repo, onSet: (path) => { entered.push(path) } })
     try {
-      const capability = await host.call('directory-capability', {})
+      const missingSession = await host.call('directory-capability', {})
+      expect(missingSession).toEqual({ ok: true, value: { available: false } })
+      const capability = await host.call('directory-capability', { sessionId: 'session-a' })
       expect(capability).toEqual({ ok: true, value: { available: true } })
+      const otherSession = await host.call('directory-capability', { sessionId: 'session-b' })
+      expect(otherSession).toEqual({ ok: true, value: { available: false } })
       const moved = await host.call('set-directory', {
         sessionId: 'session-a',
         repository: repo,
@@ -157,6 +161,8 @@ describe('session directory binding', { timeout: 20_000 }, () => {
       expect(outside.ok).toBe(false)
       const cold = await mounted({ cwd: repo, live: false })
       try {
+        const coldCapability = await cold.call('directory-capability', { sessionId: 'session-a' })
+        expect(coldCapability).toEqual({ ok: true, value: { available: false } })
         writeFileSync(join(repo, 'tracked.txt'), 'cold\n')
         const unguarded = await cold.call('stage', {
           sessionId: 'session-a',

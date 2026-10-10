@@ -25,6 +25,15 @@ describe('parseWorktreeList', () => {
     const nul = 'worktree /main\0HEAD abc\0branch refs/heads/topic/one\0\0worktree /linked\0HEAD def\0branch refs/heads/feature\0\0'
     expect(parseWorktreeList(nul).map(entry => entry.branch)).toEqual(['topic/one', 'feature'])
   })
+
+  it('keeps whitespace in porcelain paths, including a trailing space from the NUL form', () => {
+    const nul = 'worktree /linked \0HEAD def\0detached\0\0'
+    expect(parseWorktreeList(nul)).toEqual([
+      { path: '/linked ', head: 'def', branch: null, detached: true, bare: false },
+    ])
+    const crlf = 'worktree /main \r\nHEAD abc\r\nbranch refs/heads/main\r\n\r\n'
+    expect(parseWorktreeList(crlf)[0]).toMatchObject({ path: '/main ', branch: 'main' })
+  })
 })
 
 describe('effectiveWorkspacePath', () => {

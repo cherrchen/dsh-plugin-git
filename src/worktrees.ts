@@ -16,6 +16,9 @@ export interface ParsedWorktree {
 
 /**
  * Parse porcelain worktree output in either NUL or newline form.
+ * Field values are taken exactly as Git wrote them. `-z` paths may begin or
+ * end with whitespace on filesystems that allow it, so the value after the
+ * field prefix is not trimmed.
  * @param text - Output of `git worktree list --porcelain` or the `-z` form.
  * @returns Checkout records in Git's output order.
  */
@@ -26,22 +29,25 @@ export function parseWorktreeList(text: string): readonly ParsedWorktree[] {
 
 function parseSeparated(records: readonly string[], separator: string): readonly ParsedWorktree[] {
   const parsed: ParsedWorktree[] = []
+  const newline = separator === '\n'
   for (const record of records) {
-    const entry = parseRecord(record.split(separator))
+    const entry = parseRecord(record.split(separator), newline)
     if (entry !== undefined) parsed.push(entry)
   }
   return parsed
 }
 
-function parseRecord(lines: readonly string[]): ParsedWorktree | undefined {
+function parseRecord(lines: readonly string[], newline: boolean): ParsedWorktree | undefined {
   let path: string | undefined
   let head: string | null = null
   let branch: string | null = null
   let detached = false
   let bare = false
   for (const raw of lines) {
-    const line = raw.trim()
-    if (line === '' || line.startsWith('locked') || line.startsWith('prunable ')) continue
+    // Newline porcelain may use CRLF. That carriage return is the line ending,
+    // not part of a `-z` value. NUL records stay byte-for-byte.
+    const line = newline ? raw.replace(/\r$/u, '') : raw
+    if (line.length === 0 || line.startsWith('locked') || line.startsWith('prunable ')) continue
     if (line.startsWith('worktree ')) {
       path = line.slice('worktree '.length)
       continue

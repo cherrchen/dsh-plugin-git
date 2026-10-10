@@ -59,7 +59,7 @@ export function GitChangesSurface({
         <GitWorktreeList
           worktrees={repository.worktrees ?? []}
           directorySwitchAvailable={state.directorySwitchAvailable === true}
-          entering={state.loading}
+          entering={state.loading || state.enteringWorktree}
           onEnter={(path) => { void controller.enterWorktree(path) }}
           t={t}
         />

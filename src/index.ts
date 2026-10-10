@@ -24,6 +24,7 @@ import {
   bindSessionDirectory,
   enterWorktreeDirectory,
   isRepositoryWrite,
+  sessionDirectoryAvailable,
   type SessionDirectory,
 } from './session-directory.ts'
 import { GitService } from './service.ts'
@@ -245,7 +246,7 @@ async function invoke(
   const request = record(payload)
   if (isRepositoryWrite(endpoint)) await assertSessionRepository(service, directory, request, signal)
   switch (endpoint) {
-    case 'directory-capability': return { available: directory !== undefined }
+    case 'directory-capability': return { available: sessionDirectoryAvailable(directory, request) }
     case 'set-directory': return enterWorktreeDirectory(service, directory, request, signal)
     case 'discover': return service.discover(stringField(request, 'path'), signal)
     case 'status': return service.status(stringField(request, 'repository'), signal)

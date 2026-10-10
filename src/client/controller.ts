@@ -67,6 +67,8 @@ export interface GitClientState {
   readonly generationError: string | undefined
   /** Whether this host can change the bound session's directory. */
   readonly directorySwitchAvailable: boolean
+  /** Whether a session directory change is queued or in flight. */
+  readonly enteringWorktree: boolean
 }
 
 /** Follow-up remote action after a successful local commit. */
@@ -102,6 +104,7 @@ export class GitClientController {
     generationReason: undefined,
     generationError: undefined,
     directorySwitchAvailable: false,
+    enteringWorktree: false,
   }
   private readonly listeners = new Set<() => void>()
   /** Cancels Git RPC started for the current workspace when that workspace changes. */
@@ -119,8 +122,10 @@ export class GitClientController {
     /** Whether the round has issued its repository read; later requests need a trailing one. */
     burst: { read: boolean; repeat: boolean }
   } | undefined
-  /** Serializes repository mutations so overlapping RPCs apply in call order. */
+  /** Serializes repository mutations and worktree directory changes so overlapping RPCs apply in call order. */
   private mutationTail: Promise<void> = Promise.resolve()
+  /** Directory changes queued on `mutationTail`, including the one currently in flight. */
+  private directoryEntries = 0
   /** Workspace path of the last completed `setWorkspace` binding (idempotence guard). */
   private boundWorkspace: { path: string | undefined; generation: number } | undefined
   private diffNavigator: ((path: string, staged: boolean) => void) | undefined
@@ -218,6 +223,7 @@ export class GitClientController {
       generating: false,
       generationError: undefined,
       directorySwitchAvailable: false,
+      enteringWorktree: false,
     })
     this.graphContinuation = undefined
     if (workspacePath === undefined) {
@@ -325,6 +331,8 @@ export class GitClientController {
    * Ask the host to point this session at another checkout of the current repository.
    * The host performs the change through its working-directory service. This
    * controller waits for the session projection to publish the new path.
+   * Overlapping calls share the mutation queue, and `enteringWorktree` stays
+   * set until each queued change has settled so the checkout buttons stay disabled.
    * @param path - Checkout directory from the current worktree list.
    * @returns Completion after the host accepts the change.
    */
@@ -332,14 +340,26 @@ export class GitClientController {
     const signal = this.operations.signal
     const generation = this.operationGeneration
     const repositoryRoot = this.requireRepository().root
-    try {
-      await this.call('set-directory', { repository: repositoryRoot, path }, signal)
-    } catch (error) {
-      if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) return
-      const message = error instanceof Error ? error.message : String(error)
-      this.patch({ error: message })
-      throw error instanceof Error ? error : new Error(message)
+    this.directoryEntries += 1
+    this.patch({ enteringWorktree: true })
+    const run = async (): Promise<void> => {
+      try {
+        if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) return
+        this.patch({ error: undefined })
+        await this.call('set-directory', { repository: repositoryRoot, path }, signal)
+      } catch (error) {
+        if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) return
+        const message = error instanceof Error ? error.message : String(error)
+        this.patch({ error: message })
+        throw error instanceof Error ? error : new Error(message)
+      } finally {
+        this.directoryEntries -= 1
+        if (this.directoryEntries === 0) this.patch({ enteringWorktree: false })
+      }
     }
+    const pending = this.mutationTail.then(run, run)
+    this.mutationTail = pending.then(() => undefined, () => undefined)
+    return pending
   }
 
   /**
