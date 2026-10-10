@@ -105,7 +105,9 @@ Git Client 从 primitives 的公开入口复用 `DiffBlock`，不导入官方 `u
 - **不能写进 peer OR 的新包。** `@deepseek-ai/dsh-working-directory`、`@deepseek-ai/dsh-tool-working-directory`、`@deepseek-ai/dsh-experimental-worktree` 与 `@deepseek-ai/dsh-experimental-tool-worktree` 从 `0.2.1-alpha.2` 起才存在。把它们写成与支持清单相同的 peer OR 会让旧宿主的 `app-boot` 预检失败。插件用方法形状探测 `agents` 与 `workingDirectory`，不从这些包导入。
 - **宿主运行时下限带 prerelease。** 两个 0.2.1 候选把 Cordis 写成 `~4.0.5-alpha.1`、schemastery 写成 `~3.18.5-alpha.1`。只认 `x.y.z` 的升级脚本无法切换这两条车道。本包 Cordis peer 在 `>=4.0.2 <5` 之外增加 `|| ~4.0.5-alpha.1`，schemastery 依赖在 `>=3.18.2 <4` 之外增加 `|| ~3.18.5-alpha.1`。旧宿主的 4.0.2 / 3.18.2 下限不抬高。矩阵车道把下限钉成该 prerelease 本身。
 
-候选验证于 2026-10-10 在开发机完成。以 `DSH_COMPAT_MODE=warn` 分别安装 `0.2.1-alpha.1` 与 `0.2.1-alpha.2` 后，两条车道的 `pnpm compat:check`、`pnpm test`（207）、`pnpm docs:check`、`pnpm build` 与 `pnpm test:artifact` 都通过。没有启动真实 DSH Web 或 Desktop 浏览器会话。候选安装树对上游 `@deepseek-ai/cordis-plugin-include@~1.0.10-alpha.1` 与 `@deepseek-ai/cordis-plugin-group@~1.0.5-alpha.1` 有 peer 警告；那两个包不是本插件的 peer。验证结束后开发 pin 与锁文件恢复为 `0.2.0-rc.2`。这次通过不把两个候选写入支持清单。
+候选验证于 2026-10-10 在开发机完成。以 `DSH_COMPAT_MODE=warn` 分别安装 `0.2.1-alpha.1` 与 `0.2.1-alpha.2` 后，两条车道的 `pnpm compat:check`、`pnpm test`（207）、`pnpm docs:check`、`pnpm build` 与 `pnpm test:artifact` 都通过。候选安装树对上游 `@deepseek-ai/cordis-plugin-include@~1.0.10-alpha.1` 与 `@deepseek-ai/cordis-plugin-group@~1.0.5-alpha.1` 有 peer 警告；那两个包不是本插件的 peer。验证结束后开发 pin 与锁文件恢复为 `0.2.0-rc.2`。
+
+同日用本地源码检出的 DSH `0.2.1-alpha.2`（`d743267388`）启动了 Web 浏览器会话。隔离的 `DSH_HOME` 把本分支构建产物以本地链接装进 `web` profile；因为 `0.2.1-alpha.2` 还不在支持清单里，加载前授予了 `@dsh-electron/dsh-plugin-git@0.2.4` 对这一精确宿主版本的豁免。会话工作区是主检出里的子目录。Git 更改面板读到父仓库分支 `main`，列出主检出的未跟踪文件，并在「其他检出」中给出链接工作树和「在此会话中使用」。点选之后，会话头 `cwd` 仍是该子目录，有效目录投影变为链接工作树；面板改为 `feature · 链接的工作树`，只显示该工作树自己的未跟踪文件。在面板里暂存这个文件时，写入落在链接工作树，主检出的未跟踪文件保持未暂存；取消暂存后两边都回到验证开始时的状态。再选回主检出后，面板恢复主检出的文件，有效目录投影变为主检出根，会话头 `cwd` 不变。同一工作区里另一个尚未切换的空白会话，其有效目录投影仍停在子目录。宿主侧边栏只显示当前空白会话，所以这一隔离没有在界面上点选复核。没有启动 Desktop，也没有配置模型，因此没有覆盖提交信息生成。这次通过仍不把两个候选写入支持清单。
 
 ## 静态一致性门禁
 
