@@ -11,6 +11,8 @@ import type { ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { GitLogScope } from '../../types.ts'
 import type { GitClientController } from '../controller.ts'
+import { resolveGitController, type GitSessionControllers } from '../session-controllers.ts'
+import { effectiveWorkspacePath } from '../workspace-path.ts'
 import { GitDetailsHeaderActions } from '../GitDetailsHeaderActions.tsx'
 import { GIT_GRAPH_LANE_GAP } from '../graph-geometry.ts'
 import { GitGraphCanvas } from '../GitGraphCanvas.tsx'
@@ -19,7 +21,7 @@ import css from '../GitGraphSurface.module.css'
 
 /** Full composed props for the Git Graph tab body. */
 export type GitGraphSurfaceProps = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'git'>
-  & { controller: GitClientController }
+  & { controller?: GitClientController; gitSessions?: GitSessionControllers }
 
 const GRAPH_SCOPES: readonly GitLogScope[] = ['auto', 'all', 'first-parent']
 
@@ -31,9 +33,12 @@ function scopeLabelKey(scope: GitLogScope): 'graph.scope.auto' | 'graph.scope.al
 }
 
 /** Render the Git Graph surface body. */
-export function GitGraphSurface({ controller, t, useSessions, sessionId }: GitGraphSurfaceProps): ReactNode {
+export function GitGraphSurface({
+  controller: controllerProp, gitSessions, t, useSessions, sessionId,
+}: GitGraphSurfaceProps): ReactNode {
+  const controller = resolveGitController({ controller: controllerProp, gitSessions, sessionId })
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
-  const workspacePath = useSessions(list => list.byId[sessionId]?.cwd)
+  const workspacePath = useSessions(list => effectiveWorkspacePath(list.byId[sessionId]))
   const [hoveredRowIndex, setHoveredRowIndex] = useState<number | undefined>(undefined)
 
   useGitWorkspace(controller, workspacePath)

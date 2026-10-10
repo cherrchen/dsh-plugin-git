@@ -40,7 +40,7 @@ function view(spec) {
 }
 
 function caretFloor(range, label) {
-  const match = typeof range === 'string' ? /^[~^](\d+\.\d+\.\d+)$/u.exec(range) : null
+  const match = typeof range === 'string' ? /^[~^](\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/u.exec(range) : null
   if (match === null) {
     throw new Error(`[upgrade] ${label} is ${JSON.stringify(range)}, which is not a single caret or tilde this script can pin`)
   }

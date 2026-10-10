@@ -6,6 +6,12 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Fixed
+
+- `git worktree list --porcelain -z` paths keep the whitespace Git reported, so **Use in this session** opens that checkout.
+- **Use in this session** stays hidden when that session has no live agent, even if the host directory service is installed.
+- Overlapping worktree entries run one at a time, and the action stays disabled until the current directory change finishes.
+
 ## [0.2.4] — 2026-09-30
 
 Compatibility release extending the exact DSH support list to `0.2.0-rc.2`, with the development pin moved to that release.

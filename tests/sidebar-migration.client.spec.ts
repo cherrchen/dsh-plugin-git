@@ -67,9 +67,9 @@ describe('Git + right-sidebar migration', () => {
   it('opens one diff tab per path and side, revealing the exact address on repeat', async () => {
     const bench = await gitBench()
     const composer = bench.registrations.find(entry => entry.id === 'git-context') as {
-      inject?: () => { controller: { openDiff(path: string, staged: boolean): void } }
+      inject?: () => { gitSessions: { controllerFor(sessionId: string): { openDiff(path: string, staged: boolean): void } } }
     }
-    const controller = composer.inject?.().controller
+    const controller = composer.inject?.().gitSessions.controllerFor('sidebar-session')
     expect(controller).toBeDefined()
 
     controller?.openDiff('a.ts', true)

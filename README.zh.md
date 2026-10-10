@@ -164,6 +164,8 @@ declare module '@deepseek-ai/dsh-client-ui-sidebar-right/client' {
 
 在会话输入区左侧，Git 贡献 branch selector 与 changed-files indicator。点击任一控件会在右侧边栏打开 `git.changes` 标签页。创建分支会打开共享的 conversation Modal；在仅有 `git init`、尚无提交（unborn HEAD）时，菜单以禁用态展示符号默认分支，说明需要先完成首次提交，并在 HEAD 存在前禁用创建。
 
+分支选择器跟随该会话的有效目录。宿主若发布 `workingDirectory` 会话投影，Git 使用它；否则仍使用会话头里的目录。每个会话有自己的仓库状态。链接的检出显示工作树标记。Changes 面列出同一仓库的其他检出。只有宿主能够改变该会话目录时才出现 **在此会话中使用**，它请求宿主的工作目录服务进入所选检出。本包不创建或删除工作树。
+
 **Changes** surface 顶部展示当前 branch 与 refresh，其下是默认一行、随内容增高的 commit message 输入框，带魔法棒 **Generate** 控件，以及分裂式 **Commit** 按钮（Commit、Amend、Commit & Push、Commit & Sync）。Staged、unstaged 与 untracked 路径以图标操作分区列出：plus／minus 切换 index，undo 在两步确认后 discard，porcelain 字母标记行状态。点击路径打开对应 diff。**Diff** 适配层在右上角展示 refresh，将单文件的 working-tree 或 staged 比较交给官方 DSH `DiffBlock`；复制、折叠以及支持版本上的换行由官方组件负责。Git patch 转换与非文本状态见[架构总览](docs/architecture/overview.md)，原有资源地址仍可恢复。**Graph** surface 顶部在同一行展示自动／全部／首父链与 refresh，其下以 canvas 绘制的 lane graph 展示提交历史——整页共享一个连续坐标系，rail 与 merge 边不会在行边界断裂——包含 subject、author、date、hash 与 HEAD／branch／tag 装饰徽标，并通过 load-more 控件增量分页。当 host 暴露 LLM runtime 时，staged diff 会发送到会话模型——或发送到插件配置里的自定义 provider/model——流式生成的建议写入可编辑输入框。同一张配置页也可以编辑生成所用的 system message。`0.1.6-alpha.1` 及更早在 **设置 → 插件 → 插件配置**；自 `0.1.6-alpha.2` 起在插件管理页该组合包的详情页。生成绝不 stage、commit 或 push 任何内容。在 Electron 上，optional Desktop enhancement 在 Desktop provider 存在时提供 reveal-in-folder 与 open-path 操作。
 
 <a id="composition"></a>
@@ -171,7 +173,7 @@ declare module '@deepseek-ai/dsh-client-ui-sidebar-right/client' {
 
 Host plugin 要求 `ctx.subprocess`，提供 `ctx.git`，并使用 executable 与独立 argv values 启动 Git。它绝不调用 shell。DSH Web Host 存在时，optional Connection child 注册 loopback `/git` RPC channel。
 
-Client plugin 要求 Connection、locale、renderer、conversation UI、primitives、session UI 与上游右侧边栏（`ctx.sidebarRight` / `ctx.sidebarRightTabs`，仅类型级 import）。Business components 通过 slot injection 接收 controller 与 `openDetails()`，不访问 Cordis context。
+Client plugin 要求 Connection、locale、renderer、conversation UI、primitives、session UI 与上游右侧边栏（`ctx.sidebarRight` / `ctx.sidebarRightTabs`，仅类型级 import）。Business components 通过 slot injection 接收该会话自己的 controller 与 `openDetails()`，不访问 Cordis context。两个会话不共享同一份仓库快照。
 
 当 `ctx.settingsScope` 或 `ctx.configForms` 存在时，Client 通过 [`src/compat/dsh-client-settings.ts`](src/compat/dsh-client-settings.ts) 注册提交信息配置。`0.1.5-rc.2` 与 `0.1.6-alpha.1` 消费 `settings.plugin.item`，命名空间为 `git-commit-message`，出现在 **设置 → 插件 → 插件配置**。自 `0.1.6-alpha.2` 起，宿主改消费 `plugins.bundle.config`，键为包名 `@dsh-electron/dsh-plugin-git`，出现在插件管理页该组合包详情的描述与组件列表之间。0.1.7 起表单数据来自补丁行 id `dsh-plugin-git`，不是包名。宿主未声明对应 slot、或未提供该命名空间时，配置不会出现。
 
@@ -198,7 +200,7 @@ Client main fiber 不要求 `desktop`。Child `ctx.inject(['desktop'], ...)` fib
 <a id="git-operations"></a>
 ## Git 操作
 
-首个版本支持 repository discovery、Git version、current branch 与 HEAD、staged／unstaged／untracked status、local branches、working 与 staged diffs、stage／unstage、commit、amend、向 `origin` push、rebase-then-push sync、branch creation 与 branch switching。Status 使用带 NUL path separators 的 porcelain v2；branches 使用 `for-each-ref`；每个 caller-supplied path、branch 与 message 始终作为一个 argv value。
+首个版本支持 repository discovery、Git version、current branch 与 HEAD、staged／unstaged／untracked status、local branches、working 与 staged diffs、stage／unstage、commit、amend、向 `origin` push、rebase-then-push sync、branch creation 与 branch switching。Status 使用带 NUL path separators 的 porcelain v2；branches 使用 `for-each-ref`；每个 caller-supplied path、branch 与 message 始终作为一个 argv value。Status 同时记录当前检出是主工作树、链接工作树还是裸仓库，并用 `git worktree list --porcelain` 列出检出。进入另一个检出只通过宿主工作目录服务改变该会话的目录，且只接受这份列表中的路径。创建、删除和修剪工作树不属于本 package。
 
 Discard 通过明确的 index、working tree 与 clean 操作还原一条 staged、unstaged 或 untracked 变更，包括暂存后再次编辑的新增和重命名，属于破坏性操作：Client 在发送 RPC 前总是要求第二次显式确认，确认正文会点名该路径。
 
@@ -239,6 +241,8 @@ pnpm pack
 - **无 credential UI** — push 与 sync 调用 Git 时不提示 remote 或 credentials；缺少 `origin` 或认证被拒时以 Git command error 失败。
 - **Command output 有界** — 大于 `maxOutputBytes` 的 diff 只保留 subprocess collector tail；处理超大 diff 的 deployment 必须提高这一 validated setting。
 - **生成依赖 host 与模型** — commit message 生成需要 host LLM runtime 与可解析的模型（会话默认或插件配置中的自定义路由）；两者缺其一时，Generate 动作保持禁用或报告 `git/generation-unavailable`。
+- **进入工作树需要活的目录服务** — 没有宿主工作目录服务，或该会话没有活的 agent 时，检出列表只读。写操作此时仍沿用原先由调用方提供仓库路径的契约。目录消失后的恢复不属于本包，由宿主工作目录服务负责。
+- **0.2.1 仍是候选** — `0.2.1-alpha.1` 与 `0.2.1-alpha.2` 不在支持版本清单中。见[兼容契约](docs/reference/dsh-compatibility.md)。
 
 <a id="dev-note"></a>
 ### 开发备注

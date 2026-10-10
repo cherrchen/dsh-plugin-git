@@ -24,6 +24,8 @@
 | FR-10 | Commit message 生成：staged diff 发送 host LLM（会话模型或自定义 provider/model），流式写入可编辑输入框；仅建议，不 stage / commit / push |
 | FR-11 | 生成 system message 可在 Plugin configuration 编辑（`git-commit-message` 命名空间设置卡） |
 | FR-12 | Desktop 存在时提供 reveal-in-folder / open-path 原生动作；不存在时核心功能完整可用 |
+| FR-13 | 跟随会话有效目录：宿主投影 `workingDirectory` 为非空字符串时用它，否则用会话头 `cwd`。目录变化后 Git 显示新检出，且不得再对旧检出执行写操作 |
+| FR-14 | 识别主检出与 linked worktree，只读列出同一仓库的其他检出；进入另一个检出只作用于当前会话，并复用宿主工作目录切换。该会话没有活 agent 时不提供进入。不创建、删除或修剪 worktree |
 
 ## 非功能需求
 
@@ -43,7 +45,7 @@
 
 ## 非目标
 
-以下明确排除（canonical 于根 README [Git operations](../../README.md#git-operations) 末段）：GitHub 认证、hosting provider 工作流、凭据提示、issues、pull requests、stash、cherry-pick、merge-conflict 编辑。
+以下明确排除（canonical 于根 README [Git operations](../../README.md#git-operations) 末段）：GitHub 认证、hosting provider 工作流、凭据提示、issues、pull requests、stash、cherry-pick、merge-conflict 编辑。创建、删除和修剪 Git worktree 也排除：上游实验性 `create_worktree` 已拥有创建，本包只发现检出并在宿主目录服务可用且该会话有活 agent 时进入已有检出。
 
 ## 相关文档
 

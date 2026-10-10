@@ -49,3 +49,10 @@
   font-size: 11px;
   color: var(--dsw-alias-state-error-primary);
 }
+
+.checkoutKind {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}

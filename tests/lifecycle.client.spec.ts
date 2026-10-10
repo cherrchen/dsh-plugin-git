@@ -11,7 +11,8 @@ import {
   GIT_GRAPH_KIND,
   gitDiffAddress,
 } from '../src/client/contract.ts'
-import type { GitClientController, GitDesktopCapability } from '../src/client/controller.ts'
+import type { GitDesktopCapability } from '../src/client/controller.ts'
+import type { GitSessionControllers } from '../src/client/session-controllers.ts'
 import type { SidebarRightTabDefinition } from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 
 const minimalSidebar = () => ({
@@ -84,7 +85,7 @@ describe('Git client lifecycle', () => {
     expect(diffDefinition.guide).toBeUndefined()
 
     const composer = registrations.find(entry => entry.id === 'git-context') as {
-      inject?: () => { controller: GitClientController; openDetails: () => void }
+      inject?: () => { gitSessions: GitSessionControllers; openDetails: () => void }
     }
 
     const desktop: GitDesktopCapability = {
@@ -93,9 +94,10 @@ describe('Git client lifecycle', () => {
     }
     const provider = ctx.plugin((desktopCtx) => { desktopCtx.provide('desktop', desktop) })
     await provider.await()
-    expect(composer.inject?.().controller.getSnapshot().desktopAvailable).toBe(true)
+    const sessionController = () => composer.inject?.().gitSessions.controllerFor('lifecycle-session')
+    expect(sessionController()?.getSnapshot().desktopAvailable).toBe(true)
     await provider.dispose()
-    expect(composer.inject?.().controller.getSnapshot().desktopAvailable).toBe(false)
+    expect(sessionController()?.getSnapshot().desktopAvailable).toBe(false)
 
     const openDetails = composer.inject?.().openDetails
     expect(openDetails).toBeTypeOf('function')
@@ -106,7 +108,7 @@ describe('Git client lifecycle', () => {
     expect(sidebar.sidebarRight.openTab).toHaveBeenCalledWith(GIT_CHANGES_KIND)
 
     // Diff navigation goes through the resource face with the exact address.
-    composer.inject?.().controller.openDiff('a.ts', true)
+    sessionController()?.openDiff('a.ts', true)
     expect(sidebar.sidebarRight.openResource).toHaveBeenCalledWith(
       gitDiffAddress('a.ts', true),
       { params: { path: 'a.ts', staged: true } },

@@ -61,6 +61,12 @@
 
 修正：把该 pin 在锁文件中的精确包版本写入 `minimumReleaseAgeExclude`，并清掉旧 pin 的同名条目。pnpm 11.7 对同一个包名只认第一条 `name@version`；把 `0.2.0-rc.2` 追加在 `0.1.5-rc.2` 后面时，那 23 个曾出现在旧 pin 里的包仍然被冷却拦住。不关闭主 CI 冷却，也不为未列入清单的 prerelease 开白名单。下次切换开发 pin 时，若新 pin 仍未满 24 小时，用新 pin **替换**这份列表。
 
+## 后续修正（2026-10-10）：0.2.1 候选的宿主运行时带 prerelease
+
+`0.2.1-alpha.1` 与 `0.2.1-alpha.2` 把 Cordis、schemastery 写成 `~4.0.5-alpha.1` 与 `~3.18.5-alpha.1`。原升级脚本只接受 `~x.y.z` / `^x.y.z`。原 Cordis peer `>=4.0.2 <5` 与 schemastery 依赖 `>=3.18.2 <4` 也不接受这两个 prerelease。
+
+修正：升级脚本与 `pnpm compat:check` 把波浪号下限里的 prerelease 当成精确 pin。Cordis peer 与 schemastery 依赖各加一条 `|| ~…` 备选，不抬高旧宿主下限。这两个 DSH 版本仍不是支持清单中的承诺。
+
 ## Related Documents
 
 - [DSH 兼容契约](../reference/dsh-compatibility.md)

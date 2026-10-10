@@ -1,11 +1,12 @@
 import { execFileSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
 import { afterEach, describe, expect, it } from 'vitest'
+import { canonicalPath } from '../src/path-identity.ts'
 import { GitService } from '../src/service.ts'
 
 const roots: string[] = []
@@ -36,7 +37,7 @@ function repository(): string {
   return root
 }
 
-describe('portable Git service', () => {
+describe('portable Git service', { timeout: 20_000 }, () => {
   it('detects non-repositories and reads clean repositories', async () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-plugin-git-empty-'))
     roots.push(root)
@@ -274,6 +275,62 @@ describe('portable Git service', () => {
       expect(afterDiscard.unstaged).toEqual([])
     } finally {
       await dispose()
+    }
+  })
+
+  it('follows a subdirectory, a linked worktree, and a missing directory', async () => {
+    const repo = repository()
+    const linked = `${repo}-linked`
+    roots.push(linked)
+    execFileSync('git', ['worktree', 'add', '-b', 'feature', linked, 'HEAD'], { cwd: repo })
+    mkdirSync(join(repo, 'nested'))
+    mkdirSync(join(linked, 'nested'))
+    const ctx = new Context()
+    const fiber = ctx.plugin(LocalSubprocessRuntime)
+    await fiber.await()
+    const calls: Array<{ cwd: string; argv: readonly string[] }> = []
+    const runtime = ctx.subprocess
+    const spawn = runtime.spawn.bind(runtime)
+    runtime.spawn = (spec) => {
+      calls.push({ cwd: spec.cwd, argv: [...spec.argv] })
+      return spawn(spec)
+    }
+    const git = new GitService(runtime, { executable: 'git', maxOutputBytes: 1024 * 1024, graceMs: 1000 })
+    try {
+      const nested = await git.status(join(repo, 'nested'))
+      expect(nested.root).toBe(realpathSync(repo))
+      expect(nested.checkout?.kind).toBe('main')
+      expect(nested.branch).toBe('main')
+      const mainHead = nested.head
+      const linkedStatus = await git.status(join(linked, 'nested'))
+      expect(linkedStatus.root).toBe(realpathSync(linked))
+      expect(linkedStatus.checkout?.kind).toBe('linked')
+      expect(linkedStatus.branch).toBe('feature')
+      expect(linkedStatus.worktrees?.filter(entry => entry.current).map(entry => entry.path)).toEqual([realpathSync(linked)])
+      expect(linkedStatus.worktrees?.map(entry => entry.branch).sort()).toEqual(['feature', 'main'])
+      writeFileSync(join(linked, 'tracked.txt'), 'worktree\n')
+      expect((await git.diff(linked, false, 'tracked.txt')).text).toContain('+worktree')
+      await git.stage(linked, { path: 'tracked.txt', status: ' M' })
+      const committed = await git.commit(linked, 'in worktree')
+      expect(committed.branch).toBe('feature')
+      expect(committed.head).not.toBe(mainHead)
+      const mainAfter = await git.status(repo)
+      expect(mainAfter.head).toBe(mainHead)
+      expect(mainAfter.branch).toBe('main')
+      expect(readFileSync(join(repo, 'tracked.txt'), 'utf8')).toBe('initial\n')
+      const commitCalls = calls.filter(call => call.argv.includes('commit'))
+      expect(commitCalls.length).toBeGreaterThan(0)
+      expect(commitCalls.every(call => canonicalPath(call.cwd, repo) === realpathSync(linked))).toBe(true)
+      await expect(git.discover(join(repo, 'missing'))).rejects.toThrow()
+      expect((await git.status(repo)).head).toBe(mainHead)
+      const aborted = new AbortController()
+      aborted.abort()
+      await expect(git.status(repo, aborted.signal)).rejects.toThrow()
+      const notGit = mkdtempSync(join(tmpdir(), 'dsh-plugin-git-not-git-'))
+      roots.push(notGit)
+      expect(await git.discover(notGit)).toBeNull()
+    } finally {
+      await fiber.dispose()
     }
   })
 

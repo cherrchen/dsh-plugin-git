@@ -19,6 +19,14 @@ import {
   type CommitMessageSettings,
 } from './commit-message-settings.ts'
 import { markVolatile, readVolatile } from './compat/dsh-schema.ts'
+import {
+  assertSessionRepository,
+  bindSessionDirectory,
+  enterWorktreeDirectory,
+  isRepositoryWrite,
+  sessionDirectoryAvailable,
+  type SessionDirectory,
+} from './session-directory.ts'
 import { GitService } from './service.ts'
 import type { GitCommitMessageCapability, GitFileChange } from './types.ts'
 
@@ -68,6 +76,16 @@ export function apply(ctx: Context, config: Config): void {
   })
   ctx.provide('git', service)
   const generation = assembleGeneration(ctx, config.commitMessage)
+  let directory: SessionDirectory | undefined
+  // Optional on hosts that predate working-directory. The fiber stays pending
+  // until both services exist, and unload clears the binder without touching Git.
+  injectOptional(ctx, ['agents', 'workingDirectory'], (bound) => {
+    const services = bound as unknown as Record<string, unknown>
+    const boundDirectory = bindSessionDirectory(services['agents'], services['workingDirectory'])
+    if (boundDirectory === undefined) return
+    directory = boundDirectory
+    return () => { if (directory === boundDirectory) directory = undefined }
+  })
   // Soft: a profile without a web server (headless, sdk) has no browser to
   // serve, and the service is unaffected.
   //
@@ -88,7 +106,7 @@ export function apply(ctx: Context, config: Config): void {
     }
     return connection.rpc.handle('/git', async (endpoint, payload, signal) => {
       try {
-        return { ok: true, value: await invoke(service, generation, endpoint, payload, signal) }
+        return { ok: true, value: await invoke(service, generation, directory, endpoint, payload, signal) }
       } catch (error) {
         return {
           ok: false,
@@ -220,12 +238,16 @@ function capability(generation: GenerationAssembly): GitCommitMessageCapability 
 async function invoke(
   service: GitService,
   generation: GenerationAssembly,
+  directory: SessionDirectory | undefined,
   endpoint: string,
   payload: unknown,
   signal: AbortSignal,
 ): Promise<unknown> {
   const request = record(payload)
+  if (isRepositoryWrite(endpoint)) await assertSessionRepository(service, directory, request, signal)
   switch (endpoint) {
+    case 'directory-capability': return { available: sessionDirectoryAvailable(directory, request) }
+    case 'set-directory': return enterWorktreeDirectory(service, directory, request, signal)
     case 'discover': return service.discover(stringField(request, 'path'), signal)
     case 'status': return service.status(stringField(request, 'repository'), signal)
     case 'diff': return service.diff(
@@ -277,6 +299,20 @@ async function invoke(
     }
     default: throw new Error(`unknown Git endpoint ${JSON.stringify(endpoint)}`)
   }
+}
+
+/**
+ * Schedule an optional inject without declaring those services on this plugin's Context type.
+ * Hosts that never provide the names leave the callback pending.
+ * @param ctx - Plugin context.
+ * @param names - Service names that must all be present.
+ * @param callback - Runs once, and may return a disposer.
+ */
+function injectOptional(ctx: Context, names: readonly string[], callback: (bound: Context) => void | (() => void)): void {
+  const inject = (ctx as unknown as {
+    inject(services: readonly string[], apply: (bound: Context) => void | (() => void)): unknown
+  }).inject.bind(ctx)
+  inject(names, callback)
 }
 
 function record(value: unknown): Record<string, unknown> {

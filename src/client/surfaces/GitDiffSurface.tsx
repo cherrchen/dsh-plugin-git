@@ -10,6 +10,8 @@ import type { ReactNode } from 'react'
 import type { GitDiff } from '../../types.ts'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { GitClientController } from '../controller.ts'
+import { resolveGitController, type GitSessionControllers } from '../session-controllers.ts'
+import { effectiveWorkspacePath } from '../workspace-path.ts'
 import { parseGitDiffAddress, type GitDiffPayload } from '../contract.ts'
 import { GitDetailsHeaderActions } from '../GitDetailsHeaderActions.tsx'
 import { useGitWorkspace } from '../use-git-workspace.ts'
@@ -24,12 +26,15 @@ const keyOf = (root: string, address: string): string => `${root}\u0000${address
 
 /** Full composed props for the Git Diff tab body. */
 export type GitDiffSurfaceProps = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'git'>
-  & { controller: GitClientController }
+  & { controller?: GitClientController; gitSessions?: GitSessionControllers }
 
 /** Render one Git Diff surface body. */
-export function GitDiffSurface({ controller, t, useSessions, sessionId, useTabInfo }: GitDiffSurfaceProps): ReactNode {
+export function GitDiffSurface({
+  controller: controllerProp, gitSessions, t, useSessions, sessionId, useTabInfo,
+}: GitDiffSurfaceProps): ReactNode {
+  const controller = resolveGitController({ controller: controllerProp, gitSessions, sessionId })
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
-  const workspacePath = useSessions(list => list.byId[sessionId]?.cwd)
+  const workspacePath = useSessions(list => effectiveWorkspacePath(list.byId[sessionId]))
   const { tab } = useTabInfo()
   const { address, revision } = tab.navigation
   const opened = tab.navigation.params as GitDiffPayload | undefined
@@ -59,7 +64,10 @@ export function GitDiffSurface({ controller, t, useSessions, sessionId, useTabIn
     setResult({ key: keyOf(root, address), diff: undefined, error: undefined })
     void controller.fetchDiff(payload.path, payload.staged).then(
       diff => { if (active) setResult({ key: keyOf(root, address), diff, error: undefined }) },
-      error => { if (active) setResult({ key: keyOf(root, address), diff: undefined, error: error instanceof Error ? error.message : String(error) }) },
+      error => {
+        if (!active || (error instanceof Error && error.name === 'AbortError')) return
+        setResult({ key: keyOf(root, address), diff: undefined, error: error.message })
+      },
     )
     return () => { active = false }
   }, [controller, address, revision, state.repository])
