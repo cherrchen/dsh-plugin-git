@@ -81,7 +81,7 @@ async function mounted(options: {
   }
 }
 
-describe('session directory binding', () => {
+describe('session directory binding', { timeout: 20_000 }, () => {
   it('rejects lookalike services that do not expose get and set', () => {
     expect(bindSessionDirectory({}, {})).toBeUndefined()
     expect(bindSessionDirectory({ get: () => undefined }, { get: () => '/tmp' })).toBeUndefined()

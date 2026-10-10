@@ -291,11 +291,12 @@ export class GitService {
   /** Classify this checkout without failing the snapshot when Git cannot answer. */
   private async readCheckout(root: string, signal?: AbortSignal): Promise<GitCheckout> {
     try {
-      const [gitDirText, commonDirText, bareText] = await Promise.all([
-        this.run(root, ['rev-parse', '--git-dir'], signal),
-        this.run(root, ['rev-parse', '--git-common-dir'], signal),
-        this.run(root, ['rev-parse', '--is-bare-repository'], signal),
-      ])
+      const lines = (await this.run(root, [
+        'rev-parse', '--git-dir', '--git-common-dir', '--is-bare-repository',
+      ], signal)).trim().split(/\r?\n/u)
+      const gitDirText = lines[0] ?? ''
+      const commonDirText = lines[1] ?? ''
+      const bareText = lines[2] ?? ''
       const gitDir = canonicalPath(gitDirText, root)
       const commonDir = canonicalPath(commonDirText, root)
       const bare = bareText.trim() === 'true'

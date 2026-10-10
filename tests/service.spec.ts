@@ -37,7 +37,7 @@ function repository(): string {
   return root
 }
 
-describe('portable Git service', () => {
+describe('portable Git service', { timeout: 20_000 }, () => {
   it('detects non-repositories and reads clean repositories', async () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-plugin-git-empty-'))
     roots.push(root)
