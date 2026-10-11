@@ -4,7 +4,16 @@
 
 本文件记录本 package 的所有重要变更。格式参照 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本遵循 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) —— 本包处于 pre-1.0，minor 版本之间仍可能改变 API。每个已发布版本同时有对应的 [GitHub Release](https://github.com/cherrchen/dsh-plugin-git/releases)，附该版本的 tarball。
 
-## [Unreleased]
+## [0.2.5] — 2026-10-11
+
+### Added
+
+- 工作树控件会列出当前会话仓库的链接检出。宿主提供工作目录服务且会话有活 agent 时，**在此会话中使用** 会将该会话切换到所选检出。
+
+### Changed
+
+- Git 仓库状态跟随每个会话的有效工作目录，包括宿主投影的目录变更；旧宿主继续使用会话原始目录。
+- Git 0.2.5 支持 DeepSeek Harness `0.2.1-alpha.2`，包括会话有效工作目录与链接工作树切换；`0.2.1-alpha.1` 仍不受支持。
 
 ### Fixed
 

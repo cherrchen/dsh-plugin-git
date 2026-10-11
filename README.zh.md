@@ -12,7 +12,7 @@ kind: "package-bundle"
 
 标准 DSH/Cordis Git 插件，包含一项 portable Host service、一份 Client bundle 与 optional Desktop enhancement。同一 package 可在 DeepSeek Harness Desktop 与标准 DSH Web host 中原样运行；npm scope `@dsh-electron/` 标识发布者，不是运行时要求。
 
-**依赖上游右侧边栏。** 本包精确支持 DeepSeek Harness `0.1.5-rc.2`、`0.1.6-alpha.1`、`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2`、`0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1` 与 `0.2.0-rc.2`，这些版本的 Client UI 均自带右侧边栏 `@deepseek-ai/dsh-client-ui-sidebar-right`。Git 以标准两阶段方式注册三个 sidebar tab type，并通过 `ctx.sidebarRight` 导航；宿主没有右侧边栏时 Client 半无法加载。旧的第三方 Details Host 插件已废弃，不再被依赖。已验证版本见 [DSH 兼容契约](docs/reference/dsh-compatibility.md)。
+**依赖上游右侧边栏。** 本包精确支持 DeepSeek Harness `0.1.5-rc.2`、`0.1.6-alpha.1`、`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2`、`0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2` 与 `0.2.1-alpha.2`，这些版本的 Client UI 均自带右侧边栏 `@deepseek-ai/dsh-client-ui-sidebar-right`。Git 以标准两阶段方式注册三个 sidebar tab type，并通过 `ctx.sidebarRight` 导航；宿主没有右侧边栏时 Client 半无法加载。旧的第三方 Details Host 插件已废弃，不再被依赖。已验证版本见 [DSH 兼容契约](docs/reference/dsh-compatibility.md)。
 
 [DeepSeek Harness Desktop](https://github.com/cherrchen/deepseek-harness-electron) 预装本插件，并通过 git subtree 镜像本仓库。用户可在**设置 → 插件**中禁用 Git；右侧边栏是上游内置项。
 
@@ -36,12 +36,12 @@ kind: "package-bundle"
 <a id="dsh-compatibility"></a>
 ## DSH 兼容性
 
-本仓库当前验证支持 **DeepSeek Harness `0.1.5-rc.2`、`0.1.6-alpha.1`、`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2`、`0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1` 与 `0.2.0-rc.2`**。开发 pin 为 `0.2.0-rc.2`；兼容矩阵与候选升级流程见[兼容契约](docs/reference/dsh-compatibility.md)。
+本仓库当前验证支持 **DeepSeek Harness `0.1.5-rc.2`、`0.1.6-alpha.1`、`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2`、`0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2` 与 `0.2.1-alpha.2`**。开发 pin 为 `0.2.0-rc.2`；兼容矩阵与候选升级流程见[兼容契约](docs/reference/dsh-compatibility.md)。
 
 <a id="installation"></a>
 ## 安装
 
-本包已发布到 npm：`@dsh-electron/dsh-plugin-git`（当前 `0.2.4`，MIT，带构建 provenance）。仍处于试验开发阶段：API 与版本保持 pre-1.0，minor 版本之间可能变化。
+本包已发布到 npm：`@dsh-electron/dsh-plugin-git`（当前 `0.2.5`，MIT，带构建 provenance）。仍处于试验开发阶段：API 与版本保持 pre-1.0，minor 版本之间可能变化。
 
 **DeepSeek Harness Desktop** — Git 默认预装并启用。不需要仓库 UI 时，可在**设置 → 插件**中禁用。
 
@@ -75,10 +75,10 @@ dsh plugin --profile web add @dsh-electron/dsh-plugin-git
 
 ```sh
 pnpm pack --pack-destination dist
-dsh plugin --profile web add ./dist/dsh-electron-dsh-plugin-git-0.2.4.tgz
+dsh plugin --profile web add ./dist/dsh-electron-dsh-plugin-git-0.2.5.tgz
 ```
 
-`pnpm pack` 产出上述单一 tarball，每个 tag 的 GitHub Release 都附同一个文件 —— `0.2.4` 对应 `https://github.com/cherrchen/dsh-plugin-git/releases/download/v0.2.4/dsh-electron-dsh-plugin-git-0.2.4.tgz`。它同样是预构建产物，因此适合内网或离线 profile。
+`pnpm pack` 产出上述单一 tarball，每个 tag 的 GitHub Release 都附同一个文件 —— `0.2.5` 对应 `https://github.com/cherrchen/dsh-plugin-git/releases/download/v0.2.5/dsh-electron-dsh-plugin-git-0.2.5.tgz`。它同样是预构建产物，因此适合内网或离线 profile。
 
 ### 从 GitHub 安装
 
@@ -97,7 +97,7 @@ allowBuilds:
 然后重新执行 `add` 即可；换 pin 会换 commit，键也随之变化。请把该授权视为**允许该 package 在安装时于你的机器上执行代码**（且不在 agent 运行的任何沙箱之内）。建议锁定 tag，让后续推送无法悄悄改变实际运行的内容：
 
 ```sh
-dsh plugin --profile web add github:cherrchen/dsh-plugin-git#v0.2.4
+dsh plugin --profile web add github:cherrchen/dsh-plugin-git#v0.2.5
 ```
 
 ### 从本地 checkout 安装（开发调试）
@@ -213,7 +213,7 @@ GitHub authentication、hosting-provider workflows、credential prompts、issues
 <a id="npm-publication"></a>
 ## npm 发布
 
-本包已发布到 npm：`@dsh-electron/dsh-plugin-git`（MIT；最新 `0.2.4`）。发布方式为推送 `vX.Y.Z` tag：工作流跑测试与构建、打包 tarball、带构建 provenance 发布到 npm，并把同一个 tarball 附到 GitHub Release。API 与版本保持 pre-1.0。UI 宿主是上游内置的右侧边栏，无需独立安装的第三方配对包。发布步骤与凭据见 [`docs/development/README.md`](docs/development/README.md#发布流程)。
+本包已发布到 npm：`@dsh-electron/dsh-plugin-git`（MIT；最新 `0.2.5`）。发布方式为推送 `vX.Y.Z` tag：工作流跑测试与构建、打包 tarball、带构建 provenance 发布到 npm，并把同一个 tarball 附到 GitHub Release。API 与版本保持 pre-1.0。UI 宿主是上游内置的右侧边栏，无需独立安装的第三方配对包。发布步骤与凭据见 [`docs/development/README.md`](docs/development/README.md#发布流程)。
 
 <a id="development"></a>
 ## 开发
@@ -242,7 +242,6 @@ pnpm pack
 - **Command output 有界** — 大于 `maxOutputBytes` 的 diff 只保留 subprocess collector tail；处理超大 diff 的 deployment 必须提高这一 validated setting。
 - **生成依赖 host 与模型** — commit message 生成需要 host LLM runtime 与可解析的模型（会话默认或插件配置中的自定义路由）；两者缺其一时，Generate 动作保持禁用或报告 `git/generation-unavailable`。
 - **进入工作树需要活的目录服务** — 没有宿主工作目录服务，或该会话没有活的 agent 时，检出列表只读。写操作此时仍沿用原先由调用方提供仓库路径的契约。目录消失后的恢复不属于本包，由宿主工作目录服务负责。
-- **0.2.1 仍是候选** — `0.2.1-alpha.1` 与 `0.2.1-alpha.2` 不在支持版本清单中。见[兼容契约](docs/reference/dsh-compatibility.md)。
 
 <a id="dev-note"></a>
 ### 开发备注

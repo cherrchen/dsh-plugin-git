@@ -12,7 +12,7 @@ English | [中文](README.zh.md)
 
 Standard DSH/Cordis Git plugin with one portable Host service, one Client bundle, and optional Desktop enhancement. The package runs unchanged in DeepSeek Harness Desktop and in a standard DSH Web host; the npm scope `@dsh-electron/` identifies the publisher, not a runtime requirement.
 
-**Requires the upstream right sidebar.** This package supports the exact DeepSeek Harness releases `0.1.5-rc.2`, `0.1.6-alpha.1`, `0.1.6-alpha.2`, `0.1.7-alpha.1`, `0.1.7-alpha.2`, `0.1.7-rc.1`, `0.1.7-rc.2`, `0.2.0-rc.1`, and `0.2.0-rc.2`, whose Client UI ships the right sidebar (`@deepseek-ai/dsh-client-ui-sidebar-right`). Git registers three sidebar tab types through the standard two-stage path and navigates through `ctx.sidebarRight`; without the right sidebar the Client half cannot load. The third-party Details Host plugin is deprecated and no longer depended on. See the [DSH compatibility contract](docs/reference/dsh-compatibility.md) for the verified release list.
+**Requires the upstream right sidebar.** This package supports the exact DeepSeek Harness releases `0.1.5-rc.2`, `0.1.6-alpha.1`, `0.1.6-alpha.2`, `0.1.7-alpha.1`, `0.1.7-alpha.2`, `0.1.7-rc.1`, `0.1.7-rc.2`, `0.2.0-rc.1`, `0.2.0-rc.2`, and `0.2.1-alpha.2`, whose Client UI ships the right sidebar (`@deepseek-ai/dsh-client-ui-sidebar-right`). Git registers three sidebar tab types through the standard two-stage path and navigates through `ctx.sidebarRight`; without the right sidebar the Client half cannot load. The third-party Details Host plugin is deprecated and no longer depended on. See the [DSH compatibility contract](docs/reference/dsh-compatibility.md) for the verified release list.
 
 [DeepSeek Harness Desktop](https://github.com/cherrchen/deepseek-harness-electron) pre-installs this plugin and mirrors this repository with git subtree. Users may disable Git from the Plugins settings; the right sidebar is an upstream built-in.
 
@@ -36,12 +36,12 @@ Standard DSH/Cordis Git plugin with one portable Host service, one Client bundle
 <a id="dsh-compatibility"></a>
 ## DSH compatibility
 
-This repo currently verifies against **DeepSeek Harness `0.1.5-rc.2`, `0.1.6-alpha.1`, `0.1.6-alpha.2`, `0.1.7-alpha.1`, `0.1.7-alpha.2`, `0.1.7-rc.1`, `0.1.7-rc.2`, `0.2.0-rc.1`, and `0.2.0-rc.2`**. The development pin is `0.2.0-rc.2`; see the [compatibility contract](docs/reference/dsh-compatibility.md) for the compatibility matrix and candidate upgrade process.
+This repo currently verifies against **DeepSeek Harness `0.1.5-rc.2`, `0.1.6-alpha.1`, `0.1.6-alpha.2`, `0.1.7-alpha.1`, `0.1.7-alpha.2`, `0.1.7-rc.1`, `0.1.7-rc.2`, `0.2.0-rc.1`, `0.2.0-rc.2`, and `0.2.1-alpha.2`**. The development pin is `0.2.0-rc.2`; see the [compatibility contract](docs/reference/dsh-compatibility.md) for the compatibility matrix and candidate upgrade process.
 
 <a id="installation"></a>
 ## Installation
 
-The package is published to npm as `@dsh-electron/dsh-plugin-git` (current `0.2.4`, MIT, with build provenance). It is still experimental development: the API and versioning remain pre-1.0 and may change between minor releases.
+The package is published to npm as `@dsh-electron/dsh-plugin-git` (current `0.2.5`, MIT, with build provenance). It is still experimental development: the API and versioning remain pre-1.0 and may change between minor releases.
 
 **DeepSeek Harness Desktop** — Git is pre-installed and enabled by default. Disable it from **Settings → Plugins** when you do not need repository UI.
 
@@ -75,10 +75,10 @@ The registry holds the prebuilt artifact, so no package code runs on your machin
 
 ```sh
 pnpm pack --pack-destination dist
-dsh plugin --profile web add ./dist/dsh-electron-dsh-plugin-git-0.2.4.tgz
+dsh plugin --profile web add ./dist/dsh-electron-dsh-plugin-git-0.2.5.tgz
 ```
 
-`pnpm pack` produces that single tarball, and every tag's GitHub Release carries the same one — for `0.2.4`, `https://github.com/cherrchen/dsh-plugin-git/releases/download/v0.2.4/dsh-electron-dsh-plugin-git-0.2.4.tgz`. It is prebuilt as well, which makes it the form to use for an offline or air-gapped profile.
+`pnpm pack` produces that single tarball, and every tag's GitHub Release carries the same one — for `0.2.5`, `https://github.com/cherrchen/dsh-plugin-git/releases/download/v0.2.5/dsh-electron-dsh-plugin-git-0.2.5.tgz`. It is prebuilt as well, which makes it the form to use for an offline or air-gapped profile.
 
 ### From GitHub
 
@@ -97,7 +97,7 @@ allowBuilds:
 then run the `add` again. Moving the pin moves the commit, so the key moves with it. Treat that allowance as **permission for the package to execute code on your machine at install time**, outside any sandbox the agent runs under. Pin a tag so a later push cannot silently change what runs:
 
 ```sh
-dsh plugin --profile web add github:cherrchen/dsh-plugin-git#v0.2.4
+dsh plugin --profile web add github:cherrchen/dsh-plugin-git#v0.2.5
 ```
 
 ### From a local checkout (development)
@@ -213,7 +213,7 @@ GitHub authentication, hosting-provider workflows, credential prompts, issues, p
 <a id="npm-publication"></a>
 ## npm publication
 
-The package is published to npm as `@dsh-electron/dsh-plugin-git` (MIT; latest `0.2.4`). Releases are cut by pushing a `vX.Y.Z` tag: the workflow runs the tests and build, packs the tarball, publishes it to npm with build provenance, and attaches the same tarball to a GitHub Release. API and versioning remain pre-1.0. The UI host is the upstream built-in right sidebar; no separately installed third-party pairing package is required. Release steps and credentials are documented in [`docs/development/README.en.md`](docs/development/README.en.md#release-process).
+The package is published to npm as `@dsh-electron/dsh-plugin-git` (MIT; latest `0.2.5`). Releases are cut by pushing a `vX.Y.Z` tag: the workflow runs the tests and build, packs the tarball, publishes it to npm with build provenance, and attaches the same tarball to a GitHub Release. API and versioning remain pre-1.0. The UI host is the upstream built-in right sidebar; no separately installed third-party pairing package is required. Release steps and credentials are documented in [`docs/development/README.en.md`](docs/development/README.en.md#release-process).
 
 <a id="development"></a>
 ## Development
@@ -242,7 +242,6 @@ None. Commit-message generation is an independent Host LLM request and does not 
 - **Bounded command output** — a diff larger than `maxOutputBytes` retains only the subprocess collector's tail, so deployments handling very large diffs must raise that validated setting.
 - **Generation needs host + model** — commit message generation requires a host LLM runtime and a resolvable model (session default or a custom route in Plugin configuration); without either, the Generate action stays disabled or reports `git/generation-unavailable`.
 - **Worktree entry needs a live directory service** — without the host working-directory service, or without a live agent for that session, the checkout list stays read-only. Writes then keep the previous caller-supplied repository contract. A missing directory is not repaired here; recovery belongs to the host working-directory service.
-- **0.2.1 remains a candidate** — `0.2.1-alpha.1` and `0.2.1-alpha.2` are not in the supported release list. See the [compatibility contract](docs/reference/dsh-compatibility.md).
 
 <a id="dev-note"></a>
 ### Dev Note
