@@ -11,10 +11,10 @@ import type { GraphLayout, GraphNodeKind } from './graph/types.ts'
 export type GraphGeometryLayout = Pick<GraphLayout, 'rows' | 'laneCount'>
 
 /** Rendered height of one commit row; must match `.row` in GitGraphSurface.module.css. */
-export const GIT_GRAPH_ROW_HEIGHT = 36
+export const GIT_GRAPH_ROW_HEIGHT = 22
 
 /** Rendered width of one graph lane column. */
-export const GIT_GRAPH_LANE_GAP = 16
+export const GIT_GRAPH_LANE_GAP = 11
 
 /** Node radius in CSS pixels. */
 export const GIT_GRAPH_NODE_RADIUS = 4
@@ -82,7 +82,10 @@ export interface GraphGeometry {
  */
 export function buildGraphGeometry(layout: GraphGeometryLayout, options: GraphGeometryOptions): GraphGeometry {
   const { rowHeight, laneGap } = options
-  const x = (column: number): number => column * laneGap + laneGap / 2
+  // Lanes start one full column in, matching the VS Code SCM graph: column 0's
+  // center sits at `laneGap`, so a node ring larger than half a lane never
+  // clips the canvas's left edge.
+  const x = (column: number): number => (column + 1) * laneGap
   const paths: GraphPath[] = []
   const nodes: GraphNodePoint[] = []
 
@@ -134,7 +137,7 @@ export function buildGraphGeometry(layout: GraphGeometryLayout, options: GraphGe
 
   const laneCount = Math.max(layout.laneCount, 1)
   return {
-    width: laneCount * laneGap,
+    width: (laneCount + 1) * laneGap,
     height: layout.rows.length * rowHeight,
     paths,
     nodes,

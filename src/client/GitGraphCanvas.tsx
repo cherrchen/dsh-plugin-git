@@ -23,10 +23,10 @@ import {
 } from './graph-geometry.ts'
 
 /** Rail width for one row's directly connected edges while hovered. */
-const HOVER_RAIL_WIDTH = 2.5
+const HOVER_RAIL_WIDTH = 3
 
 /** Rail width in the resting state. */
-const RAIL_WIDTH = 1.5
+const RAIL_WIDTH = 1
 
 /** Render the whole commit page's graph rail as one canvas layer. */
 export function GitGraphCanvas({
@@ -87,7 +87,7 @@ export function GitGraphCanvas({
     context.lineCap = 'round'
     for (const path of geometry.paths) {
       context.beginPath()
-      context.strokeStyle = graphLaneColor(path.colorKey, colors)
+      context.strokeStyle = graphLaneColor(path.colorKey, colors.lanes)
       context.lineWidth = path.rowIndex === hoveredRowIndex ? HOVER_RAIL_WIDTH : RAIL_WIDTH
       for (const command of path.commands) {
         if (command.type === 'move') context.moveTo(command.x, command.y)
@@ -97,52 +97,44 @@ export function GitGraphCanvas({
       context.stroke()
     }
     for (const node of geometry.nodes) {
-      const color = graphLaneColor(node.colorKey, colors)
-      drawNode(context, node, color, node.rowIndex === hoveredRowIndex)
+      const color = graphLaneColor(node.colorKey, colors.lanes)
+      drawNode(context, node, color, colors.surface)
     }
   }, [rows, laneCount, hoveredRowIndex, themeEpoch, devicePixelRatio])
 
   return <canvas ref={canvasRef} className={className} aria-hidden="true" />
 }
 
-/** Draw one commit node with kind-specific semantics. */
-function drawNode(context: CanvasRenderingContext2D, node: GraphNodePoint, color: string, hovered: boolean): void {
+/** Fill one disc at the node's center. */
+function fillDisc(context: CanvasRenderingContext2D, x: number, y: number, radius: number, color: string): void {
   context.beginPath()
-  if (node.kind === 'merge') {
-    // Merge: ring with a solid core — one commit consuming two ancestries.
-    context.fillStyle = color
-    context.arc(node.x, node.y, GIT_GRAPH_NODE_RADIUS - 1.5, 0, Math.PI * 2)
-    context.fill()
-    context.lineWidth = hovered ? 2 : RAIL_WIDTH
-    context.strokeStyle = color
-    context.arc(node.x, node.y, GIT_GRAPH_NODE_RADIUS + 1, 0, Math.PI * 2)
-    context.stroke()
-    return
-  }
-  if (node.kind === 'root') {
-    // Root: solid dot with a thin outer ring marking the ancestry start.
-    context.fillStyle = color
-    context.arc(node.x, node.y, GIT_GRAPH_NODE_RADIUS, 0, Math.PI * 2)
-    context.fill()
-    context.lineWidth = RAIL_WIDTH
-    context.strokeStyle = color
-    context.arc(node.x, node.y, GIT_GRAPH_NODE_RADIUS + 2, 0, Math.PI * 2)
-    context.stroke()
-    return
-  }
-  if (node.isHead) {
-    // HEAD: solid dot with a strong outer ring.
-    context.fillStyle = color
-    context.arc(node.x, node.y, GIT_GRAPH_NODE_RADIUS, 0, Math.PI * 2)
-    context.fill()
-    context.lineWidth = hovered ? 2.5 : 1.5
-    context.strokeStyle = color
-    context.arc(node.x, node.y, GIT_GRAPH_NODE_RADIUS + 2.5, 0, Math.PI * 2)
-    context.stroke()
-    return
-  }
-  // Normal commit: solid dot on its lane.
   context.fillStyle = color
-  context.arc(node.x, node.y, GIT_GRAPH_NODE_RADIUS, 0, Math.PI * 2)
+  context.arc(x, y, radius, 0, Math.PI * 2)
   context.fill()
+}
+
+/**
+ * Draw one commit node the way the VS Code SCM graph does: a lane-colored
+ * disc cut out by the surface color underneath, so through-rails read as
+ * passing behind the node. HEAD is a hollow ring, merge a thicker ring, and
+ * normal/root a solid disc with a surface halo.
+ */
+function drawNode(context: CanvasRenderingContext2D, node: GraphNodePoint, color: string, surface: string): void {
+  if (node.isHead) {
+    fillDisc(context, node.x, node.y, GIT_GRAPH_NODE_RADIUS + 3, color)
+    fillDisc(context, node.x, node.y, GIT_GRAPH_NODE_RADIUS, surface)
+    return
+  }
+  if (node.kind === 'merge') {
+    fillDisc(context, node.x, node.y, GIT_GRAPH_NODE_RADIUS + 2, color)
+    fillDisc(context, node.x, node.y, GIT_GRAPH_NODE_RADIUS - 1, surface)
+    return
+  }
+  fillDisc(context, node.x, node.y, GIT_GRAPH_NODE_RADIUS + 1, color)
+  if (surface === '') return
+  context.beginPath()
+  context.lineWidth = 2
+  context.strokeStyle = surface
+  context.arc(node.x, node.y, GIT_GRAPH_NODE_RADIUS + 1, 0, Math.PI * 2)
+  context.stroke()
 }

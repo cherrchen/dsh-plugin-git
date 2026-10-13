@@ -64,7 +64,7 @@ HEAD 的 first-parent 链是视觉主脊柱：
 
 ### Lane Color
 
-`colorKey` 在 lane 创建时分配（spine 优先占用 brand 色 0），终身不变；颜色查 `palette[colorKey % len]`，与 column 无关，与分页无关。Spine 色来自主题 token `--dsw-alias-brand-primary`。
+`colorKey` 在 lane 创建时分配（spine 优先占用 index 0），终身不变；颜色查 `palette[colorKey % len]`，与 column 无关，与分页无关。调色板是 VS Code SCM Graph 同款 Okabe-Ito 五色（`#FFB000 #DC267F #994F00 #40B0A6 #B66DFF` 循环，亮暗主题同值）。
 
 ### Lane Cap（maxLanes 硬上限）
 
@@ -115,14 +115,16 @@ Scope 只改变"查询哪些历史"，不改变已查询历史的拓扑表达。
 
 Renderer 只消费 `GraphLayoutRow`：
 
-- `node`：列位置 + 语义（`normal` / `merge` / `root` / `isHead`），分别渲染实心点 / 环+芯 / 带外环节点 / HEAD 双环；
+- `node`：列位置 + 语义（`normal` / `merge` / `root` / `isHead`），按 VS Code SCM Graph 画法渲染——normal/root 为 lane 色实心点加面板色描边环（贯穿 rail 视觉上从节点下方穿过），merge 为 lane 色环，isHead 为 lane 色空心环；
 - `nodeEntryColumn`：行顶列位 —— 与 `node.column` 不同时渲染 shift 曲线；
 - `through`：贯穿轨道（带可选 shift）；
 - `merging`：本行汇入节点的 lane（释放前最后一笔）；
 - `edges`：节点向下的 `vertical` / `fork` / `merge` 边；
-- `visibleLaneCount`：该行可见 lane 数，graph 宽度 = `laneCount × GIT_GRAPH_LANE_GAP(16px)` 动态计算。
+- `visibleLaneCount`：该行可见 lane 数，graph 宽度 = `(laneCount + 1) × GIT_GRAPH_LANE_GAP(11px)` 动态计算；lane 0 的圆心位于一整列之后（与 VS Code 一致），大尺寸节点环不会被画布左缘裁切。
 
-Fork / merge / shift 使用 cubic Bezier（控制点在行高中点），横向偏移保持局部，避免大跨度折线。行高 36px 为 canvas 与 DOM 的共享契约；行间零间隙，行边界像素级连续。
+Fork / merge / shift 使用 cubic Bezier（控制点在行高中点），横向偏移保持局部，避免大跨度折线。行高 22px 为 canvas 与 DOM 的共享契约；行间零间隙，行边界像素级连续。
+
+行内文本为单行布局：subject（`isHead` 加粗）+ author + ref chips；hash/date 收于行 `title`。ref chips 由 `refBadges()` 归类（head / branch / remote / tag），attached `HEAD -> branch` 折叠为以当前分支命名的单个 head chip（VS Code 同），detached 保留字面 `HEAD`；chips 整体限宽为行宽的 45%，压缩时向 icon 收缩而非挤出 subject。
 
 ## 测试与 Invariants
 

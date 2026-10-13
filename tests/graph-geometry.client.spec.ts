@@ -40,7 +40,7 @@ describe('buildGraphGeometry', () => {
   it('sizes the canvas from the visible lane count and row count', () => {
     const layout = layoutGitGraph(subtreePattern())
     const geometry = buildGraphGeometry(layout, GEOMETRY_OPTIONS)
-    expect(geometry.width).toBe(layout.laneCount * GIT_GRAPH_LANE_GAP)
+    expect(geometry.width).toBe((layout.laneCount + 1) * GIT_GRAPH_LANE_GAP)
     expect(geometry.height).toBe(layout.rows.length * GIT_GRAPH_ROW_HEIGHT)
   })
 
@@ -50,7 +50,7 @@ describe('buildGraphGeometry', () => {
     expect(geometry.nodes).toHaveLength(layout.rows.length)
     geometry.nodes.forEach((node, index) => {
       const column = layout.rows[index]!.node.column
-      expect(node.x).toBe(column * GIT_GRAPH_LANE_GAP + GIT_GRAPH_LANE_GAP / 2)
+      expect(node.x).toBe((column + 1) * GIT_GRAPH_LANE_GAP)
       expect(node.y).toBe(index * GIT_GRAPH_ROW_HEIGHT + GIT_GRAPH_ROW_HEIGHT / 2)
       expect(node.kind).toBe(layout.rows[index]!.node.kind)
     })

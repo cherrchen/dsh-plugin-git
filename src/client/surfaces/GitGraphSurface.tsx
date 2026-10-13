@@ -16,6 +16,8 @@ import { effectiveWorkspacePath } from '../workspace-path.ts'
 import { GitDetailsHeaderActions } from '../GitDetailsHeaderActions.tsx'
 import { GIT_GRAPH_LANE_GAP } from '../graph-geometry.ts'
 import { GitGraphCanvas } from '../GitGraphCanvas.tsx'
+import { refBadges } from '../ref-badge.ts'
+import { RefBadge } from './RefBadge.tsx'
 import { useGitWorkspace } from '../use-git-workspace.ts'
 import css from '../GitGraphSurface.module.css'
 
@@ -53,7 +55,11 @@ export function GitGraphSurface({
     }
   }, [controller, state.repository, state.graphLoaded, state.graphLoading])
 
-  const laneArea = Math.max(state.graphLaneCount, 1) * GIT_GRAPH_LANE_GAP
+  // Lane columns start one gap in (see buildGraphGeometry), so the rail area
+  // is (lanes + 1) columns wide; text follows a 4px margin after it.
+  const laneArea = (Math.max(state.graphLaneCount, 1) + 1) * GIT_GRAPH_LANE_GAP
+  const localBranches = new Set(state.repository?.branches.map(branch => branch.name) ?? [])
+  const currentBranch = state.repository?.branch ?? null
 
   return (
     <div className={css.root} data-git-graph-surface="">
@@ -93,7 +99,7 @@ export function GitGraphSurface({
           />
           <ol
             className={css.rows}
-            style={{ paddingLeft: laneArea + 8 }}
+            style={{ paddingLeft: laneArea + 4 }}
             onMouseLeave={() => { setHoveredRowIndex(undefined) }}
           >
             {state.graphRows.map((row, index) => (
@@ -101,20 +107,19 @@ export function GitGraphSurface({
                 key={row.commit.hash}
                 className={css.row}
                 data-row=""
+                title={`${row.commit.subject}\n${row.commit.shortHash} · ${row.commit.author} · ${row.commit.date.slice(0, 10)}`}
                 onMouseEnter={() => { setHoveredRowIndex(index) }}
               >
                 <div className={css.commitCell}>
-                  <div className={css.subjectLine}>
-                    <span className={css.subject} title={row.commit.subject}>{row.commit.subject}</span>
-                    {row.commit.refs.map(ref => (
-                      <span key={ref} className={css.refBadge} data-ref={ref === 'HEAD' ? 'head' : ref.startsWith('tag: ') ? 'tag' : 'branch'}>
-                        {ref.startsWith('tag: ') ? ref.slice('tag: '.length) : ref}
-                      </span>
-                    ))}
-                  </div>
-                  <span className={css.meta}>
-                    {row.commit.shortHash} · {row.commit.author} · {row.commit.date.slice(0, 10)}
-                  </span>
+                  <span className={css.subject} data-current={row.node.isHead || undefined}>{row.commit.subject}</span>
+                  <span className={css.author}>{row.commit.author}</span>
+                  {row.commit.refs.length > 0 && (
+                    <span className={css.badges}>
+                      {refBadges(row.commit.refs, localBranches, currentBranch).map(badge => (
+                        <RefBadge key={`${badge.kind}:${badge.name}`} badge={badge} />
+                      ))}
+                    </span>
+                  )}
                 </div>
               </li>
             ))}

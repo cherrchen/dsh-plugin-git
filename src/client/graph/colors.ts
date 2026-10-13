@@ -5,13 +5,13 @@
  */
 import type { GraphEdge, GraphLanePlacement, GraphLayoutNode } from './types.ts'
 
-/** Fallback lane palette, cycled by color index. Index 0 is the spine. */
-export const GRAPH_LANE_PALETTE = ['#4c6fff', '#c586c0', '#ce9178', '#4ec9b0', '#dcdcaa', '#9cdcfe'] as const
+/** Lane palette cycled by color index — the VS Code SCM graph's colorblind-safe set. */
+export const GRAPH_LANE_PALETTE = ['#FFB000', '#DC267F', '#994F00', '#40B0A6', '#B66DFF'] as const
 
-/** Brand theme token used for the first-parent spine lane. */
-export const GRAPH_BRAND_TOKEN = '--dsw-alias-brand-primary'
+/** Surface token behind node cutout rings so lanes read as passing under each node. */
+export const GRAPH_SURFACE_TOKEN = '--dsw-alias-bg-base'
 
-/** Attributes whose changes can flip the resolved brand token (light/dark). */
+/** Attributes whose changes can flip the resolved surface token (light/dark). */
 export const GRAPH_THEME_ATTRIBUTES: MutationObserverInit = {
   attributes: true,
   attributeFilter: ['class', 'data-ds-dark-theme', 'data-theme', 'data-color-scheme'],
@@ -23,14 +23,19 @@ export function graphColorIndex(colorKey: string): number {
   return Number.isNaN(parsed) ? 0 : parsed
 }
 
-/** Resolve the theme-aware lane palette relative to a rendered element. */
-export function resolveGraphColors(element: Element): readonly string[] {
-  const colors: string[] = [...GRAPH_LANE_PALETTE]
+/** Lane palette plus the resolved surface color used for node cutout rings. */
+export interface GraphColors {
+  readonly lanes: readonly string[]
+  readonly surface: string
+}
+
+/** Resolve the lane palette and the theme surface color relative to a rendered element. */
+export function resolveGraphColors(element: Element): GraphColors {
+  let surface = ''
   if (typeof window !== 'undefined' && typeof window.getComputedStyle === 'function') {
-    const brand = window.getComputedStyle(element).getPropertyValue(GRAPH_BRAND_TOKEN).trim()
-    if (brand.length > 0) colors[0] = brand
+    surface = window.getComputedStyle(element).getPropertyValue(GRAPH_SURFACE_TOKEN).trim()
   }
-  return colors
+  return { lanes: GRAPH_LANE_PALETTE, surface }
 }
 
 /** Color of one lane given the resolved palette. */
