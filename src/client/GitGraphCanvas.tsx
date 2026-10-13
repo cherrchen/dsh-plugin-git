@@ -98,7 +98,7 @@ export function GitGraphCanvas({
     }
     for (const node of geometry.nodes) {
       const color = graphLaneColor(node.colorKey, colors.lanes)
-      drawNode(context, node, color, colors.surface)
+      drawNode(context, node, color, colors.surface, node.rowIndex === hoveredRowIndex)
     }
   }, [rows, laneCount, hoveredRowIndex, themeEpoch, devicePixelRatio])
 
@@ -117,24 +117,26 @@ function fillDisc(context: CanvasRenderingContext2D, x: number, y: number, radiu
  * Draw one commit node the way the VS Code SCM graph does: a lane-colored
  * disc cut out by the surface color underneath, so through-rails read as
  * passing behind the node. HEAD is a hollow ring, merge a thicker ring, and
- * normal/root a solid disc with a surface halo.
+ * normal/root a solid disc with a surface halo. The hovered row's node grows
+ * one pixel of outer radius so the node highlights with its rails.
  */
-function drawNode(context: CanvasRenderingContext2D, node: GraphNodePoint, color: string, surface: string): void {
+function drawNode(context: CanvasRenderingContext2D, node: GraphNodePoint, color: string, surface: string, hovered: boolean): void {
+  const emphasis = hovered ? 1 : 0
   if (node.isHead) {
-    fillDisc(context, node.x, node.y, GIT_GRAPH_NODE_RADIUS + 3, color)
+    fillDisc(context, node.x, node.y, GIT_GRAPH_NODE_RADIUS + 3 + emphasis, color)
     fillDisc(context, node.x, node.y, GIT_GRAPH_NODE_RADIUS, surface)
     return
   }
   if (node.kind === 'merge') {
-    fillDisc(context, node.x, node.y, GIT_GRAPH_NODE_RADIUS + 2, color)
+    fillDisc(context, node.x, node.y, GIT_GRAPH_NODE_RADIUS + 2 + emphasis, color)
     fillDisc(context, node.x, node.y, GIT_GRAPH_NODE_RADIUS - 1, surface)
     return
   }
-  fillDisc(context, node.x, node.y, GIT_GRAPH_NODE_RADIUS + 1, color)
+  fillDisc(context, node.x, node.y, GIT_GRAPH_NODE_RADIUS + 1 + emphasis, color)
   if (surface === '') return
   context.beginPath()
   context.lineWidth = 2
   context.strokeStyle = surface
-  context.arc(node.x, node.y, GIT_GRAPH_NODE_RADIUS + 1, 0, Math.PI * 2)
+  context.arc(node.x, node.y, GIT_GRAPH_NODE_RADIUS + 1 + emphasis, 0, Math.PI * 2)
   context.stroke()
 }
