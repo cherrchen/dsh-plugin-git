@@ -191,6 +191,47 @@
   white-space: nowrap;
 }
 
+/* IntersectionObserver sentinel that pulls the next history page. */
+.sentinel {
+  flex: none;
+  height: 1px;
+}
+
+/*
+ * Compact HoverCard content. The host card surface is always dark, so text
+ * uses the on-primary-foreground token rather than the regular label ramp.
+ */
+.hoverCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--dsw-alias-label-primary-foreground);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.hoverSubject {
+  overflow-wrap: anywhere;
+  font-weight: 500;
+}
+
+.hoverMeta {
+  color: color-mix(in srgb, var(--dsw-alias-label-primary-foreground) 70%, transparent);
+  font-size: 11px;
+}
+
+.hoverHash {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: color-mix(in srgb, var(--dsw-alias-label-primary-foreground) 70%, transparent);
+}
+
+.hoverRefs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
 .loadMore {
   flex: none;
   margin: 4px 8px 12px;

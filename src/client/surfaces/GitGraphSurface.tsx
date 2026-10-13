@@ -6,9 +6,11 @@
  * plain DOM for text and hover. Refs are decorations rendered as badges in
  * the description area — they never own a graph lane.
  */
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import { HoverCard } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { GitCommitSummary } from '../../types.ts'
 import type { GitLogScope } from '../../types.ts'
 import type { GitClientController } from '../controller.ts'
 import { resolveGitController, type GitSessionControllers } from '../session-controllers.ts'
@@ -34,6 +36,30 @@ function scopeLabelKey(scope: GitLogScope): 'graph.scope.auto' | 'graph.scope.al
   return 'graph.scope.auto'
 }
 
+/**
+ * Hover-card content for one commit row, mirroring what VS Code's history
+ * item hover shows: the full subject, the abbreviated hash, author and date,
+ * and the ref decorations. The card itself is the copy affordance for the
+ * full hash (HoverCard `copyText` semantics).
+ */
+function commitHoverContent(commit: GitCommitSummary, localBranches: ReadonlySet<string>, currentBranch: string | null): ReactNode {
+  const badges = refBadges(commit.refs, localBranches, currentBranch)
+  return (
+    <div className={css.hoverCard}>
+      <div className={css.hoverSubject}>{commit.subject}</div>
+      <div className={css.hoverMeta}>
+        {commit.author} · {commit.date.slice(0, 16).replace('T', ' ')}
+      </div>
+      <div className={css.hoverHash}>{commit.shortHash}</div>
+      {badges.length > 0 && (
+        <div className={css.hoverRefs}>
+          {badges.map(badge => <RefBadge key={`${badge.kind}:${badge.name}`} badge={badge} />)}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** Render the Git Graph surface body. */
 export function GitGraphSurface({
   controller: controllerProp, gitSessions, t, useSessions, sessionId,
@@ -42,6 +68,8 @@ export function GitGraphSurface({
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
   const workspacePath = useSessions(list => effectiveWorkspacePath(list.byId[sessionId]))
   const [hoveredRowIndex, setHoveredRowIndex] = useState<number | undefined>(undefined)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   useGitWorkspace(controller, workspacePath)
 
@@ -54,6 +82,25 @@ export function GitGraphSurface({
       void controller.loadGraph(true)
     }
   }, [controller, state.repository, state.graphLoaded, state.graphLoading])
+
+  // Progressive loading: a sentinel below the last row pulls the next page as
+  // soon as it nears the scroll port — and keeps pulling while the history is
+  // shorter than the viewport, so short panels fill adaptively. Hosts without
+  // IntersectionObserver fall back to the explicit button below.
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    const root = bodyRef.current
+    if (sentinel === null || root === null || !state.graphHasMore || state.graphLoading || typeof IntersectionObserver === 'undefined') {
+      return
+    }
+    const observer = new IntersectionObserver(entries => {
+      if (!entries.some(entry => entry.isIntersecting)) return
+      observer.disconnect()
+      void controller.loadMoreGraph()
+    }, { root, rootMargin: '50% 0px' })
+    observer.observe(sentinel)
+    return () => { observer.disconnect() }
+  }, [controller, state.graphHasMore, state.graphLoading, state.graphRows.length])
 
   // Lane columns start one gap in (see buildGraphGeometry), so the rail area
   // is (lanes + 1) columns wide; text follows a 4px margin after it.
@@ -83,7 +130,7 @@ export function GitGraphSurface({
         </div>
         <GitDetailsHeaderActions controller={controller} t={t} compact />
       </div>
-      <div className={css.body}>
+      <div className={css.body} ref={bodyRef}>
         {!state.graphLoading && state.workspacePath === undefined && <p className={css.empty}>{t('details.noWorkspace')}</p>}
         {!state.graphLoading && state.repository === null && <p className={css.empty}>{t('details.notRepository')}</p>}
         {state.graphError !== undefined && <p className={css.error} role="alert">{state.graphError}</p>}
@@ -107,33 +154,45 @@ export function GitGraphSurface({
                 key={row.commit.hash}
                 className={css.row}
                 data-row=""
-                title={`${row.commit.subject}\n${row.commit.shortHash} · ${row.commit.author} · ${row.commit.date.slice(0, 10)}`}
                 onMouseEnter={() => { setHoveredRowIndex(index) }}
               >
-                <div className={css.commitCell}>
-                  <span className={css.subject} data-current={row.node.isHead || undefined}>{row.commit.subject}</span>
-                  <span className={css.author}>{row.commit.author}</span>
-                  {row.commit.refs.length > 0 && (
-                    <span className={css.badges}>
-                      {refBadges(row.commit.refs, localBranches, currentBranch).map(badge => (
-                        <RefBadge key={`${badge.kind}:${badge.name}`} badge={badge} />
-                      ))}
-                    </span>
-                  )}
-                </div>
+                <HoverCard
+                  openDelayMs={400}
+                  copyText={row.commit.hash}
+                  copyLabel={t('graph.hover.copyHash')}
+                  copiedLabel={t('graph.hover.copied')}
+                  anchor={
+                    <div className={css.commitCell}>
+                      <span className={css.subject} data-current={row.node.isHead || undefined}>{row.commit.subject}</span>
+                      <span className={css.author}>{row.commit.author}</span>
+                      {row.commit.refs.length > 0 && (
+                        <span className={css.badges}>
+                          {refBadges(row.commit.refs, localBranches, currentBranch).map(badge => (
+                            <RefBadge key={`${badge.kind}:${badge.name}`} badge={badge} />
+                          ))}
+                        </span>
+                      )}
+                    </div>
+                  }
+                  content={commitHoverContent(row.commit, localBranches, currentBranch)}
+                />
               </li>
             ))}
           </ol>
         </div>
         {state.graphHasMore && state.repository !== null && state.repository !== undefined && (
-          <button
-            type="button"
-            className={css.loadMore}
-            disabled={state.graphLoading}
-            onClick={() => { void controller.loadMoreGraph() }}
-          >
-            {t('graph.loadMore')}
-          </button>
+          typeof IntersectionObserver === 'undefined'
+            ? (
+              <button
+                type="button"
+                className={css.loadMore}
+                disabled={state.graphLoading}
+                onClick={() => { void controller.loadMoreGraph() }}
+              >
+                {t('graph.loadMore')}
+              </button>
+            )
+            : <div ref={sentinelRef} className={css.sentinel} aria-hidden="true" />
         )}
         {state.graphLoading && <p className={css.loadingHint}>{t('details.loading')}</p>}
       </div>
