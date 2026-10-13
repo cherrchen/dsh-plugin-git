@@ -4,13 +4,14 @@
 
 ## 适配波次状态
 
-自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.2.1-alpha.2` 的兼容晋级已完成。清单内十个精确 prerelease 均已写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。
+自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.2.1-alpha.2` 的兼容晋级已完成，区间内十二个已发布精确 prerelease 全部纳入支持。清单写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。
 
 ## 已验证并承诺支持的版本
 
 唯一版本清单位于 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)：
 
 - `0.1.5-rc.2`
+- `0.1.5-rc.3`
 - `0.1.6-alpha.1`
 - `0.1.6-alpha.2`
 - `0.1.7-alpha.1`
@@ -19,13 +20,24 @@
 - `0.1.7-rc.2`
 - `0.2.0-rc.1`
 - `0.2.0-rc.2`
+- `0.2.1-alpha.1`
 - `0.2.1-alpha.2`
 
-每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。开发依赖与提交锁文件统一 pin 到 `0.2.0-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。清单按晋级顺序累加，已承诺版本不会被后续晋级移除；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
-跨版本运行时：0.1.5-rc.2 至 0.1.6-alpha.2 使用 Cordis `4.0.2` / schemastery `3.18.2`；0.1.7-alpha.1 使用 `4.0.3` / `3.18.3`；0.1.7-alpha.2 至 0.2.0-rc.2 使用 `4.0.4` / `3.18.4`；0.2.1-alpha.2 使用 `4.0.5-alpha.1` / `3.18.5-alpha.1`。alpha.2 宿主声明的 prerelease 下限分别由 peer `|| ~4.0.5-alpha.1` 与 dependency `|| ~3.18.5-alpha.1` 接受；开发 pin 保持 `0.2.0-rc.2`。
+每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。开发依赖与提交锁文件统一 pin 到 `0.2.0-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。清单按版本顺序排列并只增不减，已承诺版本不会被后续晋级移除；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
+跨版本运行时：0.1.5-rc.2 至 0.1.6-alpha.2 使用 Cordis `4.0.2` / schemastery `3.18.2`；0.1.7-alpha.1 使用 `4.0.3` / `3.18.3`；0.1.7-alpha.2 至 0.2.0-rc.2 使用 `4.0.4` / `3.18.4`；0.2.1-alpha.1 与 0.2.1-alpha.2 使用 `4.0.5-alpha.1` / `3.18.5-alpha.1`。0.2.1 宿主声明的 prerelease 下限分别由 peer `|| ~4.0.5-alpha.1` 与 dependency `|| ~3.18.5-alpha.1` 接受；开发 pin 保持 `0.2.0-rc.2`。0.1.5-rc.3 把 Cordis 与 schemastery 从 caret 改写为精确 `4.0.2` / `3.18.2`，与 rc.2 是同一对副本；`scripts/upgrade-dsh.mjs` 与 `scripts/check-dsh-compat.mjs` 的下限解析把 caret、波浪号与精确 pin 统一按声明下限处理。
 
 
 `dsh-client-ui-primitives` 的发布 bundle 导入 `diff`，但上游没有将其声明为运行时依赖。本插件将 `diff`（`>=9 <10`）声明为 peer。alpha.2 的 bundle 还导入 `simple-icons@16.31.0`，同样未声明运行时依赖；本插件将 `simple-icons`（`>=16.31.0 <17`）声明为 peer，并以 `16.31.0` 做开发依赖 pin。这样严格依赖解析器也能满足上游 bundle 的导入。
+
+## 0.1.5-rc.3 接口差异评估
+
+晋级 `0.1.5-rc.3` 前，对比了本插件直接使用的十七个上游包在 `0.1.5-rc.2` 与 `0.1.5-rc.3` 的发布 manifest、`lib/` 运行时 bundle 与类型声明。这是一次仅含 manifest 修订的重发：
+
+- **全部 `lib/` 文件字节一致。** `dsh-subprocess`、`dsh-settings`、`dsh-llm`、`dsh-api-session-controller`、Client UI 各包与 `dsh-client-store` 的运行时和 `.d.ts` 在两个版本间没有任何差异，既有结构探测原样工作。
+- **宿主运行时由 caret 改为精确 pin。** `dsh-settings@0.1.5-rc.3` 与 `dsh@0.1.5-rc.3` 把 Cordis、schemastery 写成精确 `4.0.2` / `3.18.2`，不再使用 `^4.0.2` / `^3.18.2`。解析到的是同一对副本，本插件 Cordis peer `>=4.0.2 <5` 与 schemastery 依赖 `>=3.18.2 <4` 均接受。升级脚本和兼容门禁原先把下限写成 `^` / `~` 才接受，已扩展为同时接受精确 pin，否则该车道无法切版本、门禁会把合法宿主判成违规。
+- **车道专用包在该版本不存在。** `dsh-util-code-language` 与 `dsh-client-shortcuts` 从 `0.1.7-rc.2` 起才发布；升级脚本按 `npm view` 探测在 rc.3 车道移除这两项 devDependencies，开发 pin 的清单与锁文件不受影响。
+
+候选验证于 2026-10-13 在开发机完成。`DSH_COMPAT_MODE=warn` 安装 `0.1.5-rc.3` 后，`pnpm compat:check`、`pnpm test`（215）、`pnpm docs:check`、`pnpm build` 与 `pnpm test:artifact` 全部通过，随后将版本写入唯一清单与 peer OR。
 
 ## alpha.2 接口差异评估
 
@@ -93,19 +105,20 @@ Git Client 从 primitives 的公开入口复用 `DiffBlock`，不导入官方 `u
 
 本次迁移对开发 pin `0.2.0-rc.2` 运行完整测试、构建与产物检查；其余八个支持版本分别在临时目录重建安装树，通过兼容门禁、78 项相关回归、构建与产物检查。实际开发安装树、manifest 与 lockfile 保持原 pin。未进行真实 Web/Desktop 浏览器交互验证。
 
-## 0.2.1-alpha.1 候选与 0.2.1-alpha.2 支持评估
+## 0.2.1-alpha.1 与 0.2.1-alpha.2 接口差异评估
 
-`0.2.1-alpha.2` 已写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts) 与 peer OR；`0.2.1-alpha.1` 仍未获支持。开发 pin 与锁文件仍保持 `0.2.0-rc.2`，候选验证不会改变默认开发基线。
+`0.2.1-alpha.2` 与 `0.2.1-alpha.1` 均已写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts) 与 peer OR。开发 pin 与锁文件仍保持 `0.2.0-rc.2`，候选验证不会改变默认开发基线。
 
-对照本地标签 `dsh-v0.2.0-rc.2`、`dsh-v0.2.1-alpha.1`、`dsh-v0.2.1-alpha.2` 的公开源码后，和本插件有关的差异如下。工作目录与 worktree 只在 `0.2.1-alpha.2` 出现；`0.2.1-alpha.1` 没有这两个包。
+对照本地标签 `dsh-v0.2.0-rc.2`、`dsh-v0.2.1-alpha.1`、`dsh-v0.2.1-alpha.2` 的公开源码与 npm 发布包后，和本插件有关的差异如下。工作目录与 worktree 只在 `0.2.1-alpha.2` 出现；`0.2.1-alpha.1` 没有这两个包，该版本宿主不携带有效目录投影，插件继续回落到会话头 `cwd`。
 
 - **必须适配：有效目录不再等于会话头 `cwd`。** `0.2.1-alpha.2` 的 `ctx.workingDirectory` 把原始项目路径留在会话头，把有效目录记成投影 `workingDirectory`，并由 Session Controller 的控制帧推到客户端 `projectionValues`。`useSessions(...byId[id].cwd)` 仍是原始项目路径，不会随 `working-directory/change` 更新。插件在投影值为非空字符串时使用它，否则继续用会话头 `cwd`。旧宿主没有该键，行为与原来一致。
 - **必须适配：写操作不能停在上一个检出。** 目录变化时，该会话的 Client 控制器中止尚未完成的 `/git` RPC。宿主在 `agents.get` 与 `workingDirectory.get` 都能调用、且会话 agent 仍活着时，拒绝仓库根与该有效目录检出不一致的写请求。没有这两个服务、没有活 agent，或请求没带 `sessionId` 时，仍使用调用方给出的仓库路径。不使用进程级 `process.cwd()`。
 - **协作而不重做 worktree 创建。** `ctx.worktrees.create` 与模型工具 `create_worktree` 负责创建检出并调用 `workingDirectory.set`。本插件不注册竞争工具，也不删除、修剪分支或检出。它用 `git worktree list --porcelain` 只读发现检出，区分主检出与 linked checkout。用户选择「在此会话中使用」时，宿主只对列表中的路径调用 `workingDirectory.set`。服务不存在，或请求中的会话没有活 agent 时，该操作不可用，Changes / Diff / Graph / Commit 仍可用。
-- **插件直接调用的其他服务没有新的版本分支。** `dsh-subprocess` 的 `resolveExecutable` / `spawn` 签名保持。`0.2.1-alpha.2` 的 subprocess-local 只调整 Windows 终端 host，Git 的管道 spawn 不依赖它。右侧栏 `openTab` / `openResource` 保持；内部 reveal 规则有调整，本插件不读 `mounted`。设置 slot `settings.plugin.item` 与 `plugins.bundle.config` 仍在。`GenerateOptions` 与 `stream` 的 `text-delta` 仍是提交信息生成所用的形状；`prepareCall` 增加的可选参数本插件不传。Conversation 的 `bindDraftMirror` 改名为 `bindDraftPersistence`，Git 不使用该回调。
+- **插件直接调用的其他服务没有新的版本分支。** `dsh-subprocess` 的 `resolveExecutable` / `spawn` 签名保持。`0.2.1-alpha.2` 的 subprocess-local 只调整 Windows 终端 host，Git 的管道 spawn 不依赖它。右侧栏 `openTab` / `openResource` 保持；内部 reveal 规则有调整，本插件不读 `mounted`。设置 slot `settings.plugin.item` 与 `plugins.bundle.config` 仍在。`GenerateOptions` 与 `stream` 的 `text-delta` 仍是提交信息生成所用的形状；`prepareCall` 增加的可选参数本插件不传。Conversation 的 `bindDraftMirror` 改名为 `bindDraftPersistence`，改名随 `0.2.1-alpha.1` 落地，Git 不使用该回调。
+- **alpha.1 相对 0.2.0 的其余差异均为新增而非破坏。** Session Controller 增加可选 `listWorkSliceMs` 部署项；Conversation 增加 `ToolArgs`/`PartialArguments` 工具参数视图、`DraftInput` 草稿类型与 `requestDraftInitialization`；primitives 增加 `InlineEditor` 导出。插件不调这些接口；`conversation.input.left` 契约、`useSessions(...byId[id].cwd)` / `projectionValues` 形状、Medium glyph、`diffTotals` / `DiffBlock` 标签、`Menu` / `Tooltip` 在两侧均保持。alpha.1 bundle 没有新增未声明的运行时导入，车道专用包 `dsh-util-code-language` 与 `dsh-client-shortcuts` 在该版本均有发布。
 - **不能写进 peer OR 的新包。** `@deepseek-ai/dsh-working-directory`、`@deepseek-ai/dsh-tool-working-directory`、`@deepseek-ai/dsh-experimental-worktree` 与 `@deepseek-ai/dsh-experimental-tool-worktree` 从 `0.2.1-alpha.2` 起才存在。把它们写成与支持清单相同的 peer OR 会让旧宿主的 `app-boot` 预检失败。插件用方法形状探测 `agents` 与 `workingDirectory`，不从这些包导入。
 
-候选验证于 2026-10-10 在开发机完成。以 `DSH_COMPAT_MODE=warn` 分别安装 `0.2.1-alpha.1` 与 `0.2.1-alpha.2` 后，两条车道的 `pnpm compat:check`、`pnpm test`（207）、`pnpm docs:check`、`pnpm build` 与 `pnpm test:artifact` 都通过。候选安装树对上游 `@deepseek-ai/cordis-plugin-include@~1.0.10-alpha.1` 与 `@deepseek-ai/cordis-plugin-group@~1.0.5-alpha.1` 有 peer 警告；那两个包不是本插件的 peer。最终只将经过接口评估与 Web 会话验证的 `0.2.1-alpha.2` 纳入支持清单，开发 pin 与锁文件保持 `0.2.0-rc.2`。
+候选验证分两次在开发机完成。2026-10-10 以 `DSH_COMPAT_MODE=warn` 分别安装 `0.2.1-alpha.1` 与 `0.2.1-alpha.2` 后，两条车道的 `pnpm compat:check`、`pnpm test`（207）、`pnpm docs:check`、`pnpm build` 与 `pnpm test:artifact` 都通过；当时只将经过接口评估与 Web 会话验证的 `0.2.1-alpha.2` 纳入支持清单。2026-10-13 以 `DSH_COMPAT_MODE=warn` 重新安装 `0.2.1-alpha.1`，`pnpm compat:check`、`pnpm test`（215）、`pnpm docs:check`、`pnpm build` 与 `pnpm test:artifact` 再次全部通过，`0.2.1-alpha.1` 随之写入唯一清单与 peer OR。候选安装树对上游 `@deepseek-ai/cordis-plugin-include@~1.0.10-alpha.1` 与 `@deepseek-ai/cordis-plugin-group@~1.0.5-alpha.1` 有 peer 警告；那两个包不是本插件的 peer。开发 pin 与锁文件保持 `0.2.0-rc.2`。
 
 同日用本地源码检出的 DSH `0.2.1-alpha.2`（`d743267388`）启动了 Web 浏览器会话。隔离的 `DSH_HOME` 把本分支构建产物以本地链接装进 `web` profile；当时 `0.2.1-alpha.2` 尚不在支持清单中，加载前授予了 `@dsh-electron/dsh-plugin-git@0.2.4` 对这一精确宿主版本的豁免。会话工作区是主检出里的子目录。Git 更改面板读到父仓库分支 `main`，列出主检出的未跟踪文件，并在「其他检出」中给出链接工作树和「在此会话中使用」。点选之后，会话头 `cwd` 仍是该子目录，有效目录投影变为链接工作树；面板改为 `feature · 链接的工作树`，只显示该工作树自己的未跟踪文件。在面板里暂存这个文件时，写入落在链接工作树，主检出的未跟踪文件保持未暂存；取消暂存后两边都回到验证开始时的状态。再选回主检出后，面板恢复主检出的文件，有效目录投影变为主检出根，会话头 `cwd` 不变。同一工作区里另一个尚未切换的空白会话，其有效目录投影仍停在子目录。宿主侧边栏只显示当前空白会话，所以这一隔离没有在界面上点选复核。没有启动 Desktop，也没有配置模型，因此没有覆盖提交信息生成。
 

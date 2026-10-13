@@ -4,6 +4,13 @@
 
 本文件记录本 package 的所有重要变更。格式参照 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本遵循 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) —— 本包处于 pre-1.0，minor 版本之间仍可能改变 API。每个已发布版本同时有对应的 [GitHub Release](https://github.com/cherrchen/dsh-plugin-git/releases)，附该版本的 tarball。
 
+## [Unreleased]
+
+### Changed
+
+- 精确 DSH 支持清单现已覆盖 `0.1.5-rc.2` 至 `0.2.1-alpha.2` 的全部已发布版本：`0.1.5-rc.3` 与 `0.2.1-alpha.1` 经验证后补入，区间内不再有缺口。
+- `scripts/upgrade-dsh.mjs` 与 `pnpm compat:check` 接受不带 caret 或波浪号的精确宿主运行时 pin，与以精确版本声明 Cordis、schemastery 的发行版一致（`0.1.5-rc.3` 即如此）。
+
 ## [0.2.5] — 2026-10-11
 
 ### Added
@@ -123,7 +130,8 @@
 - 可选的 `ctx.inject(['desktop'], ...)` child fiber，使用 `shell.showItemInFolder`、`shell.openPath` 与 `notification.show`。
 - `docs/` 文档库、`pnpm docs:check` 机器校验、`version:set` 脚本、tag 触发的 release 工作流、双语 README 配对及其 `README.i18n.yaml` hash 记录。
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.1...v0.2.2

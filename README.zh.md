@@ -12,7 +12,7 @@ kind: "package-bundle"
 
 标准 DSH/Cordis Git 插件，包含一项 portable Host service、一份 Client bundle 与 optional Desktop enhancement。同一 package 可在 DeepSeek Harness Desktop 与标准 DSH Web host 中原样运行；npm scope `@dsh-electron/` 标识发布者，不是运行时要求。
 
-**依赖上游右侧边栏。** 本包精确支持 DeepSeek Harness `0.1.5-rc.2`、`0.1.6-alpha.1`、`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2`、`0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2` 与 `0.2.1-alpha.2`，这些版本的 Client UI 均自带右侧边栏 `@deepseek-ai/dsh-client-ui-sidebar-right`。Git 以标准两阶段方式注册三个 sidebar tab type，并通过 `ctx.sidebarRight` 导航；宿主没有右侧边栏时 Client 半无法加载。旧的第三方 Details Host 插件已废弃，不再被依赖。已验证版本见 [DSH 兼容契约](docs/reference/dsh-compatibility.md)。
+**依赖上游右侧边栏。** 本包精确支持 DeepSeek Harness `0.1.5-rc.2` 至 `0.2.1-alpha.2` 的全部已发布版本——`0.1.5-rc.2`、`0.1.5-rc.3`、`0.1.6-alpha.1`、`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2`、`0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2`、`0.2.1-alpha.1` 与 `0.2.1-alpha.2`——这些版本的 Client UI 均自带右侧边栏 `@deepseek-ai/dsh-client-ui-sidebar-right`。Git 以标准两阶段方式注册三个 sidebar tab type，并通过 `ctx.sidebarRight` 导航；宿主没有右侧边栏时 Client 半无法加载。旧的第三方 Details Host 插件已废弃，不再被依赖。已验证版本见 [DSH 兼容契约](docs/reference/dsh-compatibility.md)。
 
 [DeepSeek Harness Desktop](https://github.com/cherrchen/deepseek-harness-electron) 预装本插件，并通过 git subtree 镜像本仓库。用户可在**设置 → 插件**中禁用 Git；右侧边栏是上游内置项。
 
@@ -36,7 +36,7 @@ kind: "package-bundle"
 <a id="dsh-compatibility"></a>
 ## DSH 兼容性
 
-本仓库当前验证支持 **DeepSeek Harness `0.1.5-rc.2`、`0.1.6-alpha.1`、`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2`、`0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.0-rc.2` 与 `0.2.1-alpha.2`**。开发 pin 为 `0.2.0-rc.2`；兼容矩阵与候选升级流程见[兼容契约](docs/reference/dsh-compatibility.md)。
+本仓库当前验证支持 **DeepSeek Harness `0.1.5-rc.2` 至 `0.2.1-alpha.2`（含）的全部已发布版本**。开发 pin 为 `0.2.0-rc.2`；兼容矩阵与候选升级流程见[兼容契约](docs/reference/dsh-compatibility.md)。
 
 <a id="installation"></a>
 ## 安装
@@ -45,7 +45,7 @@ kind: "package-bundle"
 
 **DeepSeek Harness Desktop** — Git 默认预装并启用。不需要仓库 UI 时，可在**设置 → 插件**中禁用。
 
-**DSH Web** — 两个已支持版本都提供右侧边栏，因此只装 Git 即可。最短路径是两条命令：
+**DSH Web** — 全部已支持版本都提供右侧边栏，因此只装 Git 即可。最短路径是两条命令：
 
 ```sh
 dsh plugin --profile web add @dsh-electron/dsh-plugin-git
@@ -61,7 +61,7 @@ dsh --profile web
 | 本地路径 | `dsh plugin --profile web add /path/to/dsh-plugin-git` | pnpm 链接该 checkout；适合开发 |
 | GitHub / git | `dsh plugin --profile web add github:cherrchen/dsh-plugin-git` | 拉取源码并在安装时经 `prepare` 现场构建；需 `allowBuilds`，建议锁定 tag |
 
-无论用哪种来源，Git client 加载时都要求宿主已提供 `ctx.sidebarRight` 与 `ctx.sidebarRightTabs` 两个 service；两个已支持的 DeepSeek Harness 版本都提供它们。
+无论用哪种来源，Git client 加载时都要求宿主已提供 `ctx.sidebarRight` 与 `ctx.sidebarRightTabs` 两个 service；全部已支持的 DeepSeek Harness 版本都提供它们。
 
 ### 从 npm 注册表安装（推荐）
 
@@ -166,7 +166,7 @@ declare module '@deepseek-ai/dsh-client-ui-sidebar-right/client' {
 
 分支选择器跟随该会话的有效目录。宿主若发布 `workingDirectory` 会话投影，Git 使用它；否则仍使用会话头里的目录。每个会话有自己的仓库状态。链接的检出显示工作树标记。Changes 面列出同一仓库的其他检出。只有宿主能够改变该会话目录时才出现 **在此会话中使用**，它请求宿主的工作目录服务进入所选检出。本包不创建或删除工作树。
 
-**Changes** surface 顶部展示当前 branch 与 refresh，其下是默认一行、随内容增高的 commit message 输入框，带魔法棒 **Generate** 控件，以及分裂式 **Commit** 按钮（Commit、Amend、Commit & Push、Commit & Sync）。Staged、unstaged 与 untracked 路径以图标操作分区列出：plus／minus 切换 index，undo 在两步确认后 discard，porcelain 字母标记行状态。点击路径打开对应 diff。**Diff** 适配层在右上角展示 refresh，将单文件的 working-tree 或 staged 比较交给官方 DSH `DiffBlock`；复制、折叠以及支持版本上的换行由官方组件负责。Git patch 转换与非文本状态见[架构总览](docs/architecture/overview.md)，原有资源地址仍可恢复。**Graph** surface 顶部在同一行展示自动／全部／首父链与 refresh，其下以 canvas 绘制的 lane graph 展示提交历史——整页共享一个连续坐标系，rail 与 merge 边不会在行边界断裂——包含 subject、author、date、hash 与 HEAD／branch／tag 装饰徽标，并通过 load-more 控件增量分页。当 host 暴露 LLM runtime 时，staged diff 会发送到会话模型——或发送到插件配置里的自定义 provider/model——流式生成的建议写入可编辑输入框。同一张配置页也可以编辑生成所用的 system message。`0.1.6-alpha.1` 及更早在 **设置 → 插件 → 插件配置**；自 `0.1.6-alpha.2` 起在插件管理页该组合包的详情页。生成绝不 stage、commit 或 push 任何内容。在 Electron 上，optional Desktop enhancement 在 Desktop provider 存在时提供 reveal-in-folder 与 open-path 操作。
+**Changes** surface 顶部展示当前 branch 与 refresh，其下是默认一行、随内容增高的 commit message 输入框，带魔法棒 **Generate** 控件，以及分裂式 **Commit** 按钮（Commit、Amend、Commit & Push、Commit & Sync）。Staged、unstaged 与 untracked 路径以图标操作分区列出：plus／minus 切换 index，undo 在两步确认后 discard，porcelain 字母标记行状态。点击路径打开对应 diff。**Diff** 适配层在右上角展示 refresh，将单文件的 working-tree 或 staged 比较交给官方 DSH `DiffBlock`；复制、折叠以及支持版本上的换行由官方组件负责。Git patch 转换与非文本状态见[架构总览](docs/architecture/overview.md)，原有资源地址仍可恢复。**Graph** surface 顶部在同一行展示自动／全部／首父链与 refresh，其下以 canvas 绘制的 lane graph 展示提交历史——整页共享一个连续坐标系，rail 与 merge 边不会在行边界断裂——每个 commit 单行呈现 subject、author 与按类型着色的 HEAD／branch／remote／tag ref chips，悬停卡片承载完整 subject、hash、author、date 与 refs，滚动到底自动分页。当 host 暴露 LLM runtime 时，staged diff 会发送到会话模型——或发送到插件配置里的自定义 provider/model——流式生成的建议写入可编辑输入框。同一张配置页也可以编辑生成所用的 system message。`0.1.6-alpha.1` 及更早在 **设置 → 插件 → 插件配置**；自 `0.1.6-alpha.2` 起在插件管理页该组合包的详情页。生成绝不 stage、commit 或 push 任何内容。在 Electron 上，optional Desktop enhancement 在 Desktop provider 存在时提供 reveal-in-folder 与 open-path 操作。
 
 <a id="composition"></a>
 ## 组合
@@ -204,7 +204,7 @@ Client main fiber 不要求 `desktop`。Child `ctx.inject(['desktop'], ...)` fib
 
 Discard 通过明确的 index、working tree 与 clean 操作还原一条 staged、unstaged 或 untracked 变更，包括暂存后再次编辑的新增和重命名，属于破坏性操作：Client 在发送 RPC 前总是要求第二次显式确认，确认正文会点名该路径。
 
-提交历史以分页 `git log` 读取（`GIT_LOG_FORMAT`，每行一条 commit、固定字段数），Graph surface 通过 load-more 控件增量追加更早的提交，而不是一次性物化整个历史。
+提交历史以分页 `git log` 读取（`GIT_LOG_FORMAT`，每行一条 commit、固定字段数），Graph surface 通过滚动哨兵增量追加更早的提交，而不是一次性物化整个历史。
 
 Commit message 生成在宿主侧按需启用：需要 LLM runtime 与可解析的模型（会话默认，或自定义 `provider`/`model`）。staged diff（受 `commitMessage.maxDiffBytes` 上限约束）会发送到该路由，流式生成的建议写入可编辑的 commit message 输入框。System prompt 默认为 Conventional Commit 说明，可在插件配置中覆盖。生成只提供建议 —— 它绝不 stage、commit 或 push 任何内容。
 

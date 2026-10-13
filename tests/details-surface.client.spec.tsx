@@ -16,6 +16,7 @@ import { GitGraphSurface } from '../src/client/surfaces/GitGraphSurface.tsx'
 import type { GitGraphSurfaceProps } from '../src/client/surfaces/GitGraphSurface.tsx'
 import type { GitClientController } from '../src/client/controller.ts'
 import { layoutGitGraph } from '../src/client/graph/layout.ts'
+import { GIT_GRAPH_LANE_GAP, GIT_GRAPH_ROW_HEIGHT } from '../src/client/graph-geometry.ts'
 import { gitDiffAddress } from '../src/client/contract.ts'
 import { GitPageTitle } from '../src/client/GitPageTitle.tsx'
 import { en, zh } from '../src/client/locales.ts'
@@ -392,8 +393,8 @@ describe('GitGraphSurface', () => {
     expect(canvas).toBeTruthy()
     // CSS box is the design size; the DPR-scaled backing store must never
     // leak into layout (Retina 2x regression guard).
-    expect(canvas.style.width).toBe(`${layout.laneCount * 16}px`)
-    expect(canvas.style.height).toBe(`${graph.length * 36}px`)
+    expect(canvas.style.width).toBe(`${(layout.laneCount + 1) * GIT_GRAPH_LANE_GAP}px`)
+    expect(canvas.style.height).toBe(`${graph.length * GIT_GRAPH_ROW_HEIGHT}px`)
   })
 
   it('places refresh on the scope bar and hides Reveal even when Desktop exists', () => {

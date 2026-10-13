@@ -12,7 +12,7 @@ English | [中文](README.zh.md)
 
 Standard DSH/Cordis Git plugin with one portable Host service, one Client bundle, and optional Desktop enhancement. The package runs unchanged in DeepSeek Harness Desktop and in a standard DSH Web host; the npm scope `@dsh-electron/` identifies the publisher, not a runtime requirement.
 
-**Requires the upstream right sidebar.** This package supports the exact DeepSeek Harness releases `0.1.5-rc.2`, `0.1.6-alpha.1`, `0.1.6-alpha.2`, `0.1.7-alpha.1`, `0.1.7-alpha.2`, `0.1.7-rc.1`, `0.1.7-rc.2`, `0.2.0-rc.1`, `0.2.0-rc.2`, and `0.2.1-alpha.2`, whose Client UI ships the right sidebar (`@deepseek-ai/dsh-client-ui-sidebar-right`). Git registers three sidebar tab types through the standard two-stage path and navigates through `ctx.sidebarRight`; without the right sidebar the Client half cannot load. The third-party Details Host plugin is deprecated and no longer depended on. See the [DSH compatibility contract](docs/reference/dsh-compatibility.md) for the verified release list.
+**Requires the upstream right sidebar.** This package supports every exact DeepSeek Harness release from `0.1.5-rc.2` through `0.2.1-alpha.2` — `0.1.5-rc.2`, `0.1.5-rc.3`, `0.1.6-alpha.1`, `0.1.6-alpha.2`, `0.1.7-alpha.1`, `0.1.7-alpha.2`, `0.1.7-rc.1`, `0.1.7-rc.2`, `0.2.0-rc.1`, `0.2.0-rc.2`, `0.2.1-alpha.1`, and `0.2.1-alpha.2` — whose Client UI ships the right sidebar (`@deepseek-ai/dsh-client-ui-sidebar-right`). Git registers three sidebar tab types through the standard two-stage path and navigates through `ctx.sidebarRight`; without the right sidebar the Client half cannot load. The third-party Details Host plugin is deprecated and no longer depended on. See the [DSH compatibility contract](docs/reference/dsh-compatibility.md) for the verified release list.
 
 [DeepSeek Harness Desktop](https://github.com/cherrchen/deepseek-harness-electron) pre-installs this plugin and mirrors this repository with git subtree. Users may disable Git from the Plugins settings; the right sidebar is an upstream built-in.
 
@@ -36,7 +36,7 @@ Standard DSH/Cordis Git plugin with one portable Host service, one Client bundle
 <a id="dsh-compatibility"></a>
 ## DSH compatibility
 
-This repo currently verifies against **DeepSeek Harness `0.1.5-rc.2`, `0.1.6-alpha.1`, `0.1.6-alpha.2`, `0.1.7-alpha.1`, `0.1.7-alpha.2`, `0.1.7-rc.1`, `0.1.7-rc.2`, `0.2.0-rc.1`, `0.2.0-rc.2`, and `0.2.1-alpha.2`**. The development pin is `0.2.0-rc.2`; see the [compatibility contract](docs/reference/dsh-compatibility.md) for the compatibility matrix and candidate upgrade process.
+This repo currently verifies against **every DeepSeek Harness release from `0.1.5-rc.2` through `0.2.1-alpha.2` inclusive**. The development pin is `0.2.0-rc.2`; see the [compatibility contract](docs/reference/dsh-compatibility.md) for the compatibility matrix and candidate upgrade process.
 
 <a id="installation"></a>
 ## Installation
@@ -45,7 +45,7 @@ The package is published to npm as `@dsh-electron/dsh-plugin-git` (current `0.2.
 
 **DeepSeek Harness Desktop** — Git is pre-installed and enabled by default. Disable it from **Settings → Plugins** when you do not need repository UI.
 
-**DSH Web** — both supported releases ship the right sidebar, so Git alone is enough. The shortest path is two commands:
+**DSH Web** — every supported release ships the right sidebar, so Git alone is enough. The shortest path is two commands:
 
 ```sh
 dsh plugin --profile web add @dsh-electron/dsh-plugin-git
@@ -61,7 +61,7 @@ dsh --profile web
 | local path | `dsh plugin --profile web add /path/to/dsh-plugin-git` | pnpm links the checkout; for development |
 | GitHub / git | `dsh plugin --profile web add github:cherrchen/dsh-plugin-git` | Fetches sources and builds them on install through `prepare`; needs `allowBuilds`, pin a tag |
 
-Whichever source you use, the Git client requires the host to already provide the `ctx.sidebarRight` and `ctx.sidebarRightTabs` services at load time; both supported DeepSeek Harness releases provide them.
+Whichever source you use, the Git client requires the host to already provide the `ctx.sidebarRight` and `ctx.sidebarRightTabs` services at load time; every supported DeepSeek Harness release provides them.
 
 ### From the npm registry (recommended)
 
@@ -166,7 +166,7 @@ In the conversation composer, Git contributes a branch selector and a changed-fi
 
 The selector follows that session's effective directory. Hosts that publish a `workingDirectory` session projection use it; otherwise Git keeps the session header directory. Each session has its own repository state. A linked checkout shows a worktree label. The Changes surface lists the repository's other checkouts. **Use in this session** appears only when the host can change that session's directory, and it asks the host working-directory service to enter the selected checkout. This package does not create or delete worktrees.
 
-The **Changes** surface shows the current branch beside refresh, then a single-line auto-growing commit message field with a wand **Generate** control and a split **Commit** button (Commit, Amend, Commit & Push, Commit & Sync). Staged, unstaged, and untracked paths follow as icon-action sections: plus or minus toggles the index, undo discards after a two-step confirm, and a porcelain letter badges the row. Clicking a path opens the matching diff. The **Diff** adapter shows refresh in the top-right and supplies one file's working-tree or staged comparison to the official DSH `DiffBlock`, which owns copying, folding, and line wrapping where supported. Git patch conversion and non-text states are described in the [architecture overview](docs/architecture/overview.md); the original resource addresses remain restorable. The **Graph** surface shows Auto / All / First parent beside refresh, then the commit history as a canvas-drawn lane graph — one continuous coordinate space, so rails and merge edges never break at row boundaries — with subject, author, date, hash, and HEAD/branch/tag decoration badges, paged incrementally with a load-more control. When the host exposes an LLM runtime, a staged diff is sent to the session model — or to a custom provider/model from plugin configuration — and the streamed suggestion is written into the editable input. That same configuration page also edits the generation system message. Hosts through `0.1.6-alpha.1` show it under **Settings → Plugins → Plugin configuration**; from `0.1.6-alpha.2` it opens on that bundle's detail page in plugin management. Generation never stages, commits, or pushes anything. On Electron, optional Desktop enhancement adds reveal-in-folder and open-path actions when the Desktop provider is present.
+The **Changes** surface shows the current branch beside refresh, then a single-line auto-growing commit message field with a wand **Generate** control and a split **Commit** button (Commit, Amend, Commit & Push, Commit & Sync). Staged, unstaged, and untracked paths follow as icon-action sections: plus or minus toggles the index, undo discards after a two-step confirm, and a porcelain letter badges the row. Clicking a path opens the matching diff. The **Diff** adapter shows refresh in the top-right and supplies one file's working-tree or staged comparison to the official DSH `DiffBlock`, which owns copying, folding, and line wrapping where supported. Git patch conversion and non-text states are described in the [architecture overview](docs/architecture/overview.md); the original resource addresses remain restorable. The **Graph** surface shows Auto / All / First parent beside refresh, then the commit history as a canvas-drawn lane graph — one continuous coordinate space, so rails and merge edges never break at row boundaries — each commit a single line of subject, author, and kind-colored HEAD/branch/remote/tag ref chips, with a hover card carrying the full subject, hash, author, date, and refs — paged automatically as the list scrolls. When the host exposes an LLM runtime, a staged diff is sent to the session model — or to a custom provider/model from plugin configuration — and the streamed suggestion is written into the editable input. That same configuration page also edits the generation system message. Hosts through `0.1.6-alpha.1` show it under **Settings → Plugins → Plugin configuration**; from `0.1.6-alpha.2` it opens on that bundle's detail page in plugin management. Generation never stages, commits, or pushes anything. On Electron, optional Desktop enhancement adds reveal-in-folder and open-path actions when the Desktop provider is present.
 
 <a id="composition"></a>
 ## Composition
@@ -204,7 +204,7 @@ The first release supports repository discovery, Git version, current branch and
 
 Discard restores one staged, unstaged, or untracked change, including an addition or rename edited after staging, through explicit index, worktree, and clean operations. It is destructive: the Client always asks for a second, explicit confirmation before sending the RPC, and the surface names the path in the confirm body.
 
-Commit history is read with a paged `git log` (`GIT_LOG_FORMAT`, one commit per line, fixed field count) so the Graph surface appends older commits incrementally through a load-more control instead of materializing the whole history.
+Commit history is read with a paged `git log` (`GIT_LOG_FORMAT`, one commit per line, fixed field count) so the Graph surface appends older commits incrementally through a scroll sentinel instead of materializing the whole history.
 
 Commit message generation is opt-in at the host: it needs an LLM runtime and a resolvable model (the session default, or a custom `provider`/`model`). A staged diff (capped by `commitMessage.maxDiffBytes`) is sent to that route and the streamed suggestion is written into the editable commit message input. The system prompt defaults to a Conventional Commit instruction and can be overridden from Plugin configuration. Generation is suggestion-only — it never stages, commits, or pushes anything.
 

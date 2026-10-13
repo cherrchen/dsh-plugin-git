@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
+import type { TooltipSide } from '@deepseek-ai/dsh-client-ui-primitives'
 import { splitRepoPath } from '../path-display.ts'
 import { statusLetter, statusLetterTone, type GitChangeKind } from '../status-letter.ts'
 import { GitIconButton } from './GitIconButton.tsx'
@@ -10,15 +11,17 @@ import css from '../GitDetailsSurface.module.css'
  * Destructive icon with a two-step confirmation: the first click arms the
  * control, the second executes, and focus loss disarms it.
  */
-export function ConfirmIconAction({ label, confirmLabel, onConfirm }: {
+export function ConfirmIconAction({ label, confirmLabel, onConfirm, tooltipSide }: {
   label: string
   confirmLabel: string
   onConfirm: () => void
+  tooltipSide?: TooltipSide
 }): ReactNode {
   const [armed, setArmed] = useState(false)
   return (
     <GitIconButton
       label={armed ? confirmLabel : label}
+      tooltipSide={tooltipSide}
       armed={armed}
       autoFocus={armed}
       onBlur={() => { setArmed(false) }}
@@ -64,9 +67,10 @@ export function ChangeRow({ status, path, kind, toggleLabel, onSelect, onToggle,
             label={discardLabel ?? ''}
             confirmLabel={discardConfirmLabel ?? ''}
             onConfirm={onDiscard}
+            tooltipSide="bottom"
           />
         )}
-        <GitIconButton label={toggleLabel} onClick={onToggle}>
+        <GitIconButton label={toggleLabel} onClick={onToggle} tooltipSide="bottom">
           {kind === 'staged' ? <IconGitMinus /> : <IconGitPlus />}
         </GitIconButton>
         <span className={css.statusLetter} data-tone={statusLetterTone(letter)}>{letter}</span>

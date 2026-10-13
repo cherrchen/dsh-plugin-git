@@ -4,6 +4,13 @@ English | [中文](CHANGELOG.zh.md)
 
 All notable changes to this package are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) — the package is pre-1.0, so a minor release may still change the API. Each published version also has a [GitHub Release](https://github.com/cherrchen/dsh-plugin-git/releases) carrying its tarball.
 
+## [Unreleased]
+
+### Changed
+
+- The exact DSH support list now covers every published release from `0.1.5-rc.2` through `0.2.1-alpha.2`: `0.1.5-rc.3` and `0.2.1-alpha.1` are verified and added, closing the remaining gaps in the range.
+- `scripts/upgrade-dsh.mjs` and `pnpm compat:check` accept exact-version host runtime pins, matching releases that declare Cordis and schemastery without a caret or tilde (as `0.1.5-rc.3` does).
+
 ## [0.2.5] — 2026-10-11
 
 ### Added
