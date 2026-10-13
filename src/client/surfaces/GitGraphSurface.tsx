@@ -99,7 +99,7 @@ export function GitGraphSurface({
   useEffect(() => {
     const sentinel = sentinelRef.current
     const root = bodyRef.current
-    if (sentinel === null || root === null || !state.graphHasMore || state.graphLoading || typeof IntersectionObserver === 'undefined') {
+    if (sentinel === null || root === null || !state.graphHasMore || state.graphLoading || state.graphError !== undefined || typeof IntersectionObserver === 'undefined') {
       return
     }
     const observer = new IntersectionObserver(entries => {
@@ -109,7 +109,7 @@ export function GitGraphSurface({
     }, { root, rootMargin: '50% 0px' })
     observer.observe(sentinel)
     return () => { observer.disconnect() }
-  }, [controller, state.graphHasMore, state.graphLoading, state.graphRows.length])
+  }, [controller, state.graphHasMore, state.graphLoading, state.graphError, state.graphRows.length])
 
   // Commit hover card: opens at the pointer (not the anchor's right edge, the
   // host HoverCard's only placement), flips to the pointer's left when the
@@ -259,7 +259,9 @@ export function GitGraphSurface({
                 {t('graph.loadMore')}
               </button>
             )
-            : <div ref={sentinelRef} className={css.sentinel} aria-hidden="true" />
+            : state.graphError === undefined
+              ? <div ref={sentinelRef} className={css.sentinel} aria-hidden="true" />
+              : null
         )}
         {state.graphLoading && <p className={css.loadingHint}>{t('details.loading')}</p>}
       </div>
