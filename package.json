@@ -95,6 +95,7 @@
     "@deepseek-ai/dsh-client-connection": "0.2.0-rc.2",
     "@deepseek-ai/dsh-client-locale": "0.2.0-rc.2",
     "@deepseek-ai/dsh-client-resources": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-shortcuts": "0.2.0-rc.2",
     "@deepseek-ai/dsh-client-store": "0.2.0-rc.2",
     "@deepseek-ai/dsh-client-ui-conversation": "0.2.0-rc.2",
     "@deepseek-ai/dsh-client-ui-dockkit": "0.2.0-rc.2",
@@ -110,10 +111,12 @@
     "@deepseek-ai/dsh-settings": "0.2.0-rc.2",
     "@deepseek-ai/dsh-subprocess": "0.2.0-rc.2",
     "@deepseek-ai/dsh-subprocess-local": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-util-code-language": "0.2.0-rc.2",
     "@shikijs/langs": "^4.3.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^22.0.0",
     "@types/react": "~18.3.1",
+    "@types/react-dom": "~18.3.7",
     "anser": "^2.3.5",
     "clsx": "^2.0.0",
     "diff": "^9.0.0",
@@ -140,9 +143,7 @@
     "tsdown": "^0.22.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.8",
-    "zustand": "~4.4.7",
-    "@deepseek-ai/dsh-util-code-language": "0.2.0-rc.2",
-    "@deepseek-ai/dsh-client-shortcuts": "0.2.0-rc.2"
+    "zustand": "~4.4.7"
   },
   "dsh": {
     "bundle": {
