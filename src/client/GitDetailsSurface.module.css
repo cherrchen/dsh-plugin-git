@@ -153,10 +153,6 @@
   text-align: left;
 }
 
-.pathButton:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
 .pathMain {
   display: flex;
   min-width: 0;
@@ -201,7 +197,7 @@
   cursor: pointer;
 }
 
-.iconButton:hover:not([aria-disabled='true']) {
+.iconButton:hover:not([aria-disabled='true']):not(.changeRow *) {
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
@@ -217,6 +213,10 @@
 
 .iconButtonArmed {
   color: var(--dsw-alias-state-error-primary);
+}
+
+.changeRow .iconButton:hover:not([aria-disabled='true']):not(.iconButtonArmed) {
+  color: var(--dsw-alias-label-primary);
 }
 
 .statusLetter {
