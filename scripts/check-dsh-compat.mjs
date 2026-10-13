@@ -5,9 +5,9 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 function caretFloor(range, label) {
-  const match = /^[~^](\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/u.exec(range ?? '')
+  const match = /^[~^]?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/u.exec(range ?? '')
   if (!match) {
-    failures.push(`${label} must be a single caret or tilde range; found ${range ?? '(missing)'}`)
+    failures.push(`${label} must be a single caret, tilde, or exact range; found ${range ?? '(missing)'}`)
     return undefined
   }
   return match[1]
