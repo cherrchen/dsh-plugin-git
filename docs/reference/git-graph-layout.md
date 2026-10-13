@@ -124,7 +124,7 @@ Renderer 只消费 `GraphLayoutRow`：
 
 Fork / merge / shift 使用 cubic Bezier（控制点在行高中点），横向偏移保持局部，避免大跨度折线。行高 22px 为 canvas 与 DOM 的共享契约；行间零间隙，行边界像素级连续。
 
-行内文本为单行布局：subject（`isHead` 加粗）+ author + ref chips；完整信息收于指针定位的 hover 卡片（portal 到 `document.body`、dwell 400ms 开于光标右下方、视口不足时翻转，subject/author/date/shortHash/refs；Escape 或滚动关闭）。ref chips 由 `refBadges()` 归类（head / branch / remote / tag），attached `HEAD -> branch` 折叠为以当前分支命名的单个 head chip（VS Code 同），detached 保留字面 `HEAD`；chips 整体限宽为行宽的 45%，压缩时向 icon 收缩而非挤出 subject。分页为 IntersectionObserver 哨兵自动追加（滚动接近底部即取下一页，历史短于视口时自动填满），宿主无 IntersectionObserver 时退回 load-more 按钮。
+行内文本为单行布局：subject（`isHead` 加粗）+ author + ref chips；行的左 padding（12px gutter + lane 区 + 4px）挂在 `li` 上且 canvas `pointer-events:none`，行 hover 高亮从面板左缘整行贯通到右缘；完整信息收于指针定位的 hover 卡片（portal 到 `document.body`、dwell 400ms 开于光标右下方、视口不足时翻转，subject/author/date/shortHash/refs；Escape 或滚动关闭）。ref chips 由 `refBadges()` 归类（head / branch / remote / tag），attached `HEAD -> branch` 折叠为以当前分支命名的单个 head chip（VS Code 同），detached 保留字面 `HEAD`；chips 整体限宽为行宽的 45%，压缩时向 icon 收缩而非挤出 subject。分页为 IntersectionObserver 哨兵自动追加（滚动接近底部即取下一页，历史短于视口时自动填满），宿主无 IntersectionObserver 时退回 load-more 按钮。
 
 ## 测试与 Invariants
 

@@ -72,14 +72,15 @@
   position: relative;
   flex: none;
   min-width: 0;
-  /* Left gutter: keep the graph rail away from the sidebar edge. */
-  padding-left: 12px;
 }
 
 .canvas {
   position: absolute;
   top: 4px;
+  /* Left gutter: keep the graph rail away from the sidebar edge. */
   left: 12px;
+  /* Decorative only — pointer hits fall through to the row below. */
+  pointer-events: none;
 }
 
 .rows {

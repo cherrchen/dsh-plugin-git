@@ -162,7 +162,9 @@ export function GitGraphSurface({
   }, [])
 
   // Lane columns start one gap in (see buildGraphGeometry), so the rail area
-  // is (lanes + 1) columns wide; text follows a 4px margin after it.
+  // is (lanes + 1) columns wide. The row's left padding — 12px sidebar gutter,
+  // the rail area, then a 4px margin — lives on each li so the hover band
+  // covers the whole row including the lane zone.
   const laneArea = (Math.max(state.graphLaneCount, 1) + 1) * GIT_GRAPH_LANE_GAP
   const localBranches = new Set(state.repository?.branches.map(branch => branch.name) ?? [])
   const currentBranch = state.repository?.branch ?? null
@@ -206,7 +208,6 @@ export function GitGraphSurface({
           />
           <ol
             className={css.rows}
-            style={{ paddingLeft: laneArea + 4 }}
             onMouseLeave={() => { setHoveredRowIndex(undefined) }}
           >
             {state.graphRows.map((row, index) => (
@@ -214,6 +215,7 @@ export function GitGraphSurface({
                 key={row.commit.hash}
                 className={css.row}
                 data-row=""
+                style={{ paddingLeft: 12 + laneArea + 4 }}
                 onMouseEnter={event => { onRowEnter(index, event) }}
                 onMouseMove={event => { onRowMove(index, event) }}
                 onMouseLeave={dismissCard}
