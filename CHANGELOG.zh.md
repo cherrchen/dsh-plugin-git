@@ -6,6 +6,12 @@
 
 ## [Unreleased]
 
+### Added
+
+- 新的 **Git Worktrees** 侧栏页（`git.worktrees`）列出当前仓库的全部检出——不论其创建来源——并标记当前检出，提供 **在此会话中使用** 与创建对话框（可选分支名与起始提交）。仅当宿主通过新增的 `worktree-capability` RPC 报告创建模式时，该 tab 才注册。
+- `create-worktree` RPC 与 `GitService.createWorktree`：宿主挂载上游实验性 `worktrees` 服务时创建委托 `ctx.worktrees.create(agent, ...)` 并自动进入新检出；否则 `git-worktrees` 的 `enabled` 设置开启本地 `git worktree add -b` 实现，检出池默认 `.agents/worktrees`，可经 `worktrees.directory` 修改。宿主挂载 `fs` 服务时，新建的仓内检出池会写入自我忽略的 `.gitignore`。删除与修剪仍不属于本包。
+- 新的 `git-worktrees` 设置节在两种受支持的设置面上编辑 `enabled` 与 `directory`；保存后重新轮询 capability，Worktrees tab 无需重启即可出现或消失。
+
 ### Changed
 
 - 精确 DSH 支持清单现已覆盖 `0.1.5-rc.2` 至 `0.2.1-alpha.2` 的全部已发布版本：`0.1.5-rc.3` 与 `0.2.1-alpha.1` 经验证后补入，区间内不再有缺口。

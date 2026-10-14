@@ -6,6 +6,12 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- A dedicated **Git Worktrees** sidebar page (`git.worktrees`) lists every checkout of the current repository — regardless of how it was created — marks the current one, and offers **Use in this session** plus a creation dialog (optional branch name and start point). The tab registers only while the Host reports a creation mode via the new `worktree-capability` RPC.
+- `create-worktree` RPC and `GitService.createWorktree`: when the host mounts the upstream experimental `worktrees` service, creation delegates to `ctx.worktrees.create(agent, ...)` and the new checkout is entered automatically; otherwise the `git-worktrees` `enabled` setting turns on a local `git worktree add -b` implementation whose pool defaults to `.agents/worktrees` and is configurable via `worktrees.directory`. A fresh in-repository pool gains a self-ignoring `.gitignore` when the host `fs` service is mounted. Deleting and pruning stay outside this package.
+- A `git-worktrees` settings section edits `enabled` and `directory` on both supported settings surfaces; saving re-polls the capability so the Worktrees tab appears or disappears without a restart.
+
 ### Changed
 
 - The exact DSH support list now covers every published release from `0.1.5-rc.2` through `0.2.1-alpha.2`: `0.1.5-rc.3` and `0.2.1-alpha.1` are verified and added, closing the remaining gaps in the range.
