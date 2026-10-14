@@ -16,5 +16,11 @@ describe('host entry on the installed DSH runtime', () => {
     for (const name of ['mode', 'provider', 'model', 'systemPrompt', 'maxDiffBytes']) {
       expect(fields[name]?.meta?.volatile === true).toBe(hasVolatile)
     }
+    const worktreeFields = (Config as unknown as {
+      dict: { worktrees: { dict: Record<string, { meta?: { volatile?: boolean } }> } }
+    }).dict.worktrees.dict
+    for (const name of ['enabled', 'directory']) {
+      expect(worktreeFields[name]?.meta?.volatile === true).toBe(hasVolatile)
+    }
   })
 })

@@ -8,7 +8,7 @@ import type { GitService } from './service.ts'
 import { samePath } from './path-identity.ts'
 
 /** Live agent handle consumed by directory get/set. */
-interface DirectoryAgent {
+export interface DirectoryAgent {
   readonly session: object
 }
 
@@ -46,6 +46,13 @@ export interface SessionDirectory {
    * @returns True when `agents.get` currently returns that session.
    */
   hasLiveAgent(sessionId: string): boolean
+  /**
+   * The live agent handle itself, for host runtimes that consume an Agent
+   * directly (the upstream worktree service).
+   * @param sessionId - Session whose agent must already be live.
+   * @returns The opaque agent handle, or undefined when the session is not live.
+   */
+  agent(sessionId: string): DirectoryAgent | undefined
 }
 
 const WRITE_ENDPOINTS = new Set([
@@ -57,6 +64,7 @@ const WRITE_ENDPOINTS = new Set([
   'sync',
   'create-branch',
   'switch-branch',
+  'create-worktree',
 ])
 
 /**
@@ -95,6 +103,9 @@ export function bindSessionDirectory(agents: unknown, workingDirectory: unknown)
     },
     hasLiveAgent(sessionId: string): boolean {
       return agents.get(sessionId) !== undefined
+    },
+    agent(sessionId: string): DirectoryAgent | undefined {
+      return agents.get(sessionId)
     },
   }
 }

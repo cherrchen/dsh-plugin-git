@@ -1,12 +1,14 @@
 /** Portable Git repository operations over `ctx.subprocess`. */
 
+import { randomUUID } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import type { SubprocessRuntime } from '@deepseek-ai/dsh-subprocess'
 import { GIT_LOG_FORMAT, parseGitLog } from './log.ts'
 import { canonicalPath } from './path-identity.ts'
 import { parseBranches, parsePorcelainV2 } from './status.ts'
-import type { GitCheckout, GitCommitSummary, GitDiff, GitFileChange, GitLogScope, GitRepositorySnapshot, GitWorktree } from './types.ts'
+import type { GitCheckout, GitCommitSummary, GitCreatedWorktree, GitDiff, GitFileChange, GitLogScope, GitRepositorySnapshot, GitWorktree } from './types.ts'
 import { parseWorktreeList } from './worktrees.ts'
+import { isPoolDirectory } from './worktree-settings.ts'
 
 /** Extra `git log` arguments implementing one history scope. */
 function logScopeArgs(scope: GitLogScope): readonly string[] {
@@ -20,6 +22,26 @@ export interface GitServiceOptions {
   readonly executable: string
   readonly maxOutputBytes: number
   readonly graceMs: number
+}
+
+/** Filesystem slice used to mark a freshly created checkout pool. */
+export interface WorktreePoolFs {
+  /** Metadata for one path, or `undefined` when it is absent. */
+  lstat(path: string, opts?: { cwd?: string }, signal?: AbortSignal): Promise<unknown>
+  /** Resolve a path into the backend's opaque write target. */
+  resolve(path: string, opts?: { cwd?: string; signal?: AbortSignal | undefined }): Promise<unknown>
+  /** Atomically create or replace one text file. */
+  writeText(target: unknown, content: string, expected?: { kind: string }, signal?: AbortSignal): Promise<unknown>
+}
+
+/** Request accepted by {@link GitService.createWorktree}. */
+export interface GitCreateWorktreeRequest {
+  /** New branch name, also used as the checkout directory; omission generates one. */
+  readonly name?: string
+  /** Local revision to resolve before creation; omission selects HEAD. */
+  readonly from?: string
+  /** Checkout pool: relative to the repository root, or absolute. */
+  readonly directory?: string
 }
 
 /** Failure from a settled Git invocation. */
@@ -94,6 +116,67 @@ export class GitService {
   async listWorktrees(repository: string, signal?: AbortSignal): Promise<readonly GitWorktree[]> {
     const root = (await this.run(repository, ['rev-parse', '--show-toplevel'], signal)).trim()
     return this.readWorktrees(root, signal)
+  }
+
+  /**
+   * Create a fresh branch and checkout, mirroring the upstream experimental
+   * worktree service's contract for hosts that do not mount it. The new branch
+   * starts at a pinned local commit and the checkout lands in the configured
+   * pool directory — `<root>/.agents/worktrees/<name>` by default, matching the
+   * upstream convention. Existing branches and occupied paths fail; a partially
+   * created checkout is retained, as upstream documents.
+   * @param repository - Existing path inside the repository.
+   * @param request - Optional new name, local revision, and pool directory.
+   * @param fs - Optional filesystem slice used to write the pool's self-ignoring
+   *   `.gitignore` and to reject an occupied destination before Git runs.
+   * @param signal - Optional command cancellation signal.
+   * @returns The created checkout path, branch, and pinned commit.
+   */
+  async createWorktree(
+    repository: string,
+    request: GitCreateWorktreeRequest = {},
+    fs?: WorktreePoolFs,
+    signal?: AbortSignal,
+  ): Promise<GitCreatedWorktree> {
+    const root = (await this.run(repository, ['rev-parse', '--show-toplevel'], signal)).trim()
+    const branch = request.name ?? `worktree-${randomUUID()}`
+    // The branch name doubles as the checkout directory, so reject path
+    // separators and dot segments on top of Git's ref grammar.
+    if (branch.startsWith('-') || branch.includes('\\') || branch.includes(':')
+      || branch.split('/').some(part => part.length === 0 || part === '.' || part === '..')) {
+      throw new Error('git: worktree branch name must be a relative Git branch name')
+    }
+    await this.run(root, ['check-ref-format', `refs/heads/${branch}`], signal)
+    const existing = await this.runOutcome(root, ['show-ref', '--verify', '--quiet', `refs/heads/${branch}`], signal, [0, 1])
+    if (existing.exitCode === 0) throw new Error(`git: worktree branch already exists: ${branch}`)
+    const revision = request.from ?? 'HEAD'
+    if (revision.length === 0) throw new Error('git: worktree base must name a local commit, branch, or tag')
+    const baseCommit = (await this.run(root, ['rev-parse', '--verify', '--end-of-options', `${revision}^{commit}`], signal)).trim()
+    const directory = request.directory ?? '.agents/worktrees'
+    if (directory.trim().length === 0) throw new Error('git: worktree directory must not be empty')
+    const absolute = directory.startsWith('/') || /^[a-zA-Z]:[/\\]/u.test(directory)
+    const pool = absolute ? directory : `${root}/${directory}`
+    const path = `${pool}/${branch}`
+    let poolExisted = true
+    if (fs !== undefined) {
+      if (await fs.lstat(path, undefined, signal) !== undefined) {
+        throw new Error(`git: worktree path already exists: ${path}`)
+      }
+      poolExisted = await fs.lstat(pool, undefined, signal) !== undefined
+    }
+    await this.run(root, ['worktree', 'add', '-b', branch, '--', path, baseCommit], signal, {
+      // LFS smudge needs network or credentials; a fresh checkout skips it.
+      GIT_LFS_SKIP_SMUDGE: '1',
+    })
+    if (fs !== undefined && !poolExisted && isPoolDirectory(directory)) {
+      try {
+        const marker = await fs.resolve(`${pool}/.gitignore`, { signal })
+        await fs.writeText(marker, '*\n', { kind: 'createIfAbsent' }, signal)
+      } catch {
+        // The checkout exists; a missing pool marker only leaves status noise.
+      }
+    }
+    return { path, branch, baseCommit }
   }
 
   /**
@@ -328,7 +411,17 @@ export class GitService {
     }))
   }
 
-  private async run(cwd: string, args: readonly string[], signal?: AbortSignal): Promise<string> {
+  private async run(cwd: string, args: readonly string[], signal?: AbortSignal, env?: NodeJS.ProcessEnv): Promise<string> {
+    return (await this.runOutcome(cwd, args, signal, [0], env)).stdout
+  }
+
+  private async runOutcome(
+    cwd: string,
+    args: readonly string[],
+    signal: AbortSignal | undefined,
+    allowedExitCodes: readonly number[],
+    env?: NodeJS.ProcessEnv,
+  ): Promise<{ stdout: string; exitCode: number }> {
     this.executable ??= this.subprocess.resolveExecutable(this.options.executable, undefined, signal)
     const executable = await this.executable
     const handle = this.subprocess.spawn({
@@ -349,6 +442,7 @@ export class GitService {
         TERM: 'dumb',
         // Filenames are literal pathspecs; magic prefixes such as `:(glob)` stay one path.
         GIT_LITERAL_PATHSPECS: '1',
+        ...env,
       },
     })
     const outcome = await handle.done
@@ -357,10 +451,10 @@ export class GitService {
     if (stdout?.lossy === true || stderr?.lossy === true) {
       throw new GitCommandError(`git ${args[0] ?? 'command'} output exceeded ${this.options.maxOutputBytes} bytes`, outcome.exitCode, stderr?.text ?? '')
     }
-    if (outcome.exitCode !== 0) {
+    if (outcome.exitCode === null || !allowedExitCodes.includes(outcome.exitCode)) {
       throw new GitCommandError(stderr?.text.trim() || `git ${args[0] ?? 'command'} failed`, outcome.exitCode, stderr?.text ?? '')
     }
-    return stdout?.text ?? ''
+    return { stdout: stdout?.text ?? '', exitCode: outcome.exitCode }
   }
 }
 
