@@ -23,3 +23,14 @@ export function GraphGlyph() {
     </svg>
   )
 }
+
+/** Linked-checkouts glyph for the Git Worktrees launcher card. */
+export function WorktreeGlyph() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="2" y="2.5" width="6.5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3" />
+      <rect x="7.5" y="8.5" width="6.5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M8.5 5v-.6a1.1 1.1 0 0 1 1.1-1.1h1.1M5 8.5v.6a1.1 1.1 0 0 0-1.1 1.1H2.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  )
+}

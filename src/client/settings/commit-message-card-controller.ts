@@ -5,8 +5,9 @@
 /** Settings namespace; spelled here so the Client half never imports Host modules. */
 export const GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE = 'git-commit-message'
 
-type CommitMessageSettingsMutation =
-  | { op: 'set'; path: string[]; value: string }
+/** One staged write against a settings section; values are JSON-typed. */
+export type GitSettingsMutation =
+  | { op: 'set'; path: string[]; value: unknown }
   | { op: 'unset'; path: string[] }
 
 /** Shared shape of the namespace editor API before and after DSH 0.1.7. */
@@ -19,7 +20,7 @@ export interface CommitMessageSettingsForm<T> {
     mode: 'host' | 'memory'
   }
   subscribe(listener: () => void): () => void
-  mutate(ops: readonly CommitMessageSettingsMutation[], expectedRevision?: number): Promise<void | boolean>
+  mutate(ops: readonly GitSettingsMutation[], expectedRevision?: number): Promise<void | boolean>
 }
 
 /** Stored fields this card edits. */
@@ -363,7 +364,7 @@ export class CommitMessageSettingsCardController {
     this.saving = true
     this.failed = false
     this.publish()
-    const ops: Array<{ op: 'set'; path: string[]; value: string } | { op: 'unset'; path: string[] }> = [
+    const ops: GitSettingsMutation[] = [
       { op: 'set', path: ['mode'], value: mode },
     ]
     if (mode === 'custom') {

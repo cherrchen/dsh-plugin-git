@@ -18,11 +18,11 @@ import css from '../GitDetailsSurface.module.css'
 
 /** Full composed props for the Git Changes tab body. */
 export type GitChangesSurfaceProps = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'git'>
-  & { controller?: GitClientController; gitSessions?: GitSessionControllers }
+  & { controller?: GitClientController; gitSessions?: GitSessionControllers; openWorktrees?: () => void }
 
 /** Render the Git Changes surface body. */
 export function GitChangesSurface({
-  controller: controllerProp, gitSessions, t, useSessions, sessionId,
+  controller: controllerProp, gitSessions, openWorktrees, t, useSessions, sessionId,
 }: GitChangesSurfaceProps): ReactNode {
   const controller = resolveGitController({ controller: controllerProp, gitSessions, sessionId })
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
@@ -61,6 +61,9 @@ export function GitChangesSurface({
           directorySwitchAvailable={state.directorySwitchAvailable === true}
           entering={state.loading || state.enteringWorktree}
           onEnter={(path) => { void controller.enterWorktree(path) }}
+          onManage={openWorktrees !== undefined && (state.worktreeMode === 'upstream' || state.worktreeMode === 'local')
+            ? openWorktrees
+            : undefined}
           t={t}
         />
       ) : null}

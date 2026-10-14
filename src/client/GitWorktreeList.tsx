@@ -16,18 +16,31 @@ type Translate = (key: GitLocaleKey) => string
  * @param props - Worktree records, whether directory changes are available, and the session-scoped enter action.
  * @returns Nothing when this checkout is the only one.
  */
-export function GitWorktreeList({ worktrees, directorySwitchAvailable, entering, onEnter, t }: {
+export function GitWorktreeList({ worktrees, directorySwitchAvailable, entering, onEnter, onManage, t }: {
   readonly worktrees: readonly GitWorktree[]
   readonly directorySwitchAvailable: boolean
   readonly entering: boolean
   readonly onEnter: (path: string) => void
+  /** Present only when the Worktrees tab type is registered on this host. */
+  readonly onManage?: (() => void) | undefined
   readonly t: Translate
 }): ReactNode {
   const others = worktrees.filter(entry => !entry.current && !entry.bare)
   if (others.length === 0) return null
   return (
     <section className={css.worktreeList} aria-label={t('worktree.list')}>
-      <h3 className={css.worktreeHeading}>{t('worktree.list')}</h3>
+      <h3 className={css.worktreeHeading}>
+        {t('worktree.list')}
+        {onManage === undefined ? null : (
+          <button
+            type="button"
+            className={css.worktreeEnter}
+            onClick={() => { onManage() }}
+          >
+            {t('worktree.manage')}
+          </button>
+        )}
+      </h3>
       <ul className={css.worktreeItems}>
         {others.map(entry => {
           const label = entry.branch ?? (entry.detached ? t('worktree.detached') : repoFolderName(entry.path))

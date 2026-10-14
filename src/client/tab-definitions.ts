@@ -15,11 +15,13 @@ import {
   GIT_DIFF_KIND,
   GIT_GRAPH_ID,
   GIT_GRAPH_KIND,
+  GIT_WORKTREES_ID,
+  GIT_WORKTREES_KIND,
   GIT_DIFF_RESOURCE_PROTOCOL,
   parseGitDiffAddress,
 } from './contract.ts'
 import { splitRepoPath } from './path-display.ts'
-import { BranchGlyph, GraphGlyph } from './LauncherIcons.tsx'
+import { BranchGlyph, GraphGlyph, WorktreeGlyph } from './LauncherIcons.tsx'
 
 /**
  * The Changes page type, plus its guide entry.
@@ -76,6 +78,29 @@ export function graphDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinitio
     id: GIT_GRAPH_ID,
     kind: GIT_GRAPH_KIND,
     title: () => t('tab.graph'),
+    guide: [guideEntry],
+  }
+}
+
+/**
+ * The Worktrees page type, plus its guide entry.
+ * Registration is gated on the host-reported worktree feature mode; this
+ * definition itself carries no availability logic.
+ * @param t - Namespace-bound translate, read fresh on every label call.
+ * @returns The definition to register.
+ */
+export function worktreesDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
+  const guideEntry = {
+    id: 'git-worktrees',
+    order: 12,
+    title: () => t('launcher.worktrees.title'),
+    description: () => t('launcher.worktrees.description'),
+    icon: WorktreeGlyph,
+  }
+  return {
+    id: GIT_WORKTREES_ID,
+    kind: GIT_WORKTREES_KIND,
+    title: () => t('tab.worktrees'),
     guide: [guideEntry],
   }
 }

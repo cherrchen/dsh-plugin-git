@@ -1,6 +1,6 @@
 /** Client-side Git state and RPC orchestration. */
 
-import type { GitCommitSummary, GitCommitMessageCapability, GitDiff, GitFileChange, GitGenerationUnavailableReason, GitLogScope, GitRepositorySnapshot } from '../types.ts'
+import type { GitCommitSummary, GitCommitMessageCapability, GitCreatedWorktree, GitDiff, GitFileChange, GitGenerationUnavailableReason, GitLogScope, GitRepositorySnapshot, GitWorktreeMode } from '../types.ts'
 import { layoutGitGraph } from './graph/layout.ts'
 import type { GraphContinuationState, GraphLayoutRow } from './graph/types.ts'
 
@@ -69,6 +69,14 @@ export interface GitClientState {
   readonly directorySwitchAvailable: boolean
   /** Whether a session directory change is queued or in flight. */
   readonly enteringWorktree: boolean
+  /** Host-reported Worktrees feature mode; `undefined` until the first answer lands. */
+  readonly worktreeMode: GitWorktreeMode | undefined
+  /** Pool directory reported for local-mode creation hints. */
+  readonly worktreeDirectory: string | undefined
+  /** Whether a worktree creation is queued or in flight. */
+  readonly creatingWorktree: boolean
+  /** Last creation failure text shown by the Worktrees surface. */
+  readonly worktreeCreateError: string | undefined
 }
 
 /** Follow-up remote action after a successful local commit. */
@@ -105,6 +113,10 @@ export class GitClientController {
     generationError: undefined,
     directorySwitchAvailable: false,
     enteringWorktree: false,
+    worktreeMode: undefined,
+    worktreeDirectory: undefined,
+    creatingWorktree: false,
+    worktreeCreateError: undefined,
   }
   private readonly listeners = new Set<() => void>()
   /** Cancels Git RPC started for the current workspace when that workspace changes. */
@@ -224,6 +236,10 @@ export class GitClientController {
       generationError: undefined,
       directorySwitchAvailable: false,
       enteringWorktree: false,
+      worktreeMode: undefined,
+      worktreeDirectory: undefined,
+      creatingWorktree: false,
+      worktreeCreateError: undefined,
     })
     this.graphContinuation = undefined
     if (workspacePath === undefined) {
@@ -235,6 +251,7 @@ export class GitClientController {
     void this.loadGraph(true)
     void this.loadGenerationCapability()
     void this.loadDirectoryCapability(generation, signal)
+    void this.loadWorktreeCapability(generation, signal)
   }
 
   /**
@@ -355,6 +372,53 @@ export class GitClientController {
       } finally {
         this.directoryEntries -= 1
         if (this.directoryEntries === 0) this.patch({ enteringWorktree: false })
+      }
+    }
+    const pending = this.mutationTail.then(run, run)
+    this.mutationTail = pending.then(() => undefined, () => undefined)
+    return pending
+  }
+
+  /**
+   * Create a fresh branch and checkout through the active worktree mode.
+   * Shares the mutation queue with directory changes so creations and enters
+   * apply in call order. When the host entered the new checkout, the session
+   * projection flips the workspace and this binding ends; otherwise a refresh
+   * pulls the new checkout into the worktree list.
+   * @param name - New branch/checkout name; empty or omitted generates one.
+   * @param from - Local revision to start from; empty or omitted uses HEAD.
+   * @returns Completion after the host accepts the creation and the list reloads.
+   */
+  async createWorktree(name?: string, from?: string): Promise<GitCreatedWorktree> {
+    const signal = this.operations.signal
+    const generation = this.operationGeneration
+    const repositoryRoot = this.requireRepository().root
+    const run = async (): Promise<GitCreatedWorktree> => {
+      if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) throw abortError()
+      this.patch({ creatingWorktree: true, worktreeCreateError: undefined })
+      try {
+        const created = decodeCreatedWorktree(await this.call('create-worktree', {
+          repository: repositoryRoot,
+          ...(name !== undefined && name !== '' ? { name } : {}),
+          ...(from !== undefined && from !== '' ? { from } : {}),
+        }, signal))
+        if (signal.aborted) throw abortError()
+        // Entered creations hand the repository to the rebound workspace; a
+        // refresh on the old binding is meaningless and the new one reloads
+        // through `setWorkspace` anyway.
+        if (!this.isBindingCurrent(generation, repositoryRoot)) return created
+        await this.refresh()
+        return created
+      } catch (error) {
+        if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) throw error
+        const message = error instanceof Error ? error.message : String(error)
+        this.patch({ worktreeCreateError: message })
+        throw error instanceof Error ? error : new Error(message)
+      } finally {
+        // A reload above re-binds the operation generation, so this clears
+        // unconditionally: a superseded binding already reset the flag and a
+        // queued mutation runs only after this one settles.
+        this.patch({ creatingWorktree: false })
       }
     }
     const pending = this.mutationTail.then(run, run)
@@ -523,6 +587,23 @@ export class GitClientController {
     } catch {
       if (signal.aborted || generation !== this.operationGeneration) return
       this.patch({ directorySwitchAvailable: false })
+    }
+  }
+
+  private async loadWorktreeCapability(generation: number, signal: AbortSignal): Promise<void> {
+    try {
+      const value = await this.call('worktree-capability', {}, signal)
+      if (signal.aborted || generation !== this.operationGeneration) return
+      const mode = isRecord(value) ? value['mode'] : undefined
+      const directory = isRecord(value) ? value['directory'] : undefined
+      this.patch({
+        worktreeMode: mode === 'upstream' || mode === 'local' ? mode : 'off',
+        worktreeDirectory: typeof directory === 'string' ? directory : undefined,
+      })
+    } catch {
+      // Hosts predating the endpoint report `off`: the Worktrees tab stays hidden.
+      if (signal.aborted || generation !== this.operationGeneration) return
+      this.patch({ worktreeMode: 'off', worktreeDirectory: undefined })
     }
   }
 
@@ -731,6 +812,21 @@ function decodeDiff(value: unknown): GitDiff {
     throw new Error('Git Host returned an invalid diff')
   }
   return diff as GitDiff
+}
+
+function decodeCreatedWorktree(value: unknown): GitCreatedWorktree {
+  if (!isRecord(value)) throw new Error('Git Host returned an invalid worktree result')
+  const created = value as Partial<GitCreatedWorktree>
+  if (typeof created.path !== 'string' || typeof created.branch !== 'string'
+    || typeof created.baseCommit !== 'string') {
+    throw new Error('Git Host returned an invalid worktree result')
+  }
+  return {
+    path: created.path,
+    branch: created.branch,
+    baseCommit: created.baseCommit,
+    ...(created.entered === true ? { entered: true } : {}),
+  }
 }
 
 function decodeSnapshot(value: unknown): GitRepositorySnapshot {

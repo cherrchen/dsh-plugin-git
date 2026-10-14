@@ -9,6 +9,8 @@ import {
   GIT_DIFF_KIND,
   GIT_GRAPH_ID,
   GIT_GRAPH_KIND,
+  GIT_WORKTREES_ID,
+  GIT_WORKTREES_KIND,
   gitDiffAddress,
 } from '../src/client/contract.ts'
 import type { GitDesktopCapability } from '../src/client/controller.ts'
@@ -53,6 +55,8 @@ describe('Git client lifecycle', () => {
       'sidebar.right.pane.tab',
       'sidebar.right.pane.tab',
       'sidebar.right.pane.tab',
+      'sidebar.right.pane.tab',
+      'sidebar.right.pane.tab.title',
       'sidebar.right.pane.tab.title',
       'sidebar.right.pane.tab.title',
     ])
@@ -61,8 +65,10 @@ describe('Git client lifecycle', () => {
       GIT_CHANGES_ID,
       GIT_DIFF_ID,
       GIT_GRAPH_ID,
+      GIT_WORKTREES_ID,
       GIT_CHANGES_ID,
       GIT_GRAPH_ID,
+      GIT_WORKTREES_ID,
     ])
     expect(sidebar.sidebarRightTabs.register).toHaveBeenCalledTimes(3)
     const changesDefinition = sidebar.sidebarRightTabs.register.mock.calls[0]![0]
@@ -160,7 +166,7 @@ describe('Git client lifecycle', () => {
     const fiber = ctx.plugin({ inject, apply })
     await fiber.await()
     expect(registrations.filter(entry => entry.name === 'settings.plugin.item').map(entry => entry.key))
-      .toEqual(['git-commit-message'])
+      .toEqual(['git-commit-message', 'git-worktrees'])
     expect(registrations.filter(entry => entry.name === 'plugins.bundle.config').map(entry => entry.key))
       .toEqual(['@dsh-electron/dsh-plugin-git'])
     expect(registrations.some(entry => entry.name === 'settings.plugins.tab')).toBe(false)
@@ -201,6 +207,45 @@ describe('Git client lifecycle', () => {
     await fiber.await()
     expect(get).toHaveBeenCalledWith('dsh-plugin-git')
     await fiber.dispose()
+  })
+
+  it('registers the worktrees tab type once the host reports a mode and disposes it on unload', async () => {
+    const ctx = new Context()
+    const sidebar = minimalSidebar()
+    const tabDisposers: Array<ReturnType<typeof vi.fn>> = []
+    sidebar.sidebarRightTabs.register.mockImplementation(() => {
+      const dispose = vi.fn()
+      tabDisposers.push(dispose)
+      return dispose
+    })
+    ctx.provide('slots', {
+      inject: (_name: string, callback: () => unknown) => ctx.effect(() => callback() as () => void),
+      register: () => () => {},
+    } as never)
+    ctx.provide('connection', {
+      rpc: {
+        call: vi.fn(async (_channel: string, endpoint: string) =>
+          endpoint === 'worktree-capability'
+            ? { ok: true as const, value: { mode: 'local', directory: '.agents/worktrees' } }
+            : { ok: true as const, value: null }),
+      },
+    } as never)
+    ctx.provide('locale', {
+      register: () => () => {},
+      bind: () => (key: string) => key,
+      subscribe: () => () => {},
+    } as never)
+    ctx.provide('sidebarRight', sidebar.sidebarRight as never)
+    ctx.provide('sidebarRightTabs', sidebar.sidebarRightTabs as never)
+    const fiber = ctx.plugin({ inject, apply })
+    await fiber.await()
+    await vi.waitFor(() => expect(sidebar.sidebarRightTabs.register).toHaveBeenCalledTimes(4))
+    const worktreeDefinition = sidebar.sidebarRightTabs.register.mock.calls[3]![0]
+    expect(worktreeDefinition.id).toBe(GIT_WORKTREES_ID)
+    expect(worktreeDefinition.kind).toBe(GIT_WORKTREES_KIND)
+    await fiber.dispose()
+    expect(tabDisposers).toHaveLength(4)
+    for (const dispose of tabDisposers) expect(dispose).toHaveBeenCalled()
   })
 
   it('loads the model catalog through remote.session.modelCatalog', async () => {
