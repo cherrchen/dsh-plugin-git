@@ -3,6 +3,7 @@
 import type { GitCommitSummary, GitCommitMessageCapability, GitCreatedWorktree, GitDiff, GitFileChange, GitGenerationUnavailableReason, GitLogScope, GitRepositorySnapshot, GitWorktreeMode } from '../types.ts'
 import { layoutGitGraph } from './graph/layout.ts'
 import type { GraphContinuationState, GraphLayoutRow } from './graph/types.ts'
+import type { GitWorktreeFeature } from './worktree-feature.ts'
 
 export type GitRpcResult = { ok: true; value: unknown } | { ok: false; error: { message: string } }
 
@@ -146,6 +147,7 @@ export class GitClientController {
   /** Monotonic request identities for independently replaceable async results. */
   private generationRequestGeneration = 0
   private capabilityRequestGeneration = 0
+  private readonly unsubscribeWorktreeFeature: (() => void) | undefined
   /** Lane continuation state between loaded graph pages. */
   private graphContinuation: GraphContinuationState | undefined
 
@@ -153,8 +155,23 @@ export class GitClientController {
    * @param rpc - Connection caller for the `/git` channel.
    * @param sessionId - Session this controller belongs to. Included on RPC payloads
    * so the host can bind writes to that session's directory. Omitted by direct tests.
+   * @param worktreeFeature - Shared creation capability; standalone controllers
+   * probe it during workspace binding when no store is provided.
    */
-  constructor(private readonly rpc: GitRpcClient, private readonly sessionId?: string) {}
+  constructor(
+    private readonly rpc: GitRpcClient,
+    private readonly sessionId?: string,
+    private readonly worktreeFeature?: GitWorktreeFeature,
+  ) {
+    if (worktreeFeature !== undefined) {
+      const sync = (): void => {
+        const capability = worktreeFeature.getSnapshot()
+        this.patch({ worktreeMode: capability.mode, worktreeDirectory: capability.directory })
+      }
+      this.unsubscribeWorktreeFeature = worktreeFeature.subscribe(sync)
+      sync()
+    }
+  }
 
   /**
    * Read the current immutable view consumed by React external-store hooks.
@@ -236,8 +253,8 @@ export class GitClientController {
       generationError: undefined,
       directorySwitchAvailable: false,
       enteringWorktree: false,
-      worktreeMode: undefined,
-      worktreeDirectory: undefined,
+      worktreeMode: this.worktreeFeature?.getSnapshot().mode,
+      worktreeDirectory: this.worktreeFeature?.getSnapshot().directory,
       creatingWorktree: false,
       worktreeCreateError: undefined,
     })
@@ -251,13 +268,14 @@ export class GitClientController {
     void this.loadGraph(true)
     void this.loadGenerationCapability()
     void this.loadDirectoryCapability(generation, signal)
-    void this.loadWorktreeCapability(generation, signal)
+    if (this.worktreeFeature === undefined) void this.loadWorktreeCapability(generation, signal)
   }
 
   /**
    * Drop in-flight Git RPC. Called when the owning session controller is released.
    */
   dispose(): void {
+    this.unsubscribeWorktreeFeature?.()
     this.operations.abort()
     this.listeners.clear()
   }

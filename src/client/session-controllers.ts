@@ -1,6 +1,7 @@
 /** One Git controller per session, so two checkouts never share repository state. */
 
 import { GitClientController, type GitDesktopCapability, type GitRpcClient } from './controller.ts'
+import type { GitWorktreeFeature } from './worktree-feature.ts'
 
 /** Shared optional capabilities copied onto every session controller. */
 interface SharedGitCapabilities {
@@ -21,8 +22,9 @@ export class GitSessionControllers {
 
   /**
    * @param rpc - Connection caller shared by every session controller.
+   * @param worktreeFeature - Plugin-wide capability store, when mounted.
    */
-  constructor(private readonly rpc: GitRpcClient) {}
+  constructor(private readonly rpc: GitRpcClient, private readonly worktreeFeature?: GitWorktreeFeature) {}
 
   /**
    * Return the controller for one session, creating it on first use.
@@ -32,7 +34,7 @@ export class GitSessionControllers {
   controllerFor(sessionId: string): GitClientController {
     const existing = this.controllers.get(sessionId)
     if (existing !== undefined) return existing
-    const controller = new GitClientController(this.rpc, sessionId)
+    const controller = new GitClientController(this.rpc, sessionId, this.worktreeFeature)
     if (this.shared.desktop !== undefined) controller.setDesktop(this.shared.desktop)
     if (this.shared.diffNavigator !== undefined) controller.setDiffNavigator(this.shared.diffNavigator)
     this.controllers.set(sessionId, controller)

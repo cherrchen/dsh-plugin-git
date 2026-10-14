@@ -143,6 +143,33 @@ describe('GitService.createWorktree', { timeout: 20_000 }, () => {
     }
   })
 
+  it.each([
+    String.raw`\\server\share\worktrees`,
+    String.raw`\worktrees`,
+    String.raw`C:\worktrees`,
+    'C:/worktrees',
+    '//server/share/worktrees',
+    '/worktrees',
+  ])('keeps absolute pool %s when checking the destination', async (directory) => {
+    const repo = repository()
+    const { dispose, git } = await service()
+    const lstat = vi.fn(async () => ({ type: 'directory' }))
+    const fs: WorktreePoolFs = {
+      lstat,
+      resolve: vi.fn(),
+      writeText: vi.fn(),
+    }
+    try {
+      // Stop at the occupied destination so Windows paths are exercised on any
+      // test platform without trying to create a remote checkout.
+      await expect(git.createWorktree(repo, { name: 'taken', directory }, fs)).rejects.toThrow(/already exists/u)
+      expect(lstat).toHaveBeenCalledWith(`${directory}/taken`, undefined, undefined)
+      expect(execFileSync('git', ['worktree', 'list', '--porcelain'], { cwd: repo, encoding: 'utf8' }).match(/worktree /gu)).toHaveLength(1)
+    } finally {
+      await dispose()
+    }
+  })
+
   it('marks a fresh in-repository pool with a self-ignoring .gitignore', async () => {
     const repo = repository()
     const { dispose, git } = await service()

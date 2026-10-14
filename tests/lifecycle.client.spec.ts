@@ -248,6 +248,64 @@ describe('Git client lifecycle', () => {
     for (const dispose of tabDisposers) expect(dispose).toHaveBeenCalled()
   })
 
+  it('adds and removes only the worktrees enhancement when the host provider changes while idle', async () => {
+    vi.useFakeTimers()
+    const ctx = new Context()
+    const sidebar = minimalSidebar()
+    let mode = 'off'
+    const tabDisposers: Array<ReturnType<typeof vi.fn>> = []
+    sidebar.sidebarRightTabs.register.mockImplementation(() => {
+      const dispose = vi.fn()
+      tabDisposers.push(dispose)
+      return dispose
+    })
+    const registrations: Array<{ name?: string }> = []
+    ctx.provide('slots', {
+      inject: (_name: string, callback: () => unknown) => ctx.effect(() => callback() as () => void),
+      register: (entry: { name?: string }) => {
+        registrations.push(entry)
+        return () => { registrations.splice(registrations.indexOf(entry), 1) }
+      },
+    } as never)
+    const call = vi.fn(async () => ({ ok: true as const, value: { mode, directory: '' } }))
+    ctx.provide('connection', { rpc: { call } } as never)
+    ctx.provide('locale', {
+      register: () => () => {},
+      bind: () => (key: string) => key,
+      subscribe: () => () => {},
+    } as never)
+    ctx.provide('sidebarRight', sidebar.sidebarRight as never)
+    ctx.provide('sidebarRightTabs', sidebar.sidebarRightTabs as never)
+    const fiber = ctx.plugin({ inject, apply })
+    try {
+      await fiber.await()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(sidebar.sidebarRightTabs.register).toHaveBeenCalledTimes(3)
+      const coreSlots = [...registrations]
+      mode = 'upstream'
+      await vi.advanceTimersByTimeAsync(5_000)
+      expect(sidebar.sidebarRightTabs.register).toHaveBeenCalledTimes(4)
+      expect(sidebar.sidebarRightTabs.register.mock.calls[3]![0].kind).toBe(GIT_WORKTREES_KIND)
+      mode = 'off'
+      await vi.advanceTimersByTimeAsync(5_000)
+      expect(tabDisposers[3]).toHaveBeenCalledTimes(1)
+      for (const dispose of tabDisposers.slice(0, 3)) expect(dispose).not.toHaveBeenCalled()
+      expect(registrations).toEqual(coreSlots)
+      mode = 'upstream'
+      await vi.advanceTimersByTimeAsync(5_000)
+      expect(sidebar.sidebarRightTabs.register).toHaveBeenCalledTimes(5)
+      await fiber.dispose()
+      const calls = call.mock.calls.length
+      await vi.advanceTimersByTimeAsync(10_000)
+      expect(call).toHaveBeenCalledTimes(calls)
+      expect(registrations.filter(entry => entry.name?.startsWith('sidebar.'))).toEqual([])
+      for (const dispose of tabDisposers) expect(dispose).toHaveBeenCalledTimes(1)
+    } finally {
+      await fiber.dispose()
+      vi.useRealTimers()
+    }
+  })
+
   it('loads the model catalog through remote.session.modelCatalog', async () => {
     const ctx = new Context()
     const registrations: Array<{ name?: string; inject?: () => { controller: { setMode: (mode: 'inherit' | 'custom') => void; getSnapshot: () => { catalogStatus: string } } } }> = []

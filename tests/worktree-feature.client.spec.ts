@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { GitRepositorySnapshot } from '../src/types.ts'
 import { GitClientController, type GitRpcClient } from '../src/client/controller.ts'
+import { GitSessionControllers } from '../src/client/session-controllers.ts'
 import { decodeWorktreeCapability, GitWorktreeFeature } from '../src/client/worktree-feature.ts'
 import {
   GIT_WORKTREE_SETTINGS_NAMESPACE,
@@ -69,20 +70,50 @@ describe('GitWorktreeFeature', () => {
     feature.dispose()
   })
 
-  it('shares one in-flight poll between concurrent refreshes', async () => {
-    let calls = 0
+  it('re-polls once after concurrent refreshes so a settings save supersedes an old answer', async () => {
+    let resolve: ((value: { ok: true; value: unknown }) => void) | undefined
+    let mode = 'off'
     const client: GitRpcClient = {
-      call: async () => {
-        calls += 1
-        return { ok: true as const, value: { mode: 'upstream', directory: '' } }
-      },
+      call: vi.fn()
+        .mockImplementationOnce(() => new Promise((inner) => { resolve = inner }))
+        .mockImplementation(async () => ({ ok: true, value: { mode, directory: '.wt' } })),
     }
     const feature = new GitWorktreeFeature(client)
     feature.refresh()
+    mode = 'local'
     feature.refresh()
-    await vi.waitFor(() => expect(feature.getSnapshot().mode).toBe('upstream'))
-    expect(calls).toBe(1)
+    feature.refresh()
+    expect(client.call).toHaveBeenCalledTimes(1)
+    resolve?.({ ok: true, value: { mode: 'off', directory: '' } })
+    await vi.waitFor(() => expect(feature.getSnapshot().mode).toBe('local'))
+    expect(client.call).toHaveBeenCalledTimes(2)
     feature.dispose()
+  })
+
+  it('polls provider changes while idle and stops the timer on dispose', async () => {
+    vi.useFakeTimers()
+    const answers = { 'worktree-capability': { mode: 'off', directory: '' } }
+    const client = rpc(answers)
+    const feature = new GitWorktreeFeature(client)
+    try {
+      feature.startPolling()
+      feature.startPolling()
+      await vi.advanceTimersByTimeAsync(0)
+      expect(feature.getSnapshot().mode).toBe('off')
+      answers['worktree-capability'].mode = 'upstream'
+      await vi.advanceTimersByTimeAsync(5_000)
+      expect(feature.getSnapshot().mode).toBe('upstream')
+      answers['worktree-capability'].mode = 'off'
+      await vi.advanceTimersByTimeAsync(5_000)
+      expect(feature.getSnapshot().mode).toBe('off')
+      expect(client.call).toHaveBeenCalledTimes(3)
+      feature.dispose()
+      await vi.advanceTimersByTimeAsync(10_000)
+      expect(client.call).toHaveBeenCalledTimes(3)
+    } finally {
+      feature.dispose()
+      vi.useRealTimers()
+    }
   })
 
   it('keeps the last known mode when a poll fails', async () => {
@@ -212,6 +243,55 @@ function fakeScope(initial: Record<string, unknown> = {}): ScopeHost {
 }
 
 describe('WorktreeSettingsCardController', () => {
+  it('updates existing and future session capabilities after saving without rebinding workspaces', async () => {
+    const host = fakeScope()
+    const client: GitRpcClient = {
+      call: vi.fn(async (_channel: string, endpoint: string) => {
+        const settings = host.scope.getSnapshot().value
+        return { ok: true as const, value: endpoint === 'worktree-capability'
+          ? { mode: settings?.enabled === true ? 'local' : 'off', directory: settings?.directory ?? '.agents/worktrees' }
+          : BIND[endpoint] ?? null }
+      }),
+    }
+    const feature = new GitWorktreeFeature(client)
+    const sessions = new GitSessionControllers(client, feature)
+    const card = new WorktreeSettingsCardController(host.scope, () => { feature.refresh() })
+    try {
+      const a = sessions.controllerFor('a')
+      const b = sessions.controllerFor('b')
+      await Promise.all([a.setWorkspace('/a'), b.setWorkspace('/b')])
+      feature.refresh()
+      await vi.waitFor(() => expect(a.getSnapshot().worktreeMode).toBe('off'))
+      expect(b.getSnapshot().worktreeMode).toBe('off')
+      card.setEnabled(true)
+      card.setDirectory('.wt')
+      card.save()
+      await vi.waitFor(() => expect(a.getSnapshot()).toMatchObject({ worktreeMode: 'local', worktreeDirectory: '.wt' }))
+      expect(b.getSnapshot()).toMatchObject({ worktreeMode: 'local', worktreeDirectory: '.wt' })
+      const c = sessions.controllerFor('c')
+      expect(c.getSnapshot().worktreeMode).toBe('local')
+      await c.setWorkspace('/c')
+      expect(c.getSnapshot().worktreeMode).toBe('local')
+      card.setEnabled(false)
+      card.save()
+      await vi.waitFor(() => expect(a.getSnapshot().worktreeMode).toBe('off'))
+      expect(b.getSnapshot().worktreeMode).toBe('off')
+      expect(c.getSnapshot().worktreeMode).toBe('off')
+      expect(a.getSnapshot().workspacePath).toBe('/a')
+      expect(b.getSnapshot().workspacePath).toBe('/b')
+      const beforeDispose = a.getSnapshot()
+      sessions.dispose()
+      host.publish({ value: { enabled: true } })
+      feature.refresh()
+      await vi.waitFor(() => expect(feature.getSnapshot().mode).toBe('local'))
+      expect(a.getSnapshot()).toBe(beforeDispose)
+    } finally {
+      card.dispose()
+      sessions.dispose()
+      feature.dispose()
+    }
+  })
+
   it('edits the git-worktrees namespace', () => {
     expect(GIT_WORKTREE_SETTINGS_NAMESPACE).toBe('git-worktrees')
   })

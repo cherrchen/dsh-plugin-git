@@ -89,11 +89,10 @@ export const inject = ['slots', 'connection', 'locale', 'sidebarRight', 'sidebar
 /** Register portable UI first, then activate native enhancement in an optional child fiber. */
 export function apply(ctx: ClientContext): void {
   const connection = ctx.get('connection') as ConnectionHandle
-  const gitSessions = new GitSessionControllers(connection.rpc)
-  ctx.effect(() => () => { gitSessions.dispose() }, 'git: session controllers')
   const worktreeFeature = new GitWorktreeFeature(connection.rpc)
   ctx.effect(() => () => { worktreeFeature.dispose() }, 'git: worktree feature')
-  worktreeFeature.refresh()
+  const gitSessions = new GitSessionControllers(connection.rpc, worktreeFeature)
+  ctx.effect(() => () => { gitSessions.dispose() }, 'git: session controllers')
 
   // Unified navigation: every Git entry point (composer chip, changes rows,
   // guide) converges on the right sidebar. Changes and Graph are singleton
@@ -136,6 +135,7 @@ export function apply(ctx: ClientContext): void {
       worktreeTabDispose = undefined
     }
   }, 'git: worktrees tab type')
+  worktreeFeature.startPolling()
 
   ctx.slots.inject('conversation.input.left', () => ctx.slots.register({
     name: 'conversation.input.left',

@@ -1,6 +1,7 @@
 /** Portable Git repository operations over `ctx.subprocess`. */
 
 import { randomUUID } from 'node:crypto'
+import { posix, win32 } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type { SubprocessRuntime } from '@deepseek-ai/dsh-subprocess'
 import { GIT_LOG_FORMAT, parseGitLog } from './log.ts'
@@ -154,7 +155,7 @@ export class GitService {
     const baseCommit = (await this.run(root, ['rev-parse', '--verify', '--end-of-options', `${revision}^{commit}`], signal)).trim()
     const directory = request.directory ?? '.agents/worktrees'
     if (directory.trim().length === 0) throw new Error('git: worktree directory must not be empty')
-    const absolute = directory.startsWith('/') || /^[a-zA-Z]:[/\\]/u.test(directory)
+    const absolute = posix.isAbsolute(directory) || win32.isAbsolute(directory)
     const pool = absolute ? directory : `${root}/${directory}`
     const path = `${pool}/${branch}`
     let poolExisted = true

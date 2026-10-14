@@ -27,19 +27,28 @@ export function decodeWorktreeCapability(value: unknown): GitWorktreeCapability 
 
 /**
  * One observable answer for `worktree-capability`, shared by every consumer.
- * `refresh()` is safe to call liberally: concurrent calls share the in-flight
- * request and failures retain the previous answer instead of dropping the tab.
+ * Concurrent refreshes request one trailing poll so a settings save cannot be
+ * hidden by an older in-flight answer. Failures retain the previous answer.
  */
 export class GitWorktreeFeature {
   private state: GitWorktreeFeatureState = { mode: undefined, directory: undefined }
   private readonly listeners = new Set<() => void>()
   private pending: Promise<void> | undefined
+  private refreshAgain = false
+  private timer: ReturnType<typeof setInterval> | undefined
   private disposed = false
 
   /**
    * @param rpc - Connection caller for the `/git` channel.
    */
   constructor(private readonly rpc: GitRpcClient) {}
+
+  /** Poll immediately and every five seconds until plugin teardown. */
+  startPolling(): void {
+    if (this.disposed || this.timer !== undefined) return
+    this.refresh()
+    this.timer = setInterval(() => { this.refresh() }, 5_000)
+  }
 
   /**
    * @returns The latest capability snapshot (stable between polls).
@@ -56,12 +65,16 @@ export class GitWorktreeFeature {
   }
 
   /**
-   * Poll the host unless a poll is already in flight.
+   * Poll the host, scheduling one trailing poll when a request is in flight.
    * Failures keep the current mode: a transient transport error must not make
    * an open Worktrees tab type flicker off and back on.
    */
   refresh(): void {
-    if (this.disposed || this.pending !== undefined) return
+    if (this.disposed) return
+    if (this.pending !== undefined) {
+      this.refreshAgain = true
+      return
+    }
     const run = (async () => {
       try {
         const result = await this.rpc.call('/git', 'worktree-capability', {})
@@ -73,16 +86,27 @@ export class GitWorktreeFeature {
       }
     })()
     this.pending = run
-    void run.finally(() => { if (this.pending === run) this.pending = undefined })
+    void run.finally(() => {
+      if (this.pending !== run) return
+      this.pending = undefined
+      if (this.refreshAgain) {
+        this.refreshAgain = false
+        this.refresh()
+      }
+    })
   }
 
   /** Stop polling and release listeners (plugin fiber teardown). */
   dispose(): void {
     this.disposed = true
+    clearInterval(this.timer)
+    this.timer = undefined
+    this.refreshAgain = false
     this.listeners.clear()
   }
 
   private patch(patch: Partial<GitWorktreeFeatureState>): void {
+    if (patch.mode === this.state.mode && patch.directory === this.state.directory) return
     this.state = { ...this.state, ...patch }
     for (const listener of [...this.listeners]) listener()
   }
