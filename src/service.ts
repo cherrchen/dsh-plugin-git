@@ -9,7 +9,7 @@ import { canonicalPath } from './path-identity.ts'
 import { parseBranches, parsePorcelainV2 } from './status.ts'
 import type { GitCheckout, GitCommitSummary, GitCreatedWorktree, GitDiff, GitFileChange, GitLogScope, GitRepositorySnapshot, GitWorktree } from './types.ts'
 import { parseWorktreeList } from './worktrees.ts'
-import { isPoolDirectory } from './worktree-settings.ts'
+import { DEFAULT_WORKTREE_DIRECTORY, isPoolDirectory } from './worktree-settings.ts'
 
 /** Extra `git log` arguments implementing one history scope. */
 function logScopeArgs(scope: GitLogScope): readonly string[] {
@@ -154,8 +154,8 @@ export class GitService {
     const revision = request.from ?? 'HEAD'
     if (revision.length === 0) throw new Error('git: worktree base must name a local commit, branch, or tag')
     const baseCommit = (await this.run(root, ['rev-parse', '--verify', '--end-of-options', `${revision}^{commit}`], signal)).trim()
-    const directory = request.directory ?? '.agents/worktrees'
-    if (directory.trim().length === 0) throw new Error('git: worktree directory must not be empty')
+    const directory = (request.directory ?? DEFAULT_WORKTREE_DIRECTORY).trim()
+    if (directory.length === 0) throw new Error('git: worktree directory must not be empty')
     const absolute = posix.isAbsolute(directory) || win32.isAbsolute(directory)
     const pool = absolute ? directory : `${root}/${directory}`
     const path = `${pool}/${branch}`

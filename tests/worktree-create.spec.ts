@@ -93,6 +93,9 @@ describe('GitService.createWorktree', { timeout: 20_000 }, () => {
       expect(checkoutHead).toBe(first)
       const headBranch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: repo, encoding: 'utf8' }).trim()
       expect(headBranch).toBe('main')
+      // Surrounding whitespace is normalized before the pool path is formed.
+      const padded = await git.createWorktree(repo, { name: 'padded', directory: ' .wt ' })
+      expect(padded.path).toBe(`${realpathSync(repo)}/.wt/padded`)
     } finally {
       await dispose()
     }
