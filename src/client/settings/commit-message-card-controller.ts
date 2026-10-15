@@ -355,11 +355,11 @@ export class CommitMessageSettingsCardController {
     if (this.disposed || snapshot.status !== 'ready' || !snapshot.writable || this.saving) return
     if (mode === 'custom' && (provider === '' || model === '')) return
     if (!this.dirty()) return
-    if (this.draft !== undefined && snapshot.revision !== this.draft.revision) {
-      this.failed = true
-      this.publish()
-      return
-    }
+    // Another section sharing this form (or an external write) bumps the
+    // revision without touching the staged field values, so rebase the draft
+    // onto it instead of deadlocking the save. The mutate call's revision
+    // fence still rejects a write that lands between this read and the save.
+    if (this.draft !== undefined) this.draft.revision = snapshot.revision
     const generation = this.saveGeneration
     this.saving = true
     this.failed = false

@@ -352,15 +352,34 @@ describe('WorktreeSettingsCardController', () => {
     subject.dispose()
   })
 
-  it('marks the save failed when the scope moved past the staged revision', async () => {
+  it('saves staged edits after another section bumps the shared revision', async () => {
     const host = fakeScope()
     const subject = new WorktreeSettingsCardController(host.scope)
     subject.setEnabled(true)
+    // A commit-message save or any other section write lands first, moving the
+    // shared form revision past the draft's without touching these fields.
     host.publish({ revision: 7 })
     subject.save()
-    await Promise.resolve()
-    expect(host.mutate).not.toHaveBeenCalled()
-    expect(subject.getSnapshot().failed).toBe(true)
+    await vi.waitFor(() => expect(subject.getSnapshot().dirty).toBe(false))
+    expect(host.mutate).toHaveBeenCalledWith(
+      [
+        { op: 'set', path: ['enabled'], value: true },
+        { op: 'unset', path: ['directory'] },
+      ],
+      7,
+    )
+    expect(subject.getSnapshot().failed).toBe(false)
+    subject.dispose()
+  })
+
+  it('marks the save failed when the mutation does not land', async () => {
+    const host = fakeScope()
+    host.mutate.mockImplementation(async () => {})
+    const subject = new WorktreeSettingsCardController(host.scope)
+    subject.setEnabled(true)
+    subject.save()
+    await vi.waitFor(() => expect(subject.getSnapshot().failed).toBe(true))
+    expect(subject.getSnapshot().dirty).toBe(true)
     subject.dispose()
   })
 })
