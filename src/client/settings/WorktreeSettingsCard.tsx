@@ -49,7 +49,6 @@ export function WorktreeSettingsCard(props: WorktreeSettingsCardProps): ReactNod
             onChange={(next) => { controller.setEnabled(next) }}
           />
         </div>
-        <p className={css.hint}>{t('settings.worktrees.enableHint')}</p>
       </div>
       <div className={css.field}>
         <label className={css.label} htmlFor="git-worktrees-directory">{t('settings.worktrees.directory')}</label>
@@ -60,7 +59,6 @@ export function WorktreeSettingsCard(props: WorktreeSettingsCardProps): ReactNod
           disabled={disabled}
           onChange={(event) => { controller.setDirectory(event.target.value) }}
         />
-        <p className={css.hint}>{t('settings.worktrees.directoryHint')}</p>
       </div>
     </>
   )

@@ -82,7 +82,6 @@
 .readOnly,
 .notice,
 .invalid,
-.hint,
 .failed {
   margin: 12px 0 0;
   font-size: 12px;
@@ -90,8 +89,7 @@
 }
 
 .readOnly,
-.notice,
-.hint {
+.notice {
   color: var(--dsw-alias-label-tertiary);
 }
 

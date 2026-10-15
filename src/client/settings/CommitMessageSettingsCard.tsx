@@ -165,7 +165,6 @@ export function CommitMessageSettingsCard(props: CommitMessageSettingsCardProps)
           )
           : null}
         {state.invalid ? <p className={css.invalid}>{t('settings.customRequired')}</p> : null}
-        <p className={css.hint}>{t('settings.modelHint')}</p>
       </div>
       <div className={css.field}>
         <label className={css.label} htmlFor="git-commit-message-system">{t('settings.systemPrompt')}</label>
@@ -173,11 +172,10 @@ export function CommitMessageSettingsCard(props: CommitMessageSettingsCardProps)
           id="git-commit-message-system"
           className={css.textarea}
           value={state.systemPrompt}
-          placeholder={t('settings.systemPromptPlaceholder')}
+          placeholder={`${t('settings.systemPromptPlaceholder')} ${t('settings.systemPromptHint')}`}
           disabled={disabled}
           onChange={(event) => { controller.setSystemPrompt(event.target.value) }}
         />
-        <p className={css.hint}>{t('settings.systemPromptHint')}</p>
       </div>
     </>
   )
