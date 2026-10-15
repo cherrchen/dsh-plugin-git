@@ -74,7 +74,6 @@ function baseState(overrides: Partial<ReturnType<GitClientController['getSnapsho
     worktreeMode: undefined,
     worktreeDirectory: undefined,
     creatingWorktree: false,
-    worktreeCreateError: undefined,
     ...overrides,
   }
 }

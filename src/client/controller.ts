@@ -76,8 +76,6 @@ export interface GitClientState {
   readonly worktreeDirectory: string | undefined
   /** Whether a worktree creation is queued or in flight. */
   readonly creatingWorktree: boolean
-  /** Last creation failure text shown by the Worktrees surface. */
-  readonly worktreeCreateError: string | undefined
 }
 
 /** Follow-up remote action after a successful local commit. */
@@ -117,7 +115,6 @@ export class GitClientController {
     worktreeMode: undefined,
     worktreeDirectory: undefined,
     creatingWorktree: false,
-    worktreeCreateError: undefined,
   }
   private readonly listeners = new Set<() => void>()
   /** Cancels Git RPC started for the current workspace when that workspace changes. */
@@ -255,7 +252,6 @@ export class GitClientController {
       worktreeMode: this.worktreeFeature?.getSnapshot().mode,
       worktreeDirectory: this.worktreeFeature?.getSnapshot().directory,
       creatingWorktree: false,
-      worktreeCreateError: undefined,
     })
     this.graphContinuation = undefined
     if (workspacePath === undefined) {
@@ -413,7 +409,7 @@ export class GitClientController {
     const repositoryRoot = this.requireRepository().root
     const run = async (): Promise<GitCreatedWorktree> => {
       if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) throw abortError()
-      this.patch({ creatingWorktree: true, worktreeCreateError: undefined })
+      this.patch({ creatingWorktree: true })
       try {
         const created = decodeCreatedWorktree(await this.call('create-worktree', {
           repository: repositoryRoot,
@@ -430,7 +426,6 @@ export class GitClientController {
       } catch (error) {
         if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) throw error
         const message = error instanceof Error ? error.message : String(error)
-        this.patch({ worktreeCreateError: message })
         throw error instanceof Error ? error : new Error(message)
       } finally {
         // A reload above re-binds the operation generation, so this clears

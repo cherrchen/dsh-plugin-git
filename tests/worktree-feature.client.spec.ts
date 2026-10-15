@@ -189,7 +189,6 @@ describe('GitClientController worktrees', () => {
     const controller = new GitClientController(client)
     await controller.setWorkspace('/workspace')
     await expect(controller.createWorktree('w1')).rejects.toThrow(/already exists/u)
-    expect(controller.getSnapshot().worktreeCreateError).toMatch(/already exists/u)
     expect(controller.getSnapshot().repository?.branch).toBe('main')
     expect(controller.getSnapshot().creatingWorktree).toBe(false)
   })
