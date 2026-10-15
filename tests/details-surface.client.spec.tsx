@@ -163,6 +163,12 @@ describe('GitChangesSurface', () => {
     expect(container.querySelector('[data-git-commit-region]')).toBeTruthy()
   })
 
+  it('shows discovery failures before a repository snapshot exists', () => {
+    const controller = controllerOf(baseState({ repository: undefined, error: 'Git executable unavailable' }))
+    render(<GitChangesSurface {...props(controller)} />)
+    expect(screen.getByRole('alert').textContent).toBe('Git executable unavailable')
+  })
+
   it('labels a linked checkout and enters another worktree for this session', () => {
     const controller = controllerOf(baseState({
       directorySwitchAvailable: true,
@@ -379,6 +385,13 @@ describe('GitGraphSurface', () => {
     expect(controller.loadGraph).toHaveBeenCalledWith(true)
   })
 
+  it('shows repository discovery failures independently of history failures', () => {
+    const controller = controllerOf(baseState({ repository: undefined, error: 'Git executable unavailable' }))
+    render(<GitGraphSurface {...props(controller)} />)
+    expect(screen.getByRole('alert').textContent).toBe('Git executable unavailable')
+    expect(controller.loadGraph).not.toHaveBeenCalled()
+  })
+
   it('renders empty history copy after the first page settled without reloading', () => {
     const controller = controllerOf(baseState({ graphLoaded: true }))
     render(<GitGraphSurface {...props(controller)} />)
@@ -469,10 +482,11 @@ describe('GitWorktreesSurface', () => {
     fireEvent.click(blocked)
     expect(screen.queryByText(en['worktree.createDialogTitle'])).toBeNull()
     cleanup()
-    const local = controllerOf(baseState({ worktreeMode: 'local', repository: twoCheckouts() }))
+    const local = controllerOf(baseState({ worktreeMode: 'local', worktreeDirectory: '.local-pool', repository: twoCheckouts() }))
     render(<GitWorktreesSurface {...props(local)} />)
     fireEvent.click(screen.getByRole('button', { name: en['worktree.create'] }))
     expect(screen.getByText(en['worktree.createDialogTitle'])).toBeTruthy()
+    expect(screen.getByText(formatLocale(en['worktree.createDirectoryHint'], { directory: '.local-pool' }))).toBeTruthy()
     fireEvent.change(screen.getByLabelText(en['worktree.createName']), { target: { value: 'topic/wt' } })
     fireEvent.change(screen.getByLabelText(en['worktree.createBase']), { target: { value: 'HEAD~1' } })
     // The dialog's submit button shares the toolbar button's label; the last match is the modal action.
@@ -480,9 +494,33 @@ describe('GitWorktreesSurface', () => {
     expect(local.createWorktree).toHaveBeenCalledWith('topic/wt', 'HEAD~1')
   })
 
+  it('blocks upstream creation for a cold session and rechecks an open dialog', () => {
+    const cold = controllerOf(baseState({ worktreeMode: 'upstream', repository: twoCheckouts() }))
+    const view = render(<GitWorktreesSurface {...props(cold)} />)
+    const blocked = screen.getByRole('button', { name: en['worktree.create'] })
+    expect(blocked.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(blocked)
+    expect(screen.queryByText(en['worktree.createDialogTitle'])).toBeNull()
+
+    const live = controllerOf(baseState({
+      worktreeMode: 'upstream', directorySwitchAvailable: true, repository: twoCheckouts(),
+    }))
+    view.rerender(<GitWorktreesSurface {...props(live)} />)
+    fireEvent.click(screen.getByRole('button', { name: en['worktree.create'] }))
+    expect(screen.getByText(en['worktree.createDialogTitle'])).toBeTruthy()
+    view.rerender(<GitWorktreesSurface {...props(cold)} />)
+    const submit = screen.getAllByRole<HTMLButtonElement>('button', { name: en['worktree.create'] }).pop()!
+    expect(submit.disabled).toBe(true)
+    fireEvent.click(submit)
+    fireEvent.keyDown(screen.getByLabelText(en['worktree.createName']), { key: 'Enter' })
+    expect(cold.createWorktree).not.toHaveBeenCalled()
+    expect(live.createWorktree).not.toHaveBeenCalled()
+  })
+
   it('keeps a create failure inside the dialog', async () => {
     const controller = controllerOf(baseState({
       worktreeMode: 'upstream',
+      directorySwitchAvailable: true,
       worktreeDirectory: '.agents/worktrees',
       repository: twoCheckouts(),
     }))
@@ -490,7 +528,7 @@ describe('GitWorktreesSurface', () => {
     render(<GitWorktreesSurface {...props(controller)} />)
     expect(screen.getByText(en['worktree.modeUpstream'])).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: en['worktree.create'] }))
-    expect(screen.getByText(formatLocale(en['worktree.createDirectoryHint'], { directory: '.agents/worktrees' }))).toBeTruthy()
+    expect(screen.queryByText(formatLocale(en['worktree.createDirectoryHint'], { directory: '.agents/worktrees' }))).toBeNull()
     fireEvent.change(screen.getByLabelText(en['worktree.createName']), { target: { value: 'dup' } })
     fireEvent.click(screen.getAllByRole('button', { name: en['worktree.create'] }).pop()!)
     await waitFor(() => { expect(screen.getByText('git: worktree branch already exists: dup')).toBeTruthy() })

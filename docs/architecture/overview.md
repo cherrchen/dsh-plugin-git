@@ -37,6 +37,9 @@
 - **Graph layout engine**（`src/client/graph/`）：纯逻辑模块——不访问 Git、不依赖 React、不触碰 DOM，可独立测试；输出 geometry 与 Canvas 2D 绘制解耦。设计决策与不变量见 [Git Graph Layout Engine](../reference/git-graph-layout.md)、[ADR-0001](../decisions/ADR-0001-graph-lane-not-owned-by-branch.md)、[ADR-0002](../decisions/ADR-0002-graph-lane-cap-max-three-lanes.md)。
 - **Commit message 生成**：Host 侧独立 LLM 请求（不经会话上下文，无 KV Cache 影响）；需要 LLM runtime 与可解析模型，否则 Client 报告 `git/generation-unavailable`。配置结构见根 README [Configuration](../../README.md#configuration)（canonical）。
 
+- **加载与取消恢复**：同目录界面挂载不因 refresh 的结果 generation 变化而重新绑定；成功 refresh 会更新会话能力。Host 只缓存成功的 Git 可执行路径，请求取消或查找失败不污染后续请求。Changes / Graph 显示 discovery/status 错误，具体故障链和回归验证见 [Git 界面空白与持续 AbortError](../troubleshooting/git-workspace-abort.md)。
+- **创建入口约束**：Worktrees 的 `upstream` 模式须当前会话目录能力可用（含活 agent）才开放创建，弹窗提交时同样检查；`local` 模式可以在无活 agent 时创建而不进入。检出池目录提示只在 `local` 模式显示，上游创建的目标由上游决定。
+
 ## 验证方式
 
 - `pnpm test`（单元 + 客户端规格，临时仓库与机器可读输出）；

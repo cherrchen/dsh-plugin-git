@@ -59,7 +59,8 @@ export class GitCommandError extends Error {
 
 /** Cohesive local-repository service consumed by RPC and same-process plugins. */
 export class GitService {
-  private executable: Promise<string> | undefined
+  /** Cache successful lookups only; request cancellation must not poison the service. */
+  private executable: string | undefined
 
   constructor(
     private readonly subprocess: SubprocessRuntime,
@@ -423,8 +424,12 @@ export class GitService {
     allowedExitCodes: readonly number[],
     env?: NodeJS.ProcessEnv,
   ): Promise<{ stdout: string; exitCode: number }> {
-    this.executable ??= this.subprocess.resolveExecutable(this.options.executable, undefined, signal)
-    const executable = await this.executable
+    signal?.throwIfAborted()
+    // Each initial caller owns its lookup signal. Sharing an in-flight promise
+    // would let one cancelled workspace break unrelated sessions as well.
+    const executable = this.executable ?? await this.subprocess.resolveExecutable(this.options.executable, undefined, signal)
+    signal?.throwIfAborted()
+    this.executable = executable
     const handle = this.subprocess.spawn({
       argv: [executable, ...args],
       cwd,

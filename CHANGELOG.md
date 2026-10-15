@@ -17,6 +17,11 @@ All notable changes to this package are recorded here. The format follows [Keep 
 - The exact DSH support list now covers every published release from `0.1.5-rc.2` through `0.2.1-alpha.2`: `0.1.5-rc.3` and `0.2.1-alpha.1` are verified and added, closing the remaining gaps in the range.
 - `scripts/upgrade-dsh.mjs` and `pnpm compat:check` accept exact-version host runtime pins, matching releases that declare Cordis and schemastery without a caret or tilde (as `0.1.5-rc.3` does).
 
+### Fixed
+
+- Same-directory sidebar mounts no longer cancel a shared refresh or clear the commit draft. Cancelled executable discovery no longer poisons later Git requests or other sessions; successful refreshes also update session capabilities. Changes and Graph display repository-loading failures.
+- Upstream worktree creation requires a live session, including submissions from an already-open dialog. The configured local checkout-pool hint appears only in local mode.
+
 ## [0.2.5] — 2026-10-11
 
 ### Added

@@ -46,6 +46,8 @@ export function GitWorktreesSurface({
   const repository = state.repository
   const worktrees = (repository?.worktrees ?? []).filter(entry => !entry.bare)
   const mode = state.worktreeMode
+  const canCreate = repository != null
+    && (mode === 'local' || (mode === 'upstream' && state.directorySwitchAvailable))
   const closeCreate = (): void => {
     setCreating(false)
     setName('')
@@ -53,7 +55,7 @@ export function GitWorktreesSurface({
     setCreateError(undefined)
   }
   const submitCreate = (): void => {
-    if (state.creatingWorktree) return
+    if (!canCreate || state.creatingWorktree || state.enteringWorktree) return
     void controller.createWorktree(
       name.trim() === '' ? undefined : name.trim(),
       from.trim() === '' ? undefined : from.trim(),
@@ -85,7 +87,7 @@ export function GitWorktreesSurface({
         <div className={css.rowActions}>
           <GitIconButton
             label={t('worktree.create')}
-            disabled={repository === undefined || repository === null || (mode !== 'local' && mode !== 'upstream')}
+            disabled={!canCreate || state.creatingWorktree || state.enteringWorktree}
             onClick={() => { setCreateError(undefined); setCreating(true) }}
           >
             <IconPlusOutline16 size={14} />
@@ -137,7 +139,7 @@ export function GitWorktreesSurface({
             <Button variant="outline" onClick={closeCreate}>{t('branch.cancel')}</Button>
             <Button
               variant="primary"
-              disabled={state.creatingWorktree}
+              disabled={!canCreate || state.creatingWorktree || state.enteringWorktree}
               onClick={submitCreate}
             >
               {t(state.creatingWorktree ? 'worktree.creating' : 'worktree.create')}
@@ -167,7 +169,7 @@ export function GitWorktreesSurface({
               aria-label={t('worktree.createBase')}
             />
           </label>
-          {state.worktreeDirectory === undefined || state.worktreeDirectory === ''
+          {mode !== 'local' || state.worktreeDirectory === undefined || state.worktreeDirectory === ''
             ? null
             : <p className={css.worktreeNote}>{formatLocale(t('worktree.createDirectoryHint'), { directory: state.worktreeDirectory })}</p>}
           {createError === undefined ? null : <p className={css.error} role="alert">{createError}</p>}

@@ -195,6 +195,7 @@ export function GitGraphSurface({
       <div className={css.body} ref={bodyRef}>
         {!state.graphLoading && state.workspacePath === undefined && <p className={css.empty}>{t('details.noWorkspace')}</p>}
         {!state.graphLoading && state.repository === null && <p className={css.empty}>{t('details.notRepository')}</p>}
+        {state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
         {state.graphError !== undefined && <p className={css.error} role="alert">{state.graphError}</p>}
         {state.graphLoaded && state.repository != null && state.graphRows.length === 0 && !state.graphLoading && (
           <p className={css.empty}>{t('graph.empty')}</p>

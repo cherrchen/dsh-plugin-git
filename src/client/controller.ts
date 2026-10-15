@@ -139,8 +139,8 @@ export class GitClientController {
   private mutationTail: Promise<void> = Promise.resolve()
   /** Directory changes queued on `mutationTail`, including the one currently in flight. */
   private directoryEntries = 0
-  /** Workspace path of the last completed `setWorkspace` binding (idempotence guard). */
-  private boundWorkspace: { path: string | undefined; generation: number } | undefined
+  /** Workspace binding identity; refreshing the same path does not replace it. */
+  private boundWorkspace: { path: string | undefined } | undefined
   private diffNavigator: ((path: string, staged: boolean) => void) | undefined
   /** Monotonic request identity for graph pages; stale responses are discarded. */
   private graphRequestGeneration = 0
@@ -224,19 +224,18 @@ export class GitClientController {
    * @returns Completion after the first discover and status calls settle.
    */
   async setWorkspace(workspacePath: string | undefined): Promise<void> {
-    // Idempotent only while the bookkeeping is the newest operation: a stale
-    // continuation (newer binding or refresh bumped the generation) must
-    // rebind instead of trusting retained state.
+    // A refresh changes result ownership, not workspace identity. Another
+    // surface mounting during that refresh must not abort the shared binding.
     const binding = this.boundWorkspace
     if (binding !== undefined
-      && binding.generation === this.operationGeneration
+      && this.state.workspacePath === workspacePath
       && binding.path === workspacePath) return
     // Stop reads and writes that still name the previous checkout.
     this.operations.abort()
     this.operations = new AbortController()
     const signal = this.operations.signal
     const generation = ++this.operationGeneration
-    this.boundWorkspace = { path: workspacePath, generation }
+    this.boundWorkspace = { path: workspacePath }
     this.patch({
       workspacePath,
       repository: undefined,
@@ -266,9 +265,7 @@ export class GitClientController {
     await this.loadRepository(generation, workspacePath, signal)
     if (generation !== this.operationGeneration || signal.aborted) return
     void this.loadGraph(true)
-    void this.loadGenerationCapability()
-    void this.loadDirectoryCapability(generation, signal)
-    if (this.worktreeFeature === undefined) void this.loadWorktreeCapability(generation, signal)
+    this.loadCapabilities(generation, signal)
   }
 
   /**
@@ -343,10 +340,13 @@ export class GitClientController {
     if (signal.aborted || generation !== this.operationGeneration || this.state.error !== undefined) return
     // Keep the binding bookkeeping current so surface remounts after a
     // refresh stay idempotent.
-    this.boundWorkspace = { path: workspacePath, generation }
+    this.boundWorkspace = { path: workspacePath }
     // The binding generation invalidates an in-flight page. Clear its visible
     // loading state as well, so the Graph surface can schedule its replacement.
     this.patch({ graphLoading: false, graphLoaded: false, generating: false, generationError: undefined })
+    // A refresh can supersede initial discovery before its capability probes,
+    // and a previously cold session may now have a live agent.
+    this.loadCapabilities(generation, signal)
   }
 
   /**
@@ -572,6 +572,12 @@ export class GitClientController {
       if (signal.aborted || !this.isRequestCurrent(generation, repositoryRoot, requestGeneration, () => this.generationRequestGeneration)) return
       this.patch({ generating: false, generationError: error instanceof Error ? error.message : String(error) })
     }
+  }
+
+  private loadCapabilities(generation: number, signal: AbortSignal): void {
+    void this.loadGenerationCapability()
+    void this.loadDirectoryCapability(generation, signal)
+    if (this.worktreeFeature === undefined) void this.loadWorktreeCapability(generation, signal)
   }
 
   private async loadGenerationCapability(): Promise<void> {

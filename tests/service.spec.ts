@@ -8,6 +8,8 @@ import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
 import { afterEach, describe, expect, it } from 'vitest'
 import { canonicalPath } from '../src/path-identity.ts'
 import { GitService } from '../src/service.ts'
+import { GitSessionControllers } from '../src/client/session-controllers.ts'
+import type { GitRpcClient } from '../src/client/controller.ts'
 
 const roots: string[] = []
 
@@ -38,6 +40,77 @@ function repository(): string {
 }
 
 describe('portable Git service', { timeout: 20_000 }, () => {
+  it('recovers executable discovery after a cancelled first request', async () => {
+    const repo = repository()
+    const { dispose, git } = await service()
+    try {
+      const cancelled = new AbortController()
+      const first = git.discover(repo, cancelled.signal)
+      const independent = git.discover(repo)
+      cancelled.abort()
+      await Promise.all([
+        expect(first).rejects.toMatchObject({ name: 'AbortError' }),
+        expect(independent).resolves.toBe(realpathSync(repo)),
+      ])
+      expect(await git.discover(repo)).toBe(realpathSync(repo))
+      expect((await git.status(repo)).branch).toBe('main')
+      expect((await git.log(repo, 10, 0))[0]?.subject).toBe('initial')
+    } finally {
+      await dispose()
+    }
+  })
+
+  it('loads shared session UI data through real Git during overlapping tab mounts', async () => {
+    const repo = repository()
+    writeFileSync(join(repo, 'tracked.txt'), 'changed\n')
+    writeFileSync(join(repo, 'new.txt'), 'new\n')
+    const { dispose, git } = await service()
+    const rpc: GitRpcClient = {
+      call: async (_channel, endpoint, payload, signal) => {
+        const request = payload as Record<string, string>
+        try {
+          let value: unknown
+          switch (endpoint) {
+            case 'discover': value = await git.discover(request['path']!, signal); break
+            case 'status': value = await git.status(request['repository']!, signal); break
+            case 'log': value = await git.log(request['repository']!, 25, 0, 'auto', signal); break
+            case 'worktree-capability': value = { mode: 'local', directory: '.agents/worktrees' }; break
+            default: value = { available: false }
+          }
+          return { ok: true, value }
+        } catch (error) {
+          return { ok: false, error: { message: error instanceof Error ? error.message : String(error) } }
+        }
+      },
+    }
+    const sessions = new GitSessionControllers(rpc)
+    try {
+      const composer = sessions.controllerFor('session-a')
+      const worktrees = sessions.controllerFor('session-a')
+      const otherSession = sessions.controllerFor('session-b')
+      const binding = composer.setWorkspace(repo)
+      composer.setCommitMessage('saved draft')
+      const refresh = worktrees.refresh()
+      await Promise.all([binding, refresh, worktrees.setWorkspace(repo), otherSession.setWorkspace(repo)])
+      await Promise.all([composer.loadGraph(), otherSession.loadGraph()])
+      for (const controller of [composer, otherSession]) {
+        const state = controller.getSnapshot()
+        expect(state.error).toBeUndefined()
+        expect(state.repository?.branch).toBe('main')
+        expect(state.repository?.branches.map(branch => branch.name)).toContain('main')
+        expect(state.repository?.unstaged.map(change => change.path)).toContain('tracked.txt')
+        expect(state.repository?.untracked).toContain('new.txt')
+        expect(state.repository?.worktrees?.some(entry => entry.current)).toBe(true)
+        expect(state.graph[0]?.subject).toBe('initial')
+        expect(state.worktreeMode).toBe('local')
+      }
+      expect(composer.getSnapshot().commitMessage).toBe('saved draft')
+    } finally {
+      sessions.dispose()
+      await dispose()
+    }
+  })
+
   it('detects non-repositories and reads clean repositories', async () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-plugin-git-empty-'))
     roots.push(root)

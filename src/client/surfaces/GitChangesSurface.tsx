@@ -70,6 +70,7 @@ export function GitChangesSurface({
       {state.loading && repository === undefined && <p className={css.empty}>{t('details.loading')}</p>}
       {!state.loading && workspacePath === undefined && <p className={css.empty}>{t('details.noWorkspace')}</p>}
       {!state.loading && repository === null && <p className={css.empty}>{t('details.notRepository')}</p>}
+      {repository == null && state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
       {repository !== undefined && repository !== null && (
         <>
           <CommitRegion

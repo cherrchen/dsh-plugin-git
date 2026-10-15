@@ -9,7 +9,10 @@ import {
   createBranchErrorMessage,
   GitBranchControl,
 } from '../src/client/GitBranchControl.tsx'
-import type { GitClientController, GitClientState } from '../src/client/controller.ts'
+import { GitClientController, type GitClientState, type GitRpcClient } from '../src/client/controller.ts'
+import { GitChangesSurface, type GitChangesSurfaceProps } from '../src/client/surfaces/GitChangesSurface.tsx'
+import { GitWorktreesSurface, type GitWorktreesSurfaceProps } from '../src/client/surfaces/GitWorktreesSurface.tsx'
+import { GitGraphSurface, type GitGraphSurfaceProps } from '../src/client/surfaces/GitGraphSurface.tsx'
 import { en } from '../src/client/locales.ts'
 
 const SESSION_A = 'session-a' as SessionId
@@ -143,6 +146,54 @@ describe('GitBranchControl', () => {
       // oxlint-disable-next-line typescript/unbound-method -- Vitest inspects the controller mock without invoking it
       expect(controller.setWorkspace).toHaveBeenCalledWith('/projects/beta')
     })
+  })
+
+  it('loads composer controls, changes, worktrees and history with one real controller', async () => {
+    const signals: AbortSignal[] = []
+    const repository = snapshot({
+      unstaged: [{ path: 'src/a.ts', status: ' M' }],
+      worktrees: [{ path: '/repo', branch: 'main', head: 'abc123', current: true, detached: false, bare: false }],
+    })
+    const rpc: GitRpcClient = {
+      call: async (_channel, endpoint, _payload, signal) => {
+        if (signal !== undefined) signals.push(signal)
+        await Promise.resolve()
+        signal?.throwIfAborted()
+        if (endpoint === 'discover') return { ok: true, value: '/repo' }
+        if (endpoint === 'status') return { ok: true, value: repository }
+        if (endpoint === 'worktree-capability') return { ok: true, value: { mode: 'local' } }
+        if (endpoint === 'log') return { ok: true, value: [{
+          hash: 'abc123', shortHash: 'abc123', subject: 'Loaded commit',
+          parents: [], refs: [], author: 'tester', date: '2026-10-15T00:00:00Z',
+        }] }
+        return { ok: true, value: { available: false } }
+      },
+    }
+    const controller = new GitClientController(rpc, SESSION_A)
+    const list = sessionsOf({ [SESSION_A]: '/repo' })
+    const composerProps = baseProps(controller, list)
+    const surfaceProps = { ...composerProps, sessionId: SESSION_A }
+    try {
+      const view = render(<>
+        <GitBranchControl {...composerProps} sessionId={SESSION_A} />
+        <GitChangesSurface {...surfaceProps as unknown as GitChangesSurfaceProps} />
+        <GitWorktreesSurface {...surfaceProps as unknown as GitWorktreesSurfaceProps} />
+        <GitGraphSurface {...surfaceProps as unknown as GitGraphSurfaceProps} />
+      </>)
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'main' })).toBeTruthy()
+        expect(screen.getByRole('button', { name: /1 changes/i })).toBeTruthy()
+        expect(view.container.querySelector('[data-git-changes-surface]')?.textContent).toContain('a.ts')
+        expect(view.container.querySelector('[data-git-worktrees-surface] [data-git-worktree="/repo"]')).toBeTruthy()
+        expect(view.container.querySelector('[data-git-graph-surface]')?.textContent).toContain('Loaded commit')
+      })
+      expect(signals.every(signal => !signal.aborted)).toBe(true)
+      expect(controller.getSnapshot().error).toBeUndefined()
+      expect(screen.queryByRole('alert')).toBeNull()
+    } finally {
+      cleanup()
+      controller.dispose()
+    }
   })
 
   it('renders nothing while discovery is pending or when the workspace is not a Git repository', () => {
