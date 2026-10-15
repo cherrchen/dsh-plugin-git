@@ -7,7 +7,7 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 import type { ComponentType, ReactNode } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import type { SettingsFormLabels, SettingsFormProps, SettingsFormShell } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { GitSettingsFormLabels, GitSettingsFormProps, GitSettingsFormShell } from '../../compat/dsh-settings-form.tsx'
 import { NativeSettingsForm } from '../../compat/dsh-settings-form.tsx'
 import type { CommitMessageSettingsCardController } from './commit-message-card-controller.ts'
 import { CommitMessageSettingsCard } from './CommitMessageSettingsCard.tsx'
@@ -32,7 +32,7 @@ export type GitBundleConfigCardProps =
  * @param props - the form's copy and state, its controls, and the save and discard actions.
  * @returns the form, or the unavailable line while no namespace is served.
  */
-function LocalSettingsForm({ labels, state, onSave, onDiscard, children }: SettingsFormProps): ReactNode {
+function LocalSettingsForm({ labels, state, onSave, onDiscard, children }: GitSettingsFormProps): ReactNode {
   const discard = useRef(onDiscard)
   discard.current = onDiscard
   useEffect(() => () => { discard.current() }, [])
@@ -52,7 +52,7 @@ function LocalSettingsForm({ labels, state, onSave, onDiscard, children }: Setti
   )
 }
 
-const PageForm: ComponentType<SettingsFormProps> = NativeSettingsForm ?? LocalSettingsForm
+const PageForm: ComponentType<GitSettingsFormProps> = NativeSettingsForm ?? LocalSettingsForm
 
 /**
  * Render both Git settings sections on the plugin's bundle page.
@@ -71,7 +71,7 @@ export function GitBundleConfigCard({ commitMessage, worktrees, view, t }: GitBu
     )
   }
   if (view === 'page') {
-    const shell: SettingsFormShell = {
+    const shell: GitSettingsFormShell = {
       available: commit.available || worktree.available,
       // The notice covers every visible section: a namespace the host does not
       // serve contributes nothing to writability either way.
@@ -82,7 +82,7 @@ export function GitBundleConfigCard({ commitMessage, worktrees, view, t }: GitBu
       saving: commit.saving || worktree.saving,
       failed: commit.failed || worktree.failed,
     }
-    const labels: SettingsFormLabels = {
+    const labels: GitSettingsFormLabels = {
       unavailable: t('settings.unavailable'),
       readOnly: t('settings.readOnly'),
       saveFailed: t('settings.saveFailed'),
