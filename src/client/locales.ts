@@ -247,7 +247,7 @@ export const zh: Record<keyof typeof en, string> = {
   'settings.catalogFailed': '无法加载模型。',
   'settings.catalogRetry': '重试',
   'settings.catalogEmpty': '当前没有可用模型。请输入 provider 路由与模型 id。',
-  'settings.systemPrompt': 'System message',
+  'settings.systemPrompt': '系统提示词',
   'settings.systemPromptHint': '留空则使用内置的提交信息提示词。',
   'settings.systemPromptPlaceholder': 'You write Git commit messages.',
   'worktree.linked': '链接的工作树',
