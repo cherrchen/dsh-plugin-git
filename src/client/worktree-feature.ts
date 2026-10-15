@@ -37,6 +37,9 @@ export class GitWorktreeFeature {
   private refreshAgain = false
   private timer: ReturnType<typeof setInterval> | undefined
   private disposed = false
+  /** Consecutive failed polls; resets on the first successful answer. */
+  private failures = 0
+  private ticks = 0
 
   /**
    * @param rpc - Connection caller for the `/git` channel.
@@ -47,7 +50,15 @@ export class GitWorktreeFeature {
   startPolling(): void {
     if (this.disposed || this.timer !== undefined) return
     this.refresh()
-    this.timer = setInterval(() => { this.refresh() }, 5_000)
+    this.timer = setInterval(() => {
+      this.ticks += 1
+      // After three consecutive failures drop to one poll per six ticks (30s):
+      // a permanently unreachable endpoint stops dominating channel traffic,
+      // and a recovering host is still picked up within half a minute. Manual
+      // refreshes bypass the gate so a settings save stays responsive.
+      if (this.failures >= 3 && this.ticks % 6 !== 0) return
+      this.refresh()
+    }, 5_000)
   }
 
   /**
@@ -78,11 +89,17 @@ export class GitWorktreeFeature {
     const run = (async () => {
       try {
         const result = await this.rpc.call('/git', 'worktree-capability', {})
-        if (this.disposed || !result.ok) return
+        if (this.disposed) return
+        if (!result.ok) {
+          this.failures += 1
+          return
+        }
         const capability = decodeWorktreeCapability(result.value)
+        this.failures = 0
         this.patch({ mode: capability.mode, directory: capability.directory })
       } catch {
         // Transport or host failure: keep the last known mode.
+        this.failures += 1
       }
     })()
     this.pending = run
@@ -102,6 +119,8 @@ export class GitWorktreeFeature {
     clearInterval(this.timer)
     this.timer = undefined
     this.refreshAgain = false
+    this.failures = 0
+    this.ticks = 0
     this.listeners.clear()
   }
 

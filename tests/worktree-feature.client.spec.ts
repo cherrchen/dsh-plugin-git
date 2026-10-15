@@ -116,6 +116,36 @@ describe('GitWorktreeFeature', () => {
     }
   })
 
+  it('backs off while capability polls keep failing and recovers on success', async () => {
+    vi.useFakeTimers()
+    let fail = true
+    const client: GitRpcClient = {
+      call: vi.fn(async () => fail
+        ? { ok: false as const, error: { message: 'unknown Git endpoint "worktree-capability"' } }
+        : { ok: true as const, value: { mode: 'local', directory: '' } }),
+    }
+    const feature = new GitWorktreeFeature(client)
+    try {
+      feature.startPolling()
+      // Three strikes at the 5s cadence, then one poll per six ticks.
+      await vi.advanceTimersByTimeAsync(15_000)
+      expect(client.call).toHaveBeenCalledTimes(3)
+      await vi.advanceTimersByTimeAsync(25_000)
+      expect(client.call).toHaveBeenCalledTimes(4)
+      await vi.advanceTimersByTimeAsync(30_000)
+      expect(client.call).toHaveBeenCalledTimes(5)
+      fail = false
+      await vi.advanceTimersByTimeAsync(30_000)
+      expect(feature.getSnapshot().mode).toBe('local')
+      const calls = client.call.mock.calls.length
+      await vi.advanceTimersByTimeAsync(10_000)
+      expect(client.call.mock.calls.length).toBeGreaterThan(calls + 1)
+    } finally {
+      feature.dispose()
+      vi.useRealTimers()
+    }
+  })
+
   it('keeps the last known mode when a poll fails', async () => {
     let fail = false
     const client: GitRpcClient = {
