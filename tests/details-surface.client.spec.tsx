@@ -189,23 +189,27 @@ describe('GitChangesSurface', () => {
     expect(controller.setWorkspace).not.toHaveBeenCalledWith('/repo')
   })
 
-  it('disables worktree actions while a directory change is in flight', () => {
-    const controller = controllerOf(baseState({
-      directorySwitchAvailable: true,
-      enteringWorktree: true,
-      repository: snapshot({
-        worktrees: [
-          { path: '/repo', head: 'abc123', branch: 'main', detached: false, bare: false, current: true },
-          { path: '/repo-wt', head: 'def456', branch: 'feature', detached: false, bare: false, current: false },
-        ],
-      }),
-    }))
-    render(<GitChangesSurface {...props(controller)} />)
-    const enter = screen.getByRole<HTMLButtonElement>('button', { name: en['worktree.use'] })
-    expect(enter.getAttribute('aria-disabled')).toBe('true')
-    fireEvent.click(enter)
-    expect(controller.enterWorktree).not.toHaveBeenCalled()
-  })
+  it.each(['enteringWorktree', 'creatingWorktree'] as const)(
+    'disables worktree actions while a checkout change is in flight (%s)',
+    (flag) => {
+      const controller = controllerOf(baseState({
+        directorySwitchAvailable: true,
+        [flag]: true,
+        repository: snapshot({
+          worktrees: [
+            { path: '/repo', head: 'abc123', branch: 'main', detached: false, bare: false, current: true },
+            { path: '/repo-wt', head: 'def456', branch: 'feature', detached: false, bare: false, current: false },
+          ],
+        }),
+      }))
+      render(<GitChangesSurface {...props(controller)} />)
+      const enter = screen.getByRole<HTMLButtonElement>('button', { name: en['worktree.use'] })
+      expect(enter.getAttribute('aria-disabled')).toBe('true')
+      fireEvent.click(enter)
+      expect(controller.enterWorktree).not.toHaveBeenCalled()
+      cleanup()
+    },
+  )
 
   it('keeps other checkouts read-only when the host cannot change directories', () => {
     const controller = controllerOf(baseState({
