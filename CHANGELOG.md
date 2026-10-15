@@ -6,10 +6,25 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- A dedicated **Git Worktrees** sidebar page (`git.worktrees`) lists every checkout of the current repository — regardless of how it was created — marks the current one, and offers **Use in this session** plus a creation dialog (optional branch name and start point). The tab registers only while the Host reports a creation mode via the new `worktree-capability` RPC.
+- `create-worktree` RPC and `GitService.createWorktree`: when the host mounts the upstream experimental `worktrees` service, creation delegates to `ctx.worktrees.create(agent, ...)` and the new checkout is entered automatically; otherwise the `git-worktrees` `enabled` setting turns on a local `git worktree add -b` implementation whose pool defaults to `.agents/worktrees` and is configurable via `worktrees.directory`. A fresh in-repository pool gains a self-ignoring `.gitignore` when the host `fs` service is mounted. Deleting and pruning stay outside this package.
+- A `git-worktrees` settings section edits `enabled` and `directory` on both supported settings surfaces; saving re-polls the capability so the Worktrees tab appears or disappears without a restart.
+
 ### Changed
 
+- The plugin configuration cards now render entirely with `@deepseek-ai/dsh-client-ui-primitives` controls: the generation model is one dropdown listing the session model above provider-grouped catalog entries, and the Worktrees enablement uses the native capsule switch.
+- On the plugin bundle page both settings sections now compose into a single full-width settings form with one save — the host's `SettingsForm` where it is exported (DSH ≥0.1.7) and an identical frame on earlier releases — dropping staged edits when the page unmounts. The legacy namespace cards keep their own controls.
 - The exact DSH support list now covers every published release from `0.1.5-rc.2` through `0.2.1-alpha.2`: `0.1.5-rc.3` and `0.2.1-alpha.1` are verified and added, closing the remaining gaps in the range.
 - `scripts/upgrade-dsh.mjs` and `pnpm compat:check` accept exact-version host runtime pins, matching releases that declare Cordis and schemastery without a caret or tilde (as `0.1.5-rc.3` does).
+
+### Fixed
+
+- The shared configuration page waits for each section's save before fencing the next write, including when the page closes during saving. Transport failures retain editable drafts for retry, and disabling local worktrees explicitly overrides a composition default of `true`.
+- A worktree creation's directory projection no longer cancels its own successful RPC reply; controller disposal still cancels in-flight creation.
+- Same-directory sidebar mounts no longer cancel a shared refresh or clear the commit draft. Cancelled executable discovery no longer poisons later Git requests or other sessions; successful refreshes also update session capabilities. Changes and Graph display repository-loading failures.
+- Upstream worktree creation requires a live session, including submissions from an already-open dialog. The configured local checkout-pool hint appears only in local mode.
 
 ## [0.2.5] — 2026-10-11
 

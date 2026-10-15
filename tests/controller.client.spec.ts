@@ -31,6 +31,41 @@ describe('changedPathCount', () => {
 })
 
 describe('GitClientController', () => {
+  it('keeps a shared workspace bound when a surface mounts during its refresh', async () => {
+    const signals: AbortSignal[] = []
+    const rpc = {
+      call: vi.fn(async (_channel: string, endpoint: string, _payload: unknown, signal?: AbortSignal) => {
+        if (endpoint === 'discover') {
+          if (signal !== undefined) signals.push(signal)
+          return { ok: true as const, value: '/repo' }
+        }
+        if (endpoint === 'status') return { ok: true as const, value: snapshot() }
+        if (endpoint === 'log') return { ok: true as const, value: [] }
+        if (endpoint === 'worktree-capability') return { ok: true as const, value: { mode: 'local' } }
+        return { ok: true as const, value: { available: true } }
+      }),
+    }
+    const controller = new GitClientController(rpc, 'session-a')
+    const binding = controller.setWorkspace('/workspace')
+    controller.setCommitMessage('draft retained across tabs')
+    // Composer binds first; a new tab refreshes before its workspace effect.
+    const refresh = controller.refresh()
+    const remount = controller.setWorkspace('/workspace')
+    await Promise.all([binding, refresh, remount])
+    expect(signals).toHaveLength(2)
+    expect(signals.every(signal => !signal.aborted)).toBe(true)
+    expect(controller.getSnapshot()).toMatchObject({
+      commitMessage: 'draft retained across tabs',
+      repository: { root: '/repo', branch: 'main' },
+      directorySwitchAvailable: true,
+      generationAvailable: true,
+      worktreeMode: 'local',
+      loading: false,
+      error: undefined,
+    })
+    controller.dispose()
+  })
+
   it('discovers repository on workspace bind and ignores stale responses', async () => {
     const rpc = {
       call: vi.fn(async (_channel: string, endpoint: string) => {

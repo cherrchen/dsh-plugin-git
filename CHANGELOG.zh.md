@@ -6,10 +6,25 @@
 
 ## [Unreleased]
 
+### Added
+
+- 新的 **Git Worktrees** 侧栏页（`git.worktrees`）列出当前仓库的全部检出——不论其创建来源——并标记当前检出，提供 **在此会话中使用** 与创建对话框（可选分支名与起始提交）。仅当宿主通过新增的 `worktree-capability` RPC 报告创建模式时，该 tab 才注册。
+- `create-worktree` RPC 与 `GitService.createWorktree`：宿主挂载上游实验性 `worktrees` 服务时创建委托 `ctx.worktrees.create(agent, ...)` 并自动进入新检出；否则 `git-worktrees` 的 `enabled` 设置开启本地 `git worktree add -b` 实现，检出池默认 `.agents/worktrees`，可经 `worktrees.directory` 修改。宿主挂载 `fs` 服务时，新建的仓内检出池会写入自我忽略的 `.gitignore`。删除与修剪仍不属于本包。
+- 新的 `git-worktrees` 设置节在两种受支持的设置面上编辑 `enabled` 与 `directory`；保存后重新轮询 capability，Worktrees tab 无需重启即可出现或消失。
+
 ### Changed
 
+- 插件配置卡全面改用 `@deepseek-ai/dsh-client-ui-primitives` 原生控件：生成模型合并为一个下拉框，会话模型置于按 provider 分组的目录条目之上；Worktrees 启用项使用原生胶囊开关。
+- 插件 bundle 页上的两个设置节现在合并为一个通宽设置表单、共用一个保存按钮——宿主导出 `SettingsForm` 时使用原生框架（DSH ≥0.1.7），更早版本使用样式一致的本地框架——离开页面时丢弃暂存修改。旧版命名空间卡片保留各自的控件。
 - 精确 DSH 支持清单现已覆盖 `0.1.5-rc.2` 至 `0.2.1-alpha.2` 的全部已发布版本：`0.1.5-rc.3` 与 `0.2.1-alpha.1` 经验证后补入，区间内不再有缺口。
 - `scripts/upgrade-dsh.mjs` 与 `pnpm compat:check` 接受不带 caret 或波浪号的精确宿主运行时 pin，与以精确版本声明 Cordis、schemastery 的发行版一致（`0.1.5-rc.3` 即如此）。
+
+### Fixed
+
+- 共享配置页依次等待各设置节保存后再使用新 revision 写入下一节，保存中关闭页面仍会完成请求。传输失败后保留可编辑草稿供重试；关闭本地工作树会显式覆盖组合配置的 `true` 默认值。
+- 工作树创建发布的新目录投影不再取消自身的成功 RPC 回执；控制器卸载仍会取消在途创建。
+- 同目录侧栏挂载不再取消共享刷新或清空提交草稿。可执行文件首次查找被取消后不再污染后续 Git 请求或其他会话；成功刷新同时更新会话能力。Changes 与 Graph 会显示仓库加载失败原因。
+- 上游工作树创建要求当前会话有活 agent，已打开弹窗中的提交也受此约束；本地检出池目录提示仅在本地模式显示。
 
 ## [0.2.5] — 2026-10-11
 

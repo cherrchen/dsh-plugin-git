@@ -43,6 +43,35 @@ export interface GitWorktree {
   readonly current: boolean
 }
 
+/** How the Worktrees feature is backed for the `worktree-capability` answer. */
+export type GitWorktreeMode =
+  /** Feature hidden: no upstream runtime and the user toggle is off. */
+  | 'off'
+  /** Creation goes through the host's experimental `ctx.worktrees` service. */
+  | 'upstream'
+  /** Creation runs the plugin's own `git worktree add`; the user opted in. */
+  | 'local'
+
+/** Capability answer for the `worktree-capability` endpoint. */
+export interface GitWorktreeCapability {
+  /** Effective mode after combining upstream presence and the user toggle. */
+  readonly mode: GitWorktreeMode
+  /** Pool directory applied to local-mode creation, host-resolved. */
+  readonly directory: string
+}
+
+/** A checkout created by the `create-worktree` endpoint. */
+export interface GitCreatedWorktree {
+  /** Checkout directory Git registered. */
+  readonly path: string
+  /** Newly created branch name. */
+  readonly branch: string
+  /** Resolved commit the branch starts at. */
+  readonly baseCommit: string
+  /** Whether the calling session's directory already moved to the checkout. */
+  readonly entered?: boolean
+}
+
 /** Complete repository state required by the first Git client experience. */
 export interface GitRepositorySnapshot {
   readonly root: string

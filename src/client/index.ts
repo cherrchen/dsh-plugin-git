@@ -16,8 +16,10 @@ import { GitChangesSurface } from './surfaces/GitChangesSurface.tsx'
 import { GitDiffSurface } from './surfaces/GitDiffSurface.tsx'
 import { GitPageTitle } from './GitPageTitle.tsx'
 import { GitGraphSurface } from './surfaces/GitGraphSurface.tsx'
+import { GitWorktreesSurface } from './surfaces/GitWorktreesSurface.tsx'
 import type { GitDesktopCapability } from './controller.ts'
 import { GitSessionControllers } from './session-controllers.ts'
+import { GitWorktreeFeature } from './worktree-feature.ts'
 import {
   CommitMessageSettingsCardController,
   GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE,
@@ -27,6 +29,13 @@ import {
   type CommitMessageCatalogLoader,
 } from './settings/commit-message-card-controller.ts'
 import { CommitMessageSettingsCard } from './settings/CommitMessageSettingsCard.tsx'
+import { GitBundleConfigCard } from './settings/GitBundleConfigCard.tsx'
+import { WorktreeSettingsCard } from './settings/WorktreeSettingsCard.tsx'
+import {
+  GIT_WORKTREE_SETTINGS_NAMESPACE,
+  WorktreeSettingsCardController,
+  type WorktreeCardSettings,
+} from './settings/worktree-card-controller.ts'
 import {
   GIT_CHANGES_ID,
   GIT_CHANGES_KIND,
@@ -34,11 +43,13 @@ import {
   GIT_DIFF_KIND,
   GIT_GRAPH_ID,
   GIT_GRAPH_KIND,
+  GIT_WORKTREES_ID,
+  GIT_WORKTREES_KIND,
   gitDiffAddress,
 } from './contract.ts'
-import { changesDefinition, diffDefinition, graphDefinition } from './tab-definitions.ts'
+import { changesDefinition, diffDefinition, graphDefinition, worktreesDefinition } from './tab-definitions.ts'
 import { en, NS, zh, type GitLocaleKey } from './locales.ts'
-import { injectDshCommitMessageSettings } from '../compat/dsh-client-settings.ts'
+import { injectDshGitSettings } from '../compat/dsh-client-settings.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -60,21 +71,27 @@ export {
   GIT_DIFF_KIND,
   GIT_GRAPH_ID,
   GIT_GRAPH_KIND,
+  GIT_WORKTREES_ID,
+  GIT_WORKTREES_KIND,
   gitDiffAddress,
   parseGitDiffAddress,
   type GitChangesPayload,
   type GitDiffMode,
   type GitDiffPayload,
   type GitGraphPayload,
+  type GitWorktreesPayload,
 } from './contract.ts'
 export { GitClientController, type GitCommitFollowUp, type GitCommitOptions, type GitDesktopCapability } from './controller.ts'
+export { GitWorktreeFeature } from './worktree-feature.ts'
 
 export const inject = ['slots', 'connection', 'locale', 'sidebarRight', 'sidebarRightTabs']
 
 /** Register portable UI first, then activate native enhancement in an optional child fiber. */
 export function apply(ctx: ClientContext): void {
   const connection = ctx.get('connection') as ConnectionHandle
-  const gitSessions = new GitSessionControllers(connection.rpc)
+  const worktreeFeature = new GitWorktreeFeature(connection.rpc)
+  ctx.effect(() => () => { worktreeFeature.dispose() }, 'git: worktree feature')
+  const gitSessions = new GitSessionControllers(connection.rpc, worktreeFeature)
   ctx.effect(() => () => { gitSessions.dispose() }, 'git: session controllers')
 
   // Unified navigation: every Git entry point (composer chip, changes rows,
@@ -83,6 +100,9 @@ export function apply(ctx: ClientContext): void {
   // so re-opening a file reveals its tab instead of duplicating it.
   const openChanges = (): void => {
     ctx.sidebarRight.openTab(GIT_CHANGES_KIND)
+  }
+  const openWorktrees = (): void => {
+    ctx.sidebarRight.openTab(GIT_WORKTREES_KIND)
   }
   const openDiff = (path: string, staged: boolean): void => {
     ctx.sidebarRight.openResource(gitDiffAddress(path, staged), { params: { path, staged } })
@@ -95,6 +115,28 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.sidebarRightTabs.register(diffDefinition()), 'git: diff tab type')
   ctx.effect(() => ctx.sidebarRightTabs.register(graphDefinition(t)), 'git: graph tab type')
 
+  // The Worktrees tab type exists only while the host reports a creation mode:
+  // the upstream runtime mounted, or the local fallback enabled in settings.
+  // Its body and title stay registered — they render only when a tab exists.
+  let worktreeTabDispose: (() => void) | undefined
+  ctx.effect(() => {
+    const unsubscribe = worktreeFeature.subscribe(() => {
+      const mode = worktreeFeature.getSnapshot().mode
+      if (mode === 'upstream' || mode === 'local') {
+        worktreeTabDispose ??= ctx.sidebarRightTabs.register(worktreesDefinition(t))
+      } else if (mode === 'off') {
+        worktreeTabDispose?.()
+        worktreeTabDispose = undefined
+      }
+    })
+    return () => {
+      unsubscribe()
+      worktreeTabDispose?.()
+      worktreeTabDispose = undefined
+    }
+  }, 'git: worktrees tab type')
+  worktreeFeature.startPolling()
+
   ctx.slots.inject('conversation.input.left', () => ctx.slots.register({
     name: 'conversation.input.left',
     id: 'git-context',
@@ -104,25 +146,27 @@ export function apply(ctx: ClientContext): void {
 
   // Stage two: one body per tab type, keyed by the definition id. The sidebar
   // tab bar dispatches every tab of a kind to its registered body.
-  const bodies: ReadonlyArray<{ key: string; component: typeof GitChangesSurface }> = [
-    { key: GIT_CHANGES_ID, component: GitChangesSurface },
-    { key: GIT_DIFF_ID, component: GitDiffSurface },
-    { key: GIT_GRAPH_ID, component: GitGraphSurface },
+  const bodies: ReadonlyArray<{ key: string; component: typeof GitChangesSurface; inject: () => Record<string, unknown> }> = [
+    { key: GIT_CHANGES_ID, component: GitChangesSurface, inject: () => ({ gitSessions, openWorktrees }) },
+    { key: GIT_DIFF_ID, component: GitDiffSurface, inject: () => ({ gitSessions }) },
+    { key: GIT_GRAPH_ID, component: GitGraphSurface, inject: () => ({ gitSessions }) },
+    { key: GIT_WORKTREES_ID, component: GitWorktreesSurface, inject: () => ({ gitSessions, worktreeFeature }) },
   ]
   for (const body of bodies) {
     ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({
       name: 'sidebar.right.pane.tab',
       key: body.key,
       locale: NS,
-      inject: () => ({ gitSessions }),
+      inject: body.inject,
     }, body.component)), `git: ${body.key} body`)
   }
 
   // Diff chips title themselves after the compared file — path text, language
-  // neutral — so only the two page types need a live-title registration.
+  // neutral — so only the page types need a live-title registration.
   const pageTitles: ReadonlyArray<{ key: string; label: GitLocaleKey }> = [
     { key: GIT_CHANGES_ID, label: 'tab.changes' },
     { key: GIT_GRAPH_ID, label: 'tab.graph' },
+    { key: GIT_WORKTREES_ID, label: 'tab.worktrees' },
   ]
   for (const entry of pageTitles) {
     ctx.effect(() => ctx.slots.inject('sidebar.right.pane.tab.title', () => ctx.slots.register({
@@ -162,12 +206,32 @@ export function apply(ctx: ClientContext): void {
     return { inject: () => ({ controller: card }) }
   }
 
+  const mountWorktreeSettings = (
+    settingsCtx: ClientContext,
+    getForm: () => CommitMessageSettingsForm<WorktreeCardSettings>,
+  ): { inject: () => { controller: WorktreeSettingsCardController } } => {
+    const card = new WorktreeSettingsCardController(getForm(), () => { worktreeFeature.refresh() })
+    settingsCtx.effect(() => () => { card.dispose() }, 'git: worktrees settings dispose')
+    return { inject: () => ({ controller: card }) }
+  }
+
   // Settings API and slot differences across DSH releases are isolated in compat.
-  injectDshCommitMessageSettings(ctx, {
-    namespace: GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE,
+  injectDshGitSettings(ctx, {
     entryId: 'dsh-plugin-git',
+    bundleKey: '@dsh-electron/dsh-plugin-git',
     locale: NS,
-    component: CommitMessageSettingsCard,
-    mount: mountCommitMessageSettings,
+    commitMessage: {
+      namespace: GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE,
+      configPath: 'commitMessage',
+      component: CommitMessageSettingsCard,
+      mount: mountCommitMessageSettings,
+    },
+    worktrees: {
+      namespace: GIT_WORKTREE_SETTINGS_NAMESPACE,
+      configPath: 'worktrees',
+      component: WorktreeSettingsCard,
+      mount: mountWorktreeSettings,
+    },
+    bundleComponent: GitBundleConfigCard,
   })
 }

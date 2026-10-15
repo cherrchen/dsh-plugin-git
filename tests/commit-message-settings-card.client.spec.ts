@@ -95,6 +95,18 @@ describe('commitMessageDisplayedMode', () => {
   })
 })
 
+it('keeps the commit-message draft retryable after a transport rejection', async () => {
+  const host = fakeScope()
+  host.mutate.mockRejectedValueOnce(new Error('transport disconnected'))
+  const subject = new CommitMessageSettingsCardController(host.scope)
+  subject.setSystemPrompt('Write concise commits.')
+  await subject.save()
+  expect(subject.getSnapshot()).toMatchObject({ dirty: true, saving: false, failed: true })
+  await subject.save()
+  expect(subject.getSnapshot()).toMatchObject({ dirty: false, saving: false, failed: false })
+  subject.dispose()
+})
+
 describe('commitMessageModelCandidates', () => {
   it('retains a stored route that left the catalog', () => {
     const candidates = commitMessageModelCandidates(GROUPS, { provider: 'gone', model: 'old' })

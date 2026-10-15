@@ -28,15 +28,35 @@ import {
   type SessionDirectory,
 } from './session-directory.ts'
 import { GitService } from './service.ts'
-import type { GitCommitMessageCapability, GitFileChange } from './types.ts'
+import type { GitCommitMessageCapability, GitFileChange, GitWorktreeCapability } from './types.ts'
+import { createSessionWorktree, isUpstreamWorktrees, isWorktreePoolFs, worktreeMode } from './worktree-feature.ts'
+import {
+  GIT_WORKTREE_SETTINGS_NAMESPACE,
+  GIT_WORKTREE_SETTINGS_SCHEMA,
+  resolveWorktreeDirectory,
+  validateWorktreeSettings,
+  type WorktreeSettings,
+} from './worktree-settings.ts'
 
 export { CommitMessageUnavailableError, LlmCommitMessageProvider, UnavailableCommitMessageProvider } from './commit-message.ts'
 export type { CommitMessageInput, CommitMessageProvider, CommitMessageSelection, LlmCommitMessageOptions } from './commit-message.ts'
 export { GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE, GIT_COMMIT_MESSAGE_SETTINGS_SCHEMA, validateCommitMessageSettings } from './commit-message-settings.ts'
 export type { CommitMessageSettings } from './commit-message-settings.ts'
 export { GitCommandError, GitService, gitService } from './service.ts'
+export type { GitCreateWorktreeRequest, WorktreePoolFs } from './service.ts'
 export { parseGitLog, parseDecorations } from './log.ts'
 export { parseBranches, parsePorcelainV2 } from './status.ts'
+export { createSessionWorktree, isUpstreamWorktrees, worktreeMode } from './worktree-feature.ts'
+export {
+  DEFAULT_WORKTREE_DIRECTORY,
+  GIT_WORKTREE_SETTINGS_NAMESPACE,
+  GIT_WORKTREE_SETTINGS_SCHEMA,
+  isPoolDirectory,
+  resolveWorktreeDirectory,
+  validateWorktreeSettings,
+} from './worktree-settings.ts'
+export type { UpstreamWorktrees } from './worktree-feature.ts'
+export type { WorktreeSettings } from './worktree-settings.ts'
 export type * from './types.ts'
 
 export const name = 'dsh-plugin-git'
@@ -52,6 +72,8 @@ export interface Config {
   graceMs?: number
   /** Optional commit message generation backend. */
   commitMessage?: CommitMessageSettings
+  /** Optional Worktrees feature: force-enable without the upstream runtime, and the local checkout pool. */
+  worktrees?: WorktreeSettings
 }
 
 export const Config = z.object({
@@ -65,6 +87,10 @@ export const Config = z.object({
     systemPrompt: markVolatile(z.string()),
     maxDiffBytes: markVolatile(z.natural().min(1024)),
   }),
+  worktrees: z.object({
+    enabled: markVolatile(z.boolean()),
+    directory: markVolatile(z.string()),
+  }),
 })
 
 /** Install the portable service and the transport adapter when Connection is present. */
@@ -76,6 +102,7 @@ export function apply(ctx: Context, config: Config): void {
   })
   ctx.provide('git', service)
   const generation = assembleGeneration(ctx, config.commitMessage)
+  const worktree = assembleWorktreeRuntime(ctx, config.worktrees)
   let directory: SessionDirectory | undefined
   // Optional on hosts that predate working-directory. The fiber stays pending
   // until both services exist, and unload clears the binder without touching Git.
@@ -106,7 +133,7 @@ export function apply(ctx: Context, config: Config): void {
     }
     return connection.rpc.handle('/git', async (endpoint, payload, signal) => {
       try {
-        return { ok: true, value: await invoke(service, generation, directory, endpoint, payload, signal) }
+        return { ok: true, value: await invoke(service, generation, worktree, directory, endpoint, payload, signal) }
       } catch (error) {
         return {
           ok: false,
@@ -223,6 +250,81 @@ function plainCommitMessageSettings(source: CommitMessageSettings | undefined): 
   }
 }
 
+/**
+ * Live seams the Worktrees feature consults per request: resolved settings, the
+ * upstream runtime, and the filesystem slice for the local-mode pool marker.
+ * All three are read lazily so provider mount/unmount takes effect without a
+ * Host restart.
+ */
+interface WorktreeRuntime {
+  /** Resolved settings at call time (settings section, then composition entry). */
+  settings: () => WorktreeSettings
+  /** Upstream `ctx.worktrees`, when a mounted provider offers `create`. */
+  upstream: () => import('./worktree-feature.ts').UpstreamWorktrees | undefined
+  /** `ctx.fs` narrowed to the pool-marker methods, when mounted. */
+  fs: () => import('./service.ts').WorktreePoolFs | undefined
+}
+
+/**
+ * Wire the Worktrees feature: resolve settings from the live section or the
+ * composition entry, register the settings section when a settings service
+ * supports it, and expose lazy upstream/fs probes for the RPC dispatcher.
+ * @param ctx - Plugin context.
+ * @param entry - `Config.worktrees` composition entry.
+ * @returns Runtime seams consumed by `invoke`.
+ */
+function assembleWorktreeRuntime(ctx: Context, entry: WorktreeSettings | undefined): WorktreeRuntime {
+  let readSettings: (() => WorktreeSettings) | undefined
+  const resolved = (): WorktreeSettings => plainWorktreeSettings(readSettings?.() ?? entry)
+  ctx.inject(['settings'], (settingsCtx) => {
+    const settings = settingsCtx.settings as unknown as {
+      installSection?: (
+        owner: Context,
+        namespace: string,
+        schema: typeof GIT_WORKTREE_SETTINGS_SCHEMA,
+        initialValue: WorktreeSettings,
+        hooks: { setSource: (current: () => WorktreeSettings) => void; onChange: () => void; validate: typeof validateWorktreeSettings },
+      ) => void
+    }
+    if (settings.installSection === undefined) return
+    settings.installSection(ctx, GIT_WORKTREE_SETTINGS_NAMESPACE, GIT_WORKTREE_SETTINGS_SCHEMA, entry ?? {}, {
+      setSource: (current) => { readSettings = current },
+      onChange: () => {},
+      validate: validateWorktreeSettings,
+    })
+    return () => { readSettings = undefined }
+  })
+  validateWorktreeSettings(resolved())
+  return {
+    settings: resolved,
+    upstream: () => {
+      const service = optionalService(ctx, 'worktrees')
+      return isUpstreamWorktrees(service) ? service : undefined
+    },
+    fs: () => {
+      const service = optionalService(ctx, 'fs')
+      return isWorktreePoolFs(service) ? service : undefined
+    },
+  }
+}
+
+/**
+ * Copy worktree settings into plain values.
+ * On DSH 0.1.7 each field is a volatile reference and must be snapshotted per
+ * read so a settings edit applies to the next creation. Older hosts and the
+ * legacy settings section already store plain values.
+ * @param source - Composition entry, or the live settings section.
+ * @returns Settings safe to treat as booleans and strings.
+ */
+function plainWorktreeSettings(source: WorktreeSettings | undefined): WorktreeSettings {
+  const enabled = readVolatile(source?.enabled)
+  const directory = readVolatile(source?.directory)
+  return {
+    ...(typeof enabled === 'boolean' ? { enabled } : {}),
+    ...(typeof directory === 'string' ? { directory } : {}),
+  }
+}
+
 /** Current capability answer for the generation backend, including why it is unavailable. */
 function capability(generation: GenerationAssembly): GitCommitMessageCapability {
   const provider = generation.provider
@@ -238,6 +340,7 @@ function capability(generation: GenerationAssembly): GitCommitMessageCapability 
 async function invoke(
   service: GitService,
   generation: GenerationAssembly,
+  worktree: WorktreeRuntime,
   directory: SessionDirectory | undefined,
   endpoint: string,
   payload: unknown,
@@ -287,6 +390,21 @@ async function invoke(
       )
     }
     case 'commit-message-capability': return capability(generation)
+    case 'worktree-capability': {
+      const settings = worktree.settings()
+      const capability: GitWorktreeCapability = {
+        mode: worktreeMode(worktree.upstream(), settings),
+        directory: resolveWorktreeDirectory(settings),
+      }
+      return capability
+    }
+    case 'create-worktree': return createSessionWorktree({
+      service,
+      directory,
+      upstream: worktree.upstream(),
+      fs: worktree.fs(),
+      settings: worktree.settings,
+    }, request, signal)
     case 'generate-commit-message': {
       const provider = generation.provider
       if (provider instanceof UnavailableCommitMessageProvider) {
@@ -313,6 +431,19 @@ function injectOptional(ctx: Context, names: readonly string[], callback: (bound
     inject(services: readonly string[], apply: (bound: Context) => void | (() => void)): unknown
   }).inject.bind(ctx)
   inject(names, callback)
+}
+
+/**
+ * Read an undeclared host service by name.
+ * Undeclared names do not type-check through `Context.get`, so this narrows the
+ * accessor structurally; callers probe the result's shape themselves.
+ * @param ctx - Plugin context.
+ * @param name - Service name in the host service store.
+ * @returns The mounted service value, or undefined.
+ */
+function optionalService(ctx: Context, name: string): unknown {
+  const get = (ctx as unknown as { get?(name: string): unknown }).get
+  return typeof get === 'function' ? get.call(ctx, name) : undefined
 }
 
 function record(value: unknown): Record<string, unknown> {

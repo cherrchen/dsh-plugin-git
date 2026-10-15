@@ -82,7 +82,6 @@
 .readOnly,
 .notice,
 .invalid,
-.hint,
 .failed {
   margin: 12px 0 0;
   font-size: 12px;
@@ -90,8 +89,7 @@
 }
 
 .readOnly,
-.notice,
-.hint {
+.notice {
   color: var(--dsw-alias-label-tertiary);
 }
 
@@ -100,17 +98,9 @@
   color: var(--dsw-alias-label-error);
 }
 
+/* Tag supplies the badge palette; the card only pins it against shrinking. */
 .pending {
   flex: none;
-  border-radius: 999px;
-  corner-shape: round;
-  padding: 1px 8px;
-  font-size: 11px;
-  line-height: 17px;
-  font-weight: 500;
-  white-space: nowrap;
-  background: var(--dsw-alias-bg-module-platform);
-  color: var(--dsw-alias-label-secondary);
 }
 
 .field {
@@ -131,23 +121,45 @@
   color: var(--dsw-alias-label-primary);
 }
 
-.modes {
+.switchRow {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.mode {
+.selector {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0 12px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-3);
+  font: inherit;
   font-size: 13px;
   line-height: 1.5;
   color: var(--dsw-alias-label-primary);
+  cursor: pointer;
 }
 
-.select,
-.input,
+.selectorValue {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.selectorChevron {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+}
+
 .textarea {
   width: 100%;
   box-sizing: border-box;
@@ -158,29 +170,18 @@
   font-size: 13px;
   line-height: 1.5;
   color: var(--dsw-alias-label-primary);
-}
-
-.select,
-.input {
-  height: 34px;
-  padding: 0 12px;
-}
-
-.textarea {
   min-height: 88px;
   padding: 8px 12px;
   resize: vertical;
 }
 
-.select:focus-visible,
-.input:focus-visible,
+.selector:focus-visible,
 .textarea:focus-visible {
   outline: none;
   border-color: var(--dsw-alias-brand-primary);
 }
 
-.select:disabled,
-.input:disabled,
+.selector:disabled,
 .textarea:disabled {
   color: var(--dsw-alias-label-tertiary);
   cursor: default;
@@ -195,24 +196,6 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
-.retry {
-  appearance: none;
-  border: 0.5px solid var(--dsw-alias-border-l2);
-  border-radius: 8px;
-  padding: 3px 10px;
-  font: inherit;
-  font-size: 12px;
-  line-height: 1.5;
-  background: none;
-  color: var(--dsw-alias-label-secondary);
-  cursor: pointer;
-}
-
-.retry:hover:not(:disabled) {
-  background: var(--dsw-alias-interactive-bg-hover);
-  color: var(--dsw-alias-label-primary);
-}
-
 .footer {
   display: flex;
   align-items: center;
@@ -222,37 +205,60 @@
   border-top: 0.5px solid var(--dsw-alias-border-l2);
 }
 
-.discard,
-.save {
+/* The bundle page's single settings form, matching the native
+   SettingsForm chrome on hosts that do not export it (DSH <0.1.7). */
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.formNotice {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.pageSection + .pageSection {
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.pageFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.pageFailed {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-error);
+}
+
+.pageSave {
   appearance: none;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--dsw-radius-md);
   padding: 5px 14px;
   font: inherit;
   font-size: 13px;
   line-height: 1.5;
   cursor: pointer;
-}
-
-.discard {
-  border-color: var(--dsw-alias-border-l2);
-  background: none;
-  color: var(--dsw-alias-label-secondary);
-}
-
-.discard:hover:not(:disabled) {
-  background: var(--dsw-alias-interactive-bg-hover);
-  color: var(--dsw-alias-label-primary);
-}
-
-.save {
   background: var(--dsw-alias-label-primary);
   color: var(--dsw-alias-bg-layer-3);
 }
 
-.discard:disabled,
-.save:disabled,
-.retry:disabled {
+.pageSave:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+.pageSave:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 1px;
 }

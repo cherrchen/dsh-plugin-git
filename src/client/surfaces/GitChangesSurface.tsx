@@ -18,11 +18,11 @@ import css from '../GitDetailsSurface.module.css'
 
 /** Full composed props for the Git Changes tab body. */
 export type GitChangesSurfaceProps = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'git'>
-  & { controller?: GitClientController; gitSessions?: GitSessionControllers }
+  & { controller?: GitClientController; gitSessions?: GitSessionControllers; openWorktrees?: () => void }
 
 /** Render the Git Changes surface body. */
 export function GitChangesSurface({
-  controller: controllerProp, gitSessions, t, useSessions, sessionId,
+  controller: controllerProp, gitSessions, openWorktrees, t, useSessions, sessionId,
 }: GitChangesSurfaceProps): ReactNode {
   const controller = resolveGitController({ controller: controllerProp, gitSessions, sessionId })
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
@@ -58,15 +58,23 @@ export function GitChangesSurface({
       {repository !== undefined && repository !== null ? (
         <GitWorktreeList
           worktrees={repository.worktrees ?? []}
+          repositoryRoot={repository.root}
           directorySwitchAvailable={state.directorySwitchAvailable === true}
-          entering={state.loading || state.enteringWorktree}
+          entering={state.loading || state.enteringWorktree || state.creatingWorktree}
           onEnter={(path) => { void controller.enterWorktree(path) }}
+          onReveal={state.desktopAvailable
+            ? (path) => { void controller.reveal(path) }
+            : undefined}
+          onManage={openWorktrees !== undefined && (state.worktreeMode === 'upstream' || state.worktreeMode === 'local')
+            ? openWorktrees
+            : undefined}
           t={t}
         />
       ) : null}
       {state.loading && repository === undefined && <p className={css.empty}>{t('details.loading')}</p>}
       {!state.loading && workspacePath === undefined && <p className={css.empty}>{t('details.noWorkspace')}</p>}
       {!state.loading && repository === null && <p className={css.empty}>{t('details.notRepository')}</p>}
+      {repository == null && state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
       {repository !== undefined && repository !== null && (
         <>
           <CommitRegion

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'
-import { GIT_CHANGES_ID, GIT_GRAPH_ID, gitDiffAddress } from '../src/client/contract.ts'
+import { GIT_CHANGES_ID, GIT_GRAPH_ID, GIT_WORKTREES_ID, gitDiffAddress } from '../src/client/contract.ts'
 import { changesDefinition } from '../src/client/tab-definitions.ts'
 import { gitBench } from './harness/sidebar-fake.client.ts'
 
@@ -15,16 +15,17 @@ describe('Git + right-sidebar migration', () => {
     expect(bench.fake.sidebarRightTabs.guide()).toHaveLength(0)
   })
 
-  it('registers live titles for the Changes and Graph chips only', async () => {
+  it('registers live titles for the Changes, Graph, and Worktrees pages', async () => {
     const bench = await gitBench()
     const titleKeys = bench.registrations
       .filter(entry => entry.name === 'sidebar.right.pane.tab.title')
       .map(entry => entry.key)
     expect(titleKeys).toContain(GIT_CHANGES_ID)
     expect(titleKeys).toContain(GIT_GRAPH_ID)
+    expect(titleKeys).toContain(GIT_WORKTREES_ID)
     // Diff chips title after the compared file (language-neutral path text),
     // so no title registration exists for the diff type.
-    expect(titleKeys).toHaveLength(2)
+    expect(titleKeys).toHaveLength(3)
     await bench.fiber.dispose()
     expect(bench.registrations.filter(entry => entry.name === 'sidebar.right.pane.tab.title')).toHaveLength(0)
   })

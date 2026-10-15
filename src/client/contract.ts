@@ -10,6 +10,9 @@ export const GIT_DIFF_ID = '@dsh-electron/dsh-plugin-git/diff' as const
 /** Implementation id (body-seat key) of the Git Graph tab type. */
 export const GIT_GRAPH_ID = '@dsh-electron/dsh-plugin-git/graph' as const
 
+/** Implementation id (body-seat key) of the Git Worktrees tab type. */
+export const GIT_WORKTREES_ID = '@dsh-electron/dsh-plugin-git/worktrees' as const
+
 /** Tab kind (`openTab` discriminator) of the Git Changes page. */
 export const GIT_CHANGES_KIND = 'git.changes' as const
 
@@ -18,6 +21,9 @@ export const GIT_DIFF_KIND = 'git.diff' as const
 
 /** Tab kind (`openTab` discriminator) of the Git Graph page. */
 export const GIT_GRAPH_KIND = 'git.graph' as const
+
+/** Tab kind (`openTab` discriminator) of the Git Worktrees page. */
+export const GIT_WORKTREES_KIND = 'git.worktrees' as const
 
 /** Which sides of the comparison a Diff tab shows. */
 export type GitDiffMode = 'worktree' | 'staged'
@@ -35,6 +41,9 @@ export interface GitDiffPayload {
 
 /** Open arguments for the Graph page; the repository follows the workspace. */
 export interface GitGraphPayload {}
+
+/** Open arguments for the Worktrees page; the repository follows the workspace. */
+export interface GitWorktreesPayload {}
 
 /** The resource type (host segment after `dsh-resource://`) Git diffs are addressed under. */
 export const GIT_DIFF_RESOURCE_PROTOCOL = 'git' as const

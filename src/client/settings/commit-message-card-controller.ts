@@ -5,8 +5,9 @@
 /** Settings namespace; spelled here so the Client half never imports Host modules. */
 export const GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE = 'git-commit-message'
 
-type CommitMessageSettingsMutation =
-  | { op: 'set'; path: string[]; value: string }
+/** One staged write against a settings section; values are JSON-typed. */
+export type GitSettingsMutation =
+  | { op: 'set'; path: string[]; value: unknown }
   | { op: 'unset'; path: string[] }
 
 /** Shared shape of the namespace editor API before and after DSH 0.1.7. */
@@ -19,7 +20,7 @@ export interface CommitMessageSettingsForm<T> {
     mode: 'host' | 'memory'
   }
   subscribe(listener: () => void): () => void
-  mutate(ops: readonly CommitMessageSettingsMutation[], expectedRevision?: number): Promise<void | boolean>
+  mutate(ops: readonly GitSettingsMutation[], expectedRevision?: number): Promise<void | boolean>
 }
 
 /** Stored fields this card edits. */
@@ -259,9 +260,9 @@ export class CommitMessageSettingsCardController {
     void this.ensureCatalog()
   }
 
-  /** Persist every staged field as one revision-fenced mutation. */
-  save(): void {
-    void this.commit()
+  /** Persist every staged field; resolve after success or a retryable failure. */
+  save(): Promise<void> {
+    return this.commit()
   }
 
   /** Drop every staged edit. */
@@ -354,16 +355,16 @@ export class CommitMessageSettingsCardController {
     if (this.disposed || snapshot.status !== 'ready' || !snapshot.writable || this.saving) return
     if (mode === 'custom' && (provider === '' || model === '')) return
     if (!this.dirty()) return
-    if (this.draft !== undefined && snapshot.revision !== this.draft.revision) {
-      this.failed = true
-      this.publish()
-      return
-    }
+    // Another section sharing this form (or an external write) bumps the
+    // revision without touching the staged field values, so rebase the draft
+    // onto it instead of deadlocking the save. The mutate call's revision
+    // fence still rejects a write that lands between this read and the save.
+    if (this.draft !== undefined) this.draft.revision = snapshot.revision
     const generation = this.saveGeneration
     this.saving = true
     this.failed = false
     this.publish()
-    const ops: Array<{ op: 'set'; path: string[]; value: string } | { op: 'unset'; path: string[] }> = [
+    const ops: GitSettingsMutation[] = [
       { op: 'set', path: ['mode'], value: mode },
     ]
     if (mode === 'custom') {
@@ -374,13 +375,21 @@ export class CommitMessageSettingsCardController {
     const trimmedPrompt = systemPrompt.trim()
     if (trimmedPrompt === '') ops.push({ op: 'unset', path: ['systemPrompt'] })
     else ops.push({ op: 'set', path: ['systemPrompt'], value: trimmedPrompt })
-    await this.scope.mutate(ops, this.draft?.revision)
-    if (generation !== this.saveGeneration) return
-    this.saving = false
-    const landed = this.matches(mode, provider, model, trimmedPrompt)
-    this.failed = !landed
-    if (landed) this.draft = undefined
-    this.publish()
+    try {
+      const accepted = await this.scope.mutate(ops, this.draft?.revision)
+      if (generation !== this.saveGeneration) return
+      const landed = accepted !== false && this.matches(mode, provider, model, trimmedPrompt)
+      this.failed = !landed
+      if (landed) this.draft = undefined
+    } catch {
+      if (generation !== this.saveGeneration) return
+      this.failed = true
+    } finally {
+      if (generation === this.saveGeneration) {
+        this.saving = false
+        this.publish()
+      }
+    }
   }
 
   private matches(mode: 'inherit' | 'custom', provider: string, model: string, systemPrompt: string): boolean {
