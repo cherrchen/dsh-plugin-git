@@ -260,9 +260,9 @@ export class CommitMessageSettingsCardController {
     void this.ensureCatalog()
   }
 
-  /** Persist every staged field as one revision-fenced mutation. */
-  save(): void {
-    void this.commit()
+  /** Persist every staged field; resolve after success or a retryable failure. */
+  save(): Promise<void> {
+    return this.commit()
   }
 
   /** Drop every staged edit. */
@@ -375,13 +375,21 @@ export class CommitMessageSettingsCardController {
     const trimmedPrompt = systemPrompt.trim()
     if (trimmedPrompt === '') ops.push({ op: 'unset', path: ['systemPrompt'] })
     else ops.push({ op: 'set', path: ['systemPrompt'], value: trimmedPrompt })
-    await this.scope.mutate(ops, this.draft?.revision)
-    if (generation !== this.saveGeneration) return
-    this.saving = false
-    const landed = this.matches(mode, provider, model, trimmedPrompt)
-    this.failed = !landed
-    if (landed) this.draft = undefined
-    this.publish()
+    try {
+      const accepted = await this.scope.mutate(ops, this.draft?.revision)
+      if (generation !== this.saveGeneration) return
+      const landed = accepted !== false && this.matches(mode, provider, model, trimmedPrompt)
+      this.failed = !landed
+      if (landed) this.draft = undefined
+    } catch {
+      if (generation !== this.saveGeneration) return
+      this.failed = true
+    } finally {
+      if (generation === this.saveGeneration) {
+        this.saving = false
+        this.publish()
+      }
+    }
   }
 
   private matches(mode: 'inherit' | 'custom', provider: string, model: string, systemPrompt: string): boolean {

@@ -119,6 +119,8 @@ export class GitClientController {
   private readonly listeners = new Set<() => void>()
   /** Cancels Git RPC started for the current workspace when that workspace changes. */
   private operations = new AbortController()
+  /** Creation can publish its own workspace change before its RPC reply. */
+  private worktreeCreation: AbortController | undefined
   private desktop: GitDesktopCapability | undefined
   private operationGeneration = 0
   /**
@@ -270,6 +272,7 @@ export class GitClientController {
   dispose(): void {
     this.unsubscribeWorktreeFeature?.()
     this.operations.abort()
+    this.worktreeCreation?.abort()
     this.listeners.clear()
   }
 
@@ -409,14 +412,18 @@ export class GitClientController {
     const repositoryRoot = this.requireRepository().root
     const run = async (): Promise<GitCreatedWorktree> => {
       if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) throw abortError()
+      // Once dispatched, creation owns its response until it settles or this
+      // controller is disposed. Its directory projection may rebind the
+      // workspace first; that still cancels old reads and queued mutations.
+      const creation = new AbortController()
+      this.worktreeCreation = creation
       this.patch({ creatingWorktree: true })
       try {
         const created = decodeCreatedWorktree(await this.call('create-worktree', {
           repository: repositoryRoot,
           ...(name !== undefined && name !== '' ? { name } : {}),
           ...(from !== undefined && from !== '' ? { from } : {}),
-        }, signal))
-        if (signal.aborted) throw abortError()
+        }, creation.signal))
         // Entered creations hand the repository to the rebound workspace; a
         // refresh on the old binding is meaningless and the new one reloads
         // through `setWorkspace` anyway.
@@ -428,6 +435,7 @@ export class GitClientController {
         const message = error instanceof Error ? error.message : String(error)
         throw error instanceof Error ? error : new Error(message)
       } finally {
+        this.worktreeCreation = undefined
         // A reload above re-binds the operation generation, so this clears
         // unconditionally: a superseded binding already reset the flag and a
         // queued mutation runs only after this one settles.

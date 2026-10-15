@@ -27,7 +27,7 @@
 ## 关键结构事实
 
 - **Host service**：通过 `ctx.subprocess` 启动 `git`（可执行名或绝对路径 + 分离 argv）。每条命令的 cwd 是调用方给出的仓库路径，或在宿主提供工作目录服务且会话 agent 仍活着时，是该会话有效目录所在的检出根。不使用进程级 `process.cwd()`。Status 用 porcelain v2 + NUL 路径分隔；branches 用 `for-each-ref`；commit 历史用固定字段数的分页 `git log`（`GIT_LOG_FORMAT`），Graph 据此增量加载。检出种类与 `git worktree list --porcelain -z` 一起放进同一次 status；`-z` 记录里的路径按 Git 原文保留，不裁掉首尾空白。Git 不支持 `-z` 时退回换行形式。丢弃（discard）通过显式的 index / worktree / clean 操作序列实现，Client 侧强制两步确认。
-- **会话目录**：Client 从会话列表读取有效目录：投影 `workingDirectory` 为非空字符串时使用它，否则使用会话头 `cwd`。这是宿主已有投影，插件不另建目录数据库。目录变化会取消该会话尚未完成的 Git RPC，写操作在宿主侧还要核对请求仓库是否仍是该有效目录的检出；对不上就拒绝，不把结果套到新检出上。每个会话一个 controller。
+- **会话目录**：Client 从会话列表读取有效目录：投影 `workingDirectory` 为非空字符串时使用它，否则使用会话头 `cwd`。这是宿主已有投影，插件不另建目录数据库。目录变化会取消旧工作区的读取与尚未发出的写操作；已发出的工作树创建单独等待回执，以免自身发布的目录投影取消成功结果，控制器卸载时仍取消该请求。其余在途 Git RPC 随绑定取消。写操作在宿主侧还要核对请求仓库是否仍是该有效目录的检出；对不上就拒绝，不把结果套到新检出上。每个会话一个 controller。
 - **Worktree 边界**：本包发现同一仓库的全部检出（来源不限），并在宿主 `workingDirectory.set` 可用且该会话仍有活 agent 时，让用户把**当前这个会话**切到列表中的另一个检出。专用 Worktrees 侧栏 tab（`git.worktrees`）按 `worktree-capability` RPC 上报的模式动态注册：宿主挂载上游实验性 `ctx.worktrees` 时为 `upstream`——创建委托 `ctx.worktrees.create(agent, ...)`，上游成功后自己切换会话目录，Git 界面跟随投影刷新；未挂载且 `git-worktrees` 设置的 `enabled` 为真时为 `local`——`GitService.createWorktree` 用 `git worktree add -b`（检出池默认 `<仓库根>/.agents/worktrees/`，可在设置中改，可选 `ctx.fs` 只为占用检查与池 `.gitignore` 标记），随后经会话目录服务进入新检出；两者皆无时为 `off`，tab 类型随之注销。Client 在插件挂载时及每 5 秒轮询 capability；设置保存后立即请求刷新，在途轮询后补一次刷新以避免旧响应遮蔽设置变化。tab 注册与全部会话控制器共享同一份能力状态，因此启停本地模式或挂载/卸载上游运行时无需重新绑定工作区；插件卸载时停止定时器并解除会话订阅。绝对检出池目录（包括 Windows UNC 与根路径）保持原样，相对路径按仓库根解析。上游运行时的探测是结构性的（服务提供 `create` 方法），不引入实验包依赖。删除与修剪仍不在本包内。同一次目录切换或创建尚未结束时，下一次排队执行，进入按钮保持禁用。
 - **RPC**：DSH Web 宿主存在时，Connection 子 fiber 注册 loopback `/git` 通道；过期输出（stale mutation）被丢弃，文件名按字面 pathspec 处理。
 - **Client 刷新合并**：`GitClientController.refresh()` 对同一工作区复用在途刷新（复用键为 `path` + `operationGeneration`，只有同 `generation` 才复用；轮次结束在 `finally` 中释放槽位）。复用只在该轮尚未发出 `status` 读取时成立；请求在该轮读取之后到达时，该轮记一次 trailing 读取，合并进来的调用方 await 到这轮 trailing 读取落地，共享轮次失败（瞬时错误）也不例外——请求的依据是「读取已发出」，与那轮成败无关。一个 burst 最多两轮往返（trailing 不再递归链接，避免控制器自身的 Host 流量——Windows 下每条 git 命令弹出的控制台窗口带来的焦点事件——自激成永久循环）。composer 控件的 `window` focus 监听因此不会在焦点抖动时叠加多轮 discover/status，也不会让重叠轮次互相判旧。背景见 [troubleshooting](../troubleshooting/windows-desktop-console-flood.md)。
@@ -38,6 +38,7 @@
 - **Commit message 生成**：Host 侧独立 LLM 请求（不经会话上下文，无 KV Cache 影响）；需要 LLM runtime 与可解析模型，否则 Client 报告 `git/generation-unavailable`。配置结构见根 README [Configuration](../../README.md#configuration)（canonical）。
 
 - **加载与取消恢复**：同目录界面挂载不因 refresh 的结果 generation 变化而重新绑定；成功 refresh 会更新会话能力。Host 只缓存成功的 Git 可执行路径，请求取消或查找失败不污染后续请求。Changes / Graph 显示 discovery/status 错误，具体故障链和回归验证见 [Git 界面空白与持续 AbortError](../troubleshooting/git-workspace-abort.md)。
+- **配置保存**：bundle 页共用一个保存按钮，各设置节依次等待保存完成后再读取共享 ConfigForm 的新 revision；保存过程中离开页面不丢弃待保存的下一节。写入拒绝或传输异常保留草稿、恢复编辑与重试，关闭本地模式写入显式 `false` 以覆盖组合层默认值。
 - **创建入口约束**：Worktrees 的 `upstream` 模式须当前会话目录能力可用（含活 agent）才开放创建，弹窗提交时同样检查；`local` 模式可以在无活 agent 时创建而不进入。检出池目录提示只在 `local` 模式显示，上游创建的目标由上游决定。
 
 ## 验证方式

@@ -8,6 +8,7 @@ import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply } from '../src/index.ts'
 import { canonicalPath } from '../src/path-identity.ts'
+import { GitClientController } from '../src/client/controller.ts'
 
 const roots: string[] = []
 
@@ -71,6 +72,61 @@ async function mounted(options: {
 }
 
 describe('worktree endpoints', { timeout: 20_000 }, () => {
+  it.each(['local', 'upstream'])('accepts %s creation when its directory projection arrives before the RPC reply', async (mode) => {
+    const repo = repository()
+    const ctx = new Context()
+    const fiber = ctx.plugin(LocalSubprocessRuntime)
+    await fiber.await()
+    let handler: ((endpoint: string, payload: unknown, signal: AbortSignal) => Promise<Reply>) | undefined
+    let cwd = repo
+    let rebound: Promise<void> | undefined
+    let controller: GitClientController | undefined
+    ctx.provide('webServer', {} as never)
+    ctx.provide('connection', { rpc: {
+      handle(_channel: string, call: NonNullable<typeof handler>) { handler = call; return () => {} },
+    } } as never)
+    ctx.provide('agents', { get: () => ({ session: { id: 'session-a' } }) } as never)
+    ctx.provide('workingDirectory', {
+      get: () => cwd,
+      set: async (_agent: unknown, path: string, signal: AbortSignal) => {
+        signal.throwIfAborted()
+        cwd = path
+        // The Host publishes the committed session directory before replying.
+        rebound = controller!.setWorkspace(cwd)
+        await new Promise(resolve => setImmediate(resolve))
+        return cwd
+      },
+    } as never)
+    apply(ctx, { worktrees: { enabled: true } } as never)
+    if (mode === 'upstream') {
+      ctx.provide('worktrees', {
+        create: async (_agent: unknown, request: { name?: string }, signal: AbortSignal) => {
+          const created = await ctx.git.createWorktree(cwd, request, undefined, signal)
+          cwd = created.path
+          rebound = controller!.setWorkspace(cwd)
+          await new Promise(resolve => setImmediate(resolve))
+          return created
+        },
+      } as never)
+    }
+    await new Promise(resolve => setImmediate(resolve))
+    controller = new GitClientController({
+      call: (_channel, endpoint, payload, signal) => handler!(endpoint, payload, signal ?? new AbortController().signal),
+    }, 'session-a')
+    try {
+      await controller.setWorkspace(repo)
+      const created = await controller.createWorktree('projected')
+      await rebound
+      expect(created).toMatchObject({ branch: 'projected', entered: true, path: cwd })
+      expect(existsSync(join(cwd, 'tracked.txt'))).toBe(true)
+      expect(controller.getSnapshot()).toMatchObject({ workspacePath: cwd, creatingWorktree: false, repository: { root: cwd } })
+    } finally {
+      controller.dispose()
+      await rebound
+      await fiber.dispose()
+    }
+  })
+
   it('reports off and refuses creation with no runtime and no toggle', async () => {
     const host = await mounted()
     try {

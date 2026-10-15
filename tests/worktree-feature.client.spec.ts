@@ -222,6 +222,29 @@ describe('GitClientController worktrees', () => {
     expect(controller.getSnapshot().repository?.branch).toBe('main')
     expect(controller.getSnapshot().creatingWorktree).toBe(false)
   })
+
+  it('cancels an in-flight creation when the controller is disposed', async () => {
+    let started: (() => void) | undefined
+    const dispatched = new Promise<void>(resolve => { started = resolve })
+    const client: GitRpcClient = {
+      call: async (_channel, endpoint, _payload, signal) => {
+        if (endpoint === 'create-worktree') {
+          started!()
+          return new Promise((_resolve, reject) => {
+            signal!.addEventListener('abort', () => reject(signal!.reason), { once: true })
+          })
+        }
+        return { ok: true, value: BIND[endpoint] ?? null }
+      },
+    }
+    const controller = new GitClientController(client, 'session-a')
+    await controller.setWorkspace('/workspace')
+    const creation = controller.createWorktree('w1')
+    const rejected = expect(creation).rejects.toMatchObject({ name: 'AbortError' })
+    await dispatched
+    controller.dispose()
+    await rejected
+  })
 })
 
 interface ScopeHost {
@@ -366,7 +389,7 @@ describe('WorktreeSettingsCardController', () => {
     subject.dispose()
   })
 
-  it('unsets fields back to defaults and fires onSaved when the clear lands', async () => {
+  it('disables local mode and clears the directory override', async () => {
     const host = fakeScope({ value: { enabled: true, directory: '.wt' } })
     const onSaved = vi.fn()
     const subject = new WorktreeSettingsCardController(host.scope, onSaved)
@@ -375,7 +398,7 @@ describe('WorktreeSettingsCardController', () => {
     subject.save()
     await vi.waitFor(() => expect(subject.getSnapshot().dirty).toBe(false))
     expect(host.mutate.mock.calls[0]![0]).toEqual([
-      { op: 'unset', path: ['enabled'] },
+      { op: 'set', path: ['enabled'], value: false },
       { op: 'unset', path: ['directory'] },
     ])
     expect(onSaved).toHaveBeenCalledTimes(1)
@@ -410,6 +433,40 @@ describe('WorktreeSettingsCardController', () => {
     subject.save()
     await vi.waitFor(() => expect(subject.getSnapshot().failed).toBe(true))
     expect(subject.getSnapshot().dirty).toBe(true)
+    subject.dispose()
+  })
+
+  it('writes false to override composition-enabled worktrees', async () => {
+    const host = fakeScope({ value: { enabled: true } })
+    host.mutate.mockImplementation(async (ops: readonly GitSettingsMutation[]) => {
+      const user: Record<string, unknown> = {}
+      for (const op of ops) {
+        if (op.op === 'set') user[op.path[0]!] = op.value
+      }
+      // Unsetting a user override restores the composition value.
+      host.publish({ value: { enabled: true, ...user }, revision: 1 })
+      return true
+    })
+    const subject = new WorktreeSettingsCardController(host.scope)
+    subject.setEnabled(false)
+    subject.save()
+    await vi.waitFor(() => expect(subject.getSnapshot()).toMatchObject({ enabled: false, dirty: false, failed: false, saving: false }))
+    expect(host.scope.getSnapshot().value?.enabled).toBe(false)
+    subject.dispose()
+  })
+
+  it('keeps the draft retryable after a transport rejection', async () => {
+    const host = fakeScope()
+    host.mutate.mockRejectedValueOnce(new Error('transport disconnected'))
+    const onSaved = vi.fn()
+    const subject = new WorktreeSettingsCardController(host.scope, onSaved)
+    subject.setEnabled(true)
+    await subject.save()
+    expect(subject.getSnapshot()).toMatchObject({ enabled: true, dirty: true, saving: false, failed: true })
+    expect(onSaved).not.toHaveBeenCalled()
+    await subject.save()
+    expect(subject.getSnapshot()).toMatchObject({ dirty: false, saving: false, failed: false })
+    expect(onSaved).toHaveBeenCalledTimes(1)
     subject.dispose()
   })
 })

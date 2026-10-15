@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { CommitMessageSettingsCardController, CommitMessageSettingsCardState } from '../src/client/settings/commit-message-card-controller.ts'
 import type { WorktreeSettingsCardController, WorktreeSettingsCardState } from '../src/client/settings/worktree-card-controller.ts'
@@ -78,7 +78,7 @@ function worktreeControllerOf(state: WorktreeSettingsCardState): WorktreeSetting
 }
 
 describe('GitBundleConfigCard on hosts without SettingsForm', () => {
-  it('renders every section inside one form with a single save', () => {
+  it('renders every section inside one form with a single save', async () => {
     const commitMessage = commitControllerOf(commitReady({ dirty: true }))
     const worktrees = worktreeControllerOf(worktreeReady({ dirty: true }))
     render(<GitBundleConfigCard commitMessage={commitMessage} worktrees={worktrees} view="page" {...locale} />)
@@ -88,7 +88,7 @@ describe('GitBundleConfigCard on hosts without SettingsForm', () => {
     expect(saves).toHaveLength(1)
     fireEvent.click(saves[0]!)
     expect(commitMessage.save).toHaveBeenCalled()
-    expect(worktrees.save).toHaveBeenCalled()
+    await waitFor(() => expect(worktrees.save).toHaveBeenCalled())
   })
 
   it('discards every section when the page unmounts', () => {

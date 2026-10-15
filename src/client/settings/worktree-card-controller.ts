@@ -102,9 +102,9 @@ export class WorktreeSettingsCardController {
     this.publish()
   }
 
-  /** Persist every staged field as one revision-fenced mutation. */
-  save(): void {
-    void this.commit()
+  /** Persist every staged field; resolve after success or a retryable failure. */
+  save(): Promise<void> {
+    return this.commit()
   }
 
   /** Drop every staged edit. */
@@ -155,22 +155,30 @@ export class WorktreeSettingsCardController {
     this.saving = true
     this.failed = false
     this.publish()
-    // Absence means default: the toggle writes `enabled` only when true, and a
-    // blank directory clears the override.
+    // False must override a composition layer that enables local mode. Only
+    // the blank directory means clearing an override back to its base value.
     const ops: GitSettingsMutation[] = [
-      enabled ? { op: 'set', path: ['enabled'], value: true } : { op: 'unset', path: ['enabled'] },
+      { op: 'set', path: ['enabled'], value: enabled },
       directory === '' ? { op: 'unset', path: ['directory'] } : { op: 'set', path: ['directory'], value: directory },
     ]
-    await this.scope.mutate(ops, this.draft?.revision)
-    if (generation !== this.saveGeneration) return
-    this.saving = false
-    const landed = this.matches(enabled, directory)
-    this.failed = !landed
-    if (landed) {
-      this.draft = undefined
-      this.onSaved?.()
+    try {
+      const accepted = await this.scope.mutate(ops, this.draft?.revision)
+      if (generation !== this.saveGeneration) return
+      const landed = accepted !== false && this.matches(enabled, directory)
+      this.failed = !landed
+      if (landed) {
+        this.draft = undefined
+        this.onSaved?.()
+      }
+    } catch {
+      if (generation !== this.saveGeneration) return
+      this.failed = true
+    } finally {
+      if (generation === this.saveGeneration) {
+        this.saving = false
+        this.publish()
+      }
     }
-    this.publish()
   }
 
   private matches(enabled: boolean, directory: string): boolean {

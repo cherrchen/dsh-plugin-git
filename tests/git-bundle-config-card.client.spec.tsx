@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import type { CommitMessageSettingsCardController, CommitMessageSettingsCardState } from '../src/client/settings/commit-message-card-controller.ts'
-import type { WorktreeSettingsCardController, WorktreeSettingsCardState } from '../src/client/settings/worktree-card-controller.ts'
+import { CommitMessageSettingsCardController, type CommitMessageSettingsCardState, type CommitMessageSettingsForm, type GitSettingsMutation } from '../src/client/settings/commit-message-card-controller.ts'
+import { WorktreeSettingsCardController, type WorktreeSettingsCardState } from '../src/client/settings/worktree-card-controller.ts'
 import { GitBundleConfigCard } from '../src/client/settings/GitBundleConfigCard.tsx'
 import { en } from '../src/client/locales.ts'
 
@@ -87,13 +87,57 @@ describe('GitBundleConfigCard', () => {
     expect(screen.queryByRole('button', { name: en['settings.discard'] })).toBeNull()
   })
 
-  it('saves every section from the one save control', () => {
+  it('saves every section from the one save control', async () => {
     const commitMessage = commitControllerOf(commitReady({ dirty: true }))
     const worktrees = worktreeControllerOf(worktreeReady({ dirty: true }))
     render(<GitBundleConfigCard commitMessage={commitMessage} worktrees={worktrees} view="page" {...locale} />)
     fireEvent.click(screen.getByRole('button', { name: en['settings.save'] }))
     expect(commitMessage.save).toHaveBeenCalled()
-    expect(worktrees.save).toHaveBeenCalled()
+    await waitFor(() => expect(worktrees.save).toHaveBeenCalled())
+  })
+
+  it('persists both sections through one asynchronous revision-fenced Config form', async () => {
+    // ConfigForms.get returns one shared queue/revision for the whole entry.
+    // Enforce the fence after a wire turn, unlike a synchronous card mock.
+    let value: Record<string, Record<string, unknown>> = { commitMessage: {}, worktrees: {} }
+    let revision = 0
+    let tail: Promise<unknown> = Promise.resolve()
+    const listeners = new Set<() => void>()
+    const fences: number[] = []
+    const section = <T,>(key: string): CommitMessageSettingsForm<T> => ({
+      getSnapshot: () => ({ status: 'ready', value: value[key] as T, revision, writable: true, mode: 'host' }),
+      subscribe: listener => { listeners.add(listener); return () => { listeners.delete(listener) } },
+      mutate: (ops: readonly GitSettingsMutation[], expected) => {
+        const task = tail.then(async () => {
+          await Promise.resolve()
+          fences.push(expected!)
+          if (expected !== revision) return false
+          const next = { ...value[key] }
+          for (const op of ops) {
+            if (op.op === 'set') next[op.path[0]!] = op.value
+            else delete next[op.path[0]!]
+          }
+          value = { ...value, [key]: next }
+          revision += 1
+          for (const listener of listeners) listener()
+          return true
+        })
+        tail = task
+        return task
+      },
+    })
+    const commitMessage = new CommitMessageSettingsCardController(section('commitMessage'))
+    const worktrees = new WorktreeSettingsCardController(section('worktrees'))
+    commitMessage.setSystemPrompt('Write concise commits.')
+    worktrees.setEnabled(true)
+    render(<GitBundleConfigCard commitMessage={commitMessage} worktrees={worktrees} view="page" {...locale} />)
+    fireEvent.click(screen.getByRole('button', { name: en['settings.save'] }))
+    await waitFor(() => expect(worktrees.getSnapshot()).toMatchObject({ dirty: false, failed: false, saving: false }))
+    expect(commitMessage.getSnapshot()).toMatchObject({ dirty: false, failed: false, saving: false })
+    expect(value).toEqual({ commitMessage: { mode: 'inherit', systemPrompt: 'Write concise commits.' }, worktrees: { enabled: true } })
+    expect(fences).toEqual([0, 1])
+    commitMessage.dispose()
+    worktrees.dispose()
   })
 
   it('discards every section when the page unmounts', () => {
@@ -105,6 +149,27 @@ describe('GitBundleConfigCard', () => {
     unmount()
     expect(commitMessage.discard).toHaveBeenCalled()
     expect(worktrees.discard).toHaveBeenCalled()
+  })
+
+  it('finishes the requested save of both sections after the page unmounts', async () => {
+    const state = commitReady({ dirty: true })
+    const commitMessage = commitControllerOf(state)
+    const worktrees = worktreeControllerOf(worktreeReady({ dirty: true }))
+    let finish: (() => void) | undefined
+    vi.mocked(commitMessage.save).mockImplementation(() => {
+      state.saving = true
+      return new Promise<void>(resolve => { finish = () => { state.saving = false; resolve() } })
+    })
+    const { unmount } = render(
+      <GitBundleConfigCard commitMessage={commitMessage} worktrees={worktrees} view="page" {...locale} />,
+    )
+    fireEvent.click(screen.getByRole('button', { name: en['settings.save'] }))
+    expect(worktrees.save).not.toHaveBeenCalled()
+    unmount()
+    expect(commitMessage.discard).not.toHaveBeenCalled()
+    expect(worktrees.discard).not.toHaveBeenCalled()
+    finish!()
+    await waitFor(() => expect(worktrees.save).toHaveBeenCalled())
   })
 
   it('shows the unavailable line only when no namespace is served', () => {

@@ -93,8 +93,19 @@ export function GitBundleConfigCard({ commitMessage, worktrees, view, t }: GitBu
       <PageForm
         labels={labels}
         state={shell}
-        onSave={() => { commitMessage.save(); worktrees.save() }}
-        onDiscard={() => { commitMessage.discard(); worktrees.discard() }}
+        onSave={async () => {
+          // Both sections may share one ConfigForm revision. Let its first
+          // accepted reply reach the mirror before fencing the next write.
+          await commitMessage.save()
+          await worktrees.save()
+        }}
+        onDiscard={() => {
+          // Leaving the page must not drop the second section while the first
+          // part of an explicitly requested save is still on the wire.
+          if (commitMessage.getSnapshot().saving || worktrees.getSnapshot().saving) return
+          commitMessage.discard()
+          worktrees.discard()
+        }}
       >
         <CommitMessageSettingsCard controller={commitMessage} t={t} view="page" />
         <WorktreeSettingsCard controller={worktrees} t={t} view="page" />

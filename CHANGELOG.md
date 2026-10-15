@@ -21,6 +21,8 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ### Fixed
 
+- The shared configuration page waits for each section's save before fencing the next write, including when the page closes during saving. Transport failures retain editable drafts for retry, and disabling local worktrees explicitly overrides a composition default of `true`.
+- A worktree creation's directory projection no longer cancels its own successful RPC reply; controller disposal still cancels in-flight creation.
 - Same-directory sidebar mounts no longer cancel a shared refresh or clear the commit draft. Cancelled executable discovery no longer poisons later Git requests or other sessions; successful refreshes also update session capabilities. Changes and Graph display repository-loading failures.
 - Upstream worktree creation requires a live session, including submissions from an already-open dialog. The configured local checkout-pool hint appears only in local mode.
 
