@@ -174,6 +174,9 @@ export function GitWorktreesSurface({
               placeholder={t('worktree.createBasePlaceholder')}
               onChange={(event) => { setFrom(event.target.value) }}
               aria-label={t('worktree.createBase')}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') submitCreate()
+              }}
             />
           </label>
           {mode !== 'local' || state.worktreeDirectory === undefined || state.worktreeDirectory === ''

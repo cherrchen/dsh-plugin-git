@@ -523,8 +523,8 @@ describe('GitWorktreesSurface', () => {
     expect(screen.getByText(formatLocale(en['worktree.createDirectoryHint'], { directory: '.local-pool' }))).toBeTruthy()
     fireEvent.change(screen.getByLabelText(en['worktree.createName']), { target: { value: 'topic/wt' } })
     fireEvent.change(screen.getByLabelText(en['worktree.createBase']), { target: { value: 'HEAD~1' } })
-    // The dialog's submit button shares the toolbar button's label; the last match is the modal action.
-    fireEvent.click(screen.getAllByRole('button', { name: en['worktree.create'] }).pop()!)
+    // Enter submits from either field, not just the name.
+    fireEvent.keyDown(screen.getByLabelText(en['worktree.createBase']), { key: 'Enter' })
     expect(local.createWorktree).toHaveBeenCalledWith('topic/wt', 'HEAD~1')
   })
 
