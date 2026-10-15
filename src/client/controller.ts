@@ -679,12 +679,14 @@ export class GitClientController {
   }
 
   /**
-   * Reveal the repository through the optional native file-manager action.
+   * Reveal the repository, or one checkout inside it, through the optional
+   * native file-manager action.
+   * @param path - Checkout directory to reveal; the repository root when omitted.
    * @returns Completion after the native action settles, or immediately without Desktop.
    */
-  async reveal(): Promise<void> {
+  async reveal(path?: string): Promise<void> {
     const repository = this.requireRepository()
-    await this.desktop?.shell.showItemInFolder(repository.root)
+    await this.desktop?.shell.showItemInFolder(path ?? repository.root)
   }
 
   private async loadRepository(

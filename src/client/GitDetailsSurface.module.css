@@ -433,31 +433,88 @@
   list-style: none;
 }
 
-.worktreeItem {
+.worktreeRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
+  padding: 4px 4px 4px 8px;
+  border-radius: 8px;
 }
 
-.worktreeName,
-.worktreePath {
+.worktreeRow:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.worktreeText {
+  display: flex;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 12px;
-  line-height: 20px;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.worktreeLine {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
 }
 
 .worktreeName {
+  min-width: 0;
+  overflow: hidden;
   color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .worktreePath {
-  flex: 1;
+  min-width: 0;
+  overflow: hidden;
   color: var(--dsw-alias-label-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worktreeHash {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  line-height: 18px;
+}
+
+.worktreeHashChip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  line-height: 18px;
+}
+
+.worktreeCurrent {
+  display: inline-grid;
+  flex: none;
+  height: 18px;
+  place-items: center;
+  padding: 0 7px;
+  border-radius: 9px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .worktreeEnter {

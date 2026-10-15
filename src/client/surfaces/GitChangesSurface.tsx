@@ -58,9 +58,13 @@ export function GitChangesSurface({
       {repository !== undefined && repository !== null ? (
         <GitWorktreeList
           worktrees={repository.worktrees ?? []}
+          repositoryRoot={repository.root}
           directorySwitchAvailable={state.directorySwitchAvailable === true}
           entering={state.loading || state.enteringWorktree}
           onEnter={(path) => { void controller.enterWorktree(path) }}
+          onReveal={state.desktopAvailable
+            ? (path) => { void controller.reveal(path) }
+            : undefined}
           onManage={openWorktrees !== undefined && (state.worktreeMode === 'upstream' || state.worktreeMode === 'local')
             ? openWorktrees
             : undefined}

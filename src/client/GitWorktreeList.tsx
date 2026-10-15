@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import type { GitLocaleKey } from './locales.ts'
 import { formatLocale } from './locales.ts'
-import { repoFolderName } from './path-display.ts'
+import { WorktreeRow } from './details/WorktreeRow.tsx'
 import type { GitWorktree } from '../types.ts'
 import css from './GitDetailsSurface.module.css'
 
@@ -12,20 +12,25 @@ type Translate = (key: GitLocaleKey) => string
 
 /**
  * Show the other checkouts of the current repository.
- * The button is present only when this host can change the surface's session directory.
+ * The enter action is present only when this host can change the surface's session directory.
  * @param props - Worktree records, whether directory changes are available, and the session-scoped enter action.
  * @returns Nothing when this checkout is the only one.
  */
-export function GitWorktreeList({ worktrees, directorySwitchAvailable, entering, onEnter, onManage, t }: {
+export function GitWorktreeList({ worktrees, repositoryRoot, directorySwitchAvailable, entering, onEnter, onReveal, onManage, t }: {
   readonly worktrees: readonly GitWorktree[]
+  readonly repositoryRoot: string
   readonly directorySwitchAvailable: boolean
   readonly entering: boolean
   readonly onEnter: (path: string) => void
+  /** Present only when the host offers a native file manager. */
+  readonly onReveal?: ((path: string) => void) | undefined
   /** Present only when the Worktrees tab type is registered on this host. */
   readonly onManage?: (() => void) | undefined
   readonly t: Translate
 }): ReactNode {
-  const others = worktrees.filter(entry => !entry.current && !entry.bare)
+  const others = worktrees
+    .filter(entry => !entry.current && !entry.bare)
+    .sort((a, b) => (a.branch ?? a.path).localeCompare(b.branch ?? b.path))
   if (others.length === 0) return null
   return (
     <section className={css.worktreeList} aria-label={t('worktree.list')}>
@@ -42,26 +47,18 @@ export function GitWorktreeList({ worktrees, directorySwitchAvailable, entering,
         )}
       </h3>
       <ul className={css.worktreeItems}>
-        {others.map(entry => {
-          const label = entry.branch ?? (entry.detached ? t('worktree.detached') : repoFolderName(entry.path))
-          return (
-            <li key={entry.path} className={css.worktreeItem} data-git-worktree={entry.path}>
-              <span className={css.worktreeName} title={entry.path}>{label}</span>
-              <span className={css.worktreePath}>{repoFolderName(entry.path)}</span>
-              {directorySwitchAvailable ? (
-                <button
-                  type="button"
-                  className={css.worktreeEnter}
-                  data-git-enter-worktree={entry.path}
-                  disabled={entering}
-                  onClick={() => { onEnter(entry.path) }}
-                >
-                  {t('worktree.use')}
-                </button>
-              ) : null}
-            </li>
-          )
-        })}
+        {others.map(entry => (
+          <WorktreeRow
+            key={entry.path}
+            entry={entry}
+            repositoryRoot={repositoryRoot}
+            entering={entering}
+            directorySwitchAvailable={directorySwitchAvailable}
+            onEnter={onEnter}
+            onReveal={onReveal}
+            t={t}
+          />
+        ))}
       </ul>
       {directorySwitchAvailable ? null : <p className={css.worktreeNote}>{t('worktree.unavailable')}</p>}
     </section>

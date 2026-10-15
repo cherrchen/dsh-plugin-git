@@ -12,8 +12,8 @@ import type { GitClientController } from '../controller.ts'
 import { GitDetailsHeaderActions } from '../GitDetailsHeaderActions.tsx'
 import { branchWithCheckout, checkoutSuffix } from '../GitWorktreeList.tsx'
 import { GitIconButton } from '../details/GitIconButton.tsx'
+import { WorktreeRow } from '../details/WorktreeRow.tsx'
 import { formatLocale } from '../locales.ts'
-import { repoFolderName } from '../path-display.ts'
 import { resolveGitController, type GitSessionControllers } from '../session-controllers.ts'
 import { effectiveWorkspacePath } from '../workspace-path.ts'
 import { useGitWorkspace } from '../use-git-workspace.ts'
@@ -44,7 +44,9 @@ export function GitWorktreesSurface({
   useGitWorkspace(controller, workspacePath)
 
   const repository = state.repository
-  const worktrees = (repository?.worktrees ?? []).filter(entry => !entry.bare)
+  const worktrees = (repository?.worktrees ?? [])
+    .filter(entry => !entry.bare)
+    .sort((a, b) => Number(b.current) - Number(a.current) || (a.branch ?? a.path).localeCompare(b.branch ?? b.path))
   const mode = state.worktreeMode
   const canCreate = repository != null
     && (mode === 'local' || (mode === 'upstream' && state.directorySwitchAvailable))
@@ -84,49 +86,54 @@ export function GitWorktreesSurface({
         >
           {branchLabel ?? t('details.currentBranch')}
         </span>
-        <div className={css.rowActions}>
-          <GitIconButton
-            label={t('worktree.create')}
-            disabled={!canCreate || state.creatingWorktree || state.enteringWorktree}
-            onClick={() => { setCreateError(undefined); setCreating(true) }}
-          >
-            <IconPlusOutline16 size={14} />
-          </GitIconButton>
-          <GitDetailsHeaderActions controller={controller} t={t} compact />
-        </div>
+        <GitDetailsHeaderActions controller={controller} t={t} compact />
       </div>
       {state.loading && repository === undefined && <p className={css.empty}>{t('details.loading')}</p>}
       {!state.loading && workspacePath === undefined && <p className={css.empty}>{t('details.noWorkspace')}</p>}
       {!state.loading && repository === null && <p className={css.empty}>{t('details.notRepository')}</p>}
       {repository !== undefined && repository !== null && (
-        <section className={css.worktreeList} aria-label={t('tab.worktrees')}>
-          {mode === 'upstream' ? <p className={css.worktreeNote}>{t('worktree.modeUpstream')}</p> : null}
-          {mode === 'local' ? <p className={css.worktreeNote}>{t('worktree.modeLocal')}</p> : null}
-          {worktrees.length === 0 ? <p className={css.empty}>{t('worktree.empty')}</p> : null}
-          <ul className={css.worktreeItems}>
-            {worktrees.map(entry => {
-              const label = entry.branch ?? (entry.detached ? t('worktree.detached') : repoFolderName(entry.path))
-              return (
-                <li key={entry.path} className={css.worktreeItem} data-git-worktree={entry.path}>
-                  <span className={css.worktreeName} title={entry.path}>{label}</span>
-                  {entry.current ? <span className={css.worktreePath}>{t('worktree.current')}</span> : null}
-                  <span className={css.worktreePath}>{repoFolderName(entry.path)}</span>
-                  {!entry.current && state.directorySwitchAvailable ? (
-                    <button
-                      type="button"
-                      className={css.worktreeEnter}
-                      data-git-enter-worktree={entry.path}
-                      disabled={state.enteringWorktree || state.creatingWorktree}
-                      onClick={() => { void controller.enterWorktree(entry.path) }}
-                    >
-                      {t('worktree.use')}
-                    </button>
-                  ) : null}
-                </li>
-              )
-            })}
-          </ul>
-        </section>
+        <div className={css.body}>
+          <div className={css.tabBody}>
+            <section className={css.changeSection} aria-label={t('worktree.section')}>
+              <h3>
+                <span className={css.sectionTitle}>
+                  {t('worktree.section')}
+                  <span className={css.sectionCount}>{worktrees.length}</span>
+                </span>
+                <span className={css.sectionActions}>
+                  <GitIconButton
+                    label={t('worktree.create')}
+                    disabled={!canCreate || state.creatingWorktree || state.enteringWorktree}
+                    onClick={() => { setCreateError(undefined); setCreating(true) }}
+                  >
+                    <IconPlusOutline16 size={14} />
+                  </GitIconButton>
+                </span>
+              </h3>
+              {worktrees.length === 0 ? <p className={css.empty}>{t('worktree.empty')}</p> : (
+                <ul className={css.worktreeItems}>
+                  {worktrees.map(entry => (
+                    <WorktreeRow
+                      key={entry.path}
+                      entry={entry}
+                      repositoryRoot={repository.root}
+                      entering={state.enteringWorktree || state.creatingWorktree}
+                      directorySwitchAvailable={state.directorySwitchAvailable === true}
+                      onEnter={(path) => { void controller.enterWorktree(path) }}
+                      onReveal={state.desktopAvailable
+                        ? (path) => { void controller.reveal(path) }
+                        : undefined}
+                      t={t}
+                    />
+                  ))}
+                </ul>
+              )}
+              {mode === 'upstream' ? <p className={css.worktreeNote}>{t('worktree.modeUpstream')}</p> : null}
+              {mode === 'local' ? <p className={css.worktreeNote}>{t('worktree.modeLocal')}</p> : null}
+              {!state.directorySwitchAvailable && <p className={css.worktreeNote}>{t('worktree.unavailable')}</p>}
+            </section>
+          </div>
+        </div>
       )}
       {state.error === undefined ? null : <p className={css.error} role="alert">{state.error}</p>}
       <Modal

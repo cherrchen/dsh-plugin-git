@@ -21,3 +21,16 @@ export function repoFolderName(root: string): string {
   const index = normalized.lastIndexOf('/')
   return index === -1 ? normalized : normalized.slice(index + 1)
 }
+
+/**
+ * Shorten one checkout path for list display: inside the repository root the
+ * root-relative path, the root itself as its folder name, anything else as-is.
+ * @param path - Checkout directory Git reported.
+ * @param root - Repository root the checkout belongs to.
+ * @returns Compact display path; the full path stays on `title` tooltips.
+ */
+export function checkoutPathLabel(path: string, root: string): string {
+  if (path === root) return `${repoFolderName(root)}/`
+  if (path.startsWith(`${root}/`)) return path.slice(root.length + 1)
+  return path
+}

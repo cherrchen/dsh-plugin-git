@@ -202,7 +202,10 @@ describe('GitChangesSurface', () => {
       }),
     }))
     render(<GitChangesSurface {...props(controller)} />)
-    expect(screen.getByRole<HTMLButtonElement>('button', { name: en['worktree.use'] }).disabled).toBe(true)
+    const enter = screen.getByRole<HTMLButtonElement>('button', { name: en['worktree.use'] })
+    expect(enter.getAttribute('aria-disabled')).toBe('true')
+    fireEvent.click(enter)
+    expect(controller.enterWorktree).not.toHaveBeenCalled()
   })
 
   it('keeps other checkouts read-only when the host cannot change directories', () => {
@@ -472,6 +475,38 @@ describe('GitWorktreesSurface', () => {
     expect(screen.getByText(en['worktree.modeLocal'])).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: en['worktree.use'] }))
     expect(controller.enterWorktree).toHaveBeenCalledWith('/repo-wt')
+  })
+
+  it('reveals a checkout in the file manager only when Desktop is available', () => {
+    const withDesktop = controllerOf(baseState({
+      desktopAvailable: true,
+      worktreeMode: 'local',
+      repository: twoCheckouts(),
+    }))
+    render(<GitWorktreesSurface {...props(withDesktop)} />)
+    fireEvent.click(screen.getAllByRole('button', { name: en['worktree.reveal'] })[1]!)
+    expect(withDesktop.reveal).toHaveBeenCalledWith('/repo-wt')
+    cleanup()
+    const withoutDesktop = controllerOf(baseState({ worktreeMode: 'local', repository: twoCheckouts() }))
+    render(<GitWorktreesSurface {...props(withoutDesktop)} />)
+    expect(screen.queryByRole('button', { name: en['worktree.reveal'] })).toBeNull()
+  })
+
+  it('orders the current checkout first and renders a head badge for it', () => {
+    const controller = controllerOf(baseState({
+      worktreeMode: 'local',
+      repository: snapshot({
+        worktrees: [
+          { path: '/repo-wt', head: 'def456', branch: 'feature', detached: false, bare: false, current: false },
+          { path: '/repo', head: 'abc123', branch: 'main', detached: false, bare: false, current: true },
+        ],
+      }),
+    }))
+    render(<GitWorktreesSurface {...props(controller)} />)
+    const rows = document.querySelectorAll('[data-git-worktree]')
+    expect(rows[0]?.getAttribute('data-git-worktree')).toBe('/repo')
+    expect(rows[0]?.hasAttribute('data-git-current')).toBe(true)
+    expect(rows[1]?.getAttribute('data-git-worktree')).toBe('/repo-wt')
   })
 
   it('opens the creation dialog only when the host reports a creation mode', () => {
