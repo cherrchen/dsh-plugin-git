@@ -6,6 +6,7 @@
 import { useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+import { Button, Input, Switch, Tag } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IconChevronDownOutline14 } from '../../compat/dsh-icons.tsx'
 import type { WorktreeSettingsCardController } from './worktree-card-controller.ts'
 import css from './CommitMessageSettingsCard.module.css'
@@ -42,23 +43,21 @@ export function WorktreeSettingsCard(props: WorktreeSettingsCardProps): ReactNod
       <div className={css.body}>
         {!state.writable ? <p className={css.readOnly} role="status">{t('settings.readOnly')}</p> : null}
         <div className={css.field}>
-          <label className={css.mode}>
-            <input
-              type="checkbox"
-              name="git-worktrees-enabled"
+          <div className={css.switchRow}>
+            <span className={css.label}>{t('settings.worktrees.enable')}</span>
+            <Switch
               checked={state.enabled}
               disabled={disabled}
-              onChange={(event) => { controller.setEnabled(event.target.checked) }}
+              label={t('settings.worktrees.enable')}
+              onChange={(next) => { controller.setEnabled(next) }}
             />
-            {t('settings.worktrees.enable')}
-          </label>
+          </div>
           <p className={css.hint}>{t('settings.worktrees.enableHint')}</p>
         </div>
         <div className={css.field}>
           <label className={css.label} htmlFor="git-worktrees-directory">{t('settings.worktrees.directory')}</label>
-          <input
+          <Input
             id="git-worktrees-directory"
-            className={css.input}
             value={state.directory}
             placeholder={t('settings.worktrees.directoryPlaceholder')}
             disabled={disabled}
@@ -68,22 +67,22 @@ export function WorktreeSettingsCard(props: WorktreeSettingsCardProps): ReactNod
         </div>
         <div className={css.footer}>
           {state.failed ? <p className={css.failed} role="status">{t('settings.saveFailed')}</p> : null}
-          <button
-            type="button"
-            className={css.discard}
+          <Button
+            variant="outline"
+            size="sm"
             disabled={!state.dirty || state.saving}
             onClick={() => { controller.discard() }}
           >
             {t('settings.discard')}
-          </button>
-          <button
-            type="button"
-            className={css.save}
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
             disabled={blocked}
             onClick={() => { controller.save() }}
           >
             {t(state.saving ? 'settings.saving' : 'settings.save')}
-          </button>
+          </Button>
         </div>
       </div>
     )
@@ -102,7 +101,7 @@ export function WorktreeSettingsCard(props: WorktreeSettingsCardProps): ReactNod
           <span className={css.name}>{title}</span>
           <span className={css.description}>{t('settings.worktrees.description')}</span>
         </span>
-        {state.dirty ? <span className={css.pending}>{t('settings.unsaved')}</span> : null}
+        {state.dirty ? <Tag tone="neutral" className={css.pending}>{t('settings.unsaved')}</Tag> : null}
         <IconChevronDownOutline14 className={open ? `${css.chevron} ${css.chevronOpen}` : css.chevron} />
       </button>
       {fields}

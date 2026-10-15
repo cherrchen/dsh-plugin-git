@@ -14,6 +14,7 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ### Changed
 
+- The plugin configuration cards now render entirely with `@deepseek-ai/dsh-client-ui-primitives` controls: the generation model is one dropdown listing the session model above provider-grouped catalog entries, and the Worktrees enablement uses the native capsule switch.
 - The exact DSH support list now covers every published release from `0.1.5-rc.2` through `0.2.1-alpha.2`: `0.1.5-rc.3` and `0.2.1-alpha.1` are verified and added, closing the remaining gaps in the range.
 - `scripts/upgrade-dsh.mjs` and `pnpm compat:check` accept exact-version host runtime pins, matching releases that declare Cordis and schemastery without a caret or tilde (as `0.1.5-rc.3` does).
 

@@ -68,13 +68,16 @@ describe('CommitMessageSettingsCard', () => {
   })
 
   it('lets the user pick a custom model and edit the system message', () => {
+    const candidateKey = commitMessageModelKey({ provider: 'deepseek', model: 'chat' })
     const controller = controllerOf(ready({
       mode: 'custom',
+      provider: 'deepseek',
+      model: 'chat',
       dirty: true,
       catalogStatus: 'ready',
       candidates: [
         {
-          key: commitMessageModelKey({ provider: 'deepseek', model: 'chat' }),
+          key: candidateKey,
           provider: 'deepseek',
           model: 'chat',
           providerName: 'DeepSeek',
@@ -85,12 +88,13 @@ describe('CommitMessageSettingsCard', () => {
     }))
     render(<CommitMessageSettingsCard controller={controller} {...locale} />)
     fireEvent.click(screen.getByRole('button', { name: `${en['settings.expand']}: ${en['settings.title']}` }))
-    fireEvent.click(screen.getByRole('radio', { name: en['settings.modelInherit'] }))
+    const selector = screen.getByRole('button', { name: `${en['settings.model']} DeepSeek Chat (deepseek/chat)` })
+    fireEvent.click(selector)
+    fireEvent.click(screen.getByRole('menuitem', { name: en['settings.modelInherit'] }))
     expect(controller.setMode).toHaveBeenCalledWith('inherit')
-    fireEvent.change(screen.getByLabelText(en['settings.modelSelect']), {
-      target: { value: commitMessageModelKey({ provider: 'deepseek', model: 'chat' }) },
-    })
-    expect(controller.setModel).toHaveBeenCalledWith(commitMessageModelKey({ provider: 'deepseek', model: 'chat' }))
+    fireEvent.click(selector)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'DeepSeek Chat (deepseek/chat)' }))
+    expect(controller.setModel).toHaveBeenCalledWith(candidateKey)
     fireEvent.change(screen.getByLabelText(en['settings.systemPrompt']), { target: { value: 'Be terse.' } })
     expect(controller.setSystemPrompt).toHaveBeenCalledWith('Be terse.')
     fireEvent.click(screen.getByRole('button', { name: en['settings.save'] }))
@@ -105,8 +109,11 @@ describe('CommitMessageSettingsCard', () => {
     expect(summary.container.querySelector('[data-git-commit-message-settings]')).toBeNull()
     summary.unmount()
     render(<CommitMessageSettingsCard controller={controller} view="page" {...locale} />)
-    expect(screen.getByRole('radio', { name: en['settings.modelInherit'] })).toBeTruthy()
+    const selector = screen.getByRole('button', { name: `${en['settings.model']} ${en['settings.modelInherit']}` })
     expect(screen.queryByRole('button', { name: `${en['settings.expand']}: ${en['settings.title']}` })).toBeNull()
+    fireEvent.click(selector)
+    expect(controller.retryCatalog).toHaveBeenCalled()
+    expect(screen.getByRole('menuitem', { name: en['settings.modelInherit'] })).toBeTruthy()
   })
 
   it('falls back to typed provider and model ids when the catalog is empty', () => {

@@ -14,6 +14,7 @@
 
 ### Changed
 
+- 插件配置卡全面改用 `@deepseek-ai/dsh-client-ui-primitives` 原生控件：生成模型合并为一个下拉框，会话模型置于按 provider 分组的目录条目之上；Worktrees 启用项使用原生胶囊开关。
 - 精确 DSH 支持清单现已覆盖 `0.1.5-rc.2` 至 `0.2.1-alpha.2` 的全部已发布版本：`0.1.5-rc.3` 与 `0.2.1-alpha.1` 经验证后补入，区间内不再有缺口。
 - `scripts/upgrade-dsh.mjs` 与 `pnpm compat:check` 接受不带 caret 或波浪号的精确宿主运行时 pin，与以精确版本声明 Cordis、schemastery 的发行版一致（`0.1.5-rc.3` 即如此）。
 
