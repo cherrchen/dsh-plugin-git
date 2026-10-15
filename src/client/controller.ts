@@ -3,7 +3,7 @@
 import type { GitCommitSummary, GitCommitMessageCapability, GitCreatedWorktree, GitDiff, GitFileChange, GitGenerationUnavailableReason, GitLogScope, GitRepositorySnapshot, GitWorktreeMode } from '../types.ts'
 import { layoutGitGraph } from './graph/layout.ts'
 import type { GraphContinuationState, GraphLayoutRow } from './graph/types.ts'
-import type { GitWorktreeFeature } from './worktree-feature.ts'
+import { decodeWorktreeCapability, type GitWorktreeFeature } from './worktree-feature.ts'
 
 export type GitRpcResult = { ok: true; value: unknown } | { ok: false; error: { message: string } }
 
@@ -613,12 +613,8 @@ export class GitClientController {
     try {
       const value = await this.call('worktree-capability', {}, signal)
       if (signal.aborted || generation !== this.operationGeneration) return
-      const mode = isRecord(value) ? value['mode'] : undefined
-      const directory = isRecord(value) ? value['directory'] : undefined
-      this.patch({
-        worktreeMode: mode === 'upstream' || mode === 'local' ? mode : 'off',
-        worktreeDirectory: typeof directory === 'string' ? directory : undefined,
-      })
+      const capability = decodeWorktreeCapability(value)
+      this.patch({ worktreeMode: capability.mode, worktreeDirectory: capability.directory })
     } catch {
       // Hosts predating the endpoint report `off`: the Worktrees tab stays hidden.
       if (signal.aborted || generation !== this.operationGeneration) return
