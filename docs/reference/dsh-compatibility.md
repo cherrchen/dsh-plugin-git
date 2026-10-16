@@ -4,7 +4,7 @@
 
 ## 适配波次状态
 
-自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.2.1-alpha.3` 的兼容晋级已完成，区间内十三个已发布精确 prerelease 全部纳入支持。清单写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。
+自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.2.1-alpha.4` 的兼容晋级已完成，区间内十四个已发布精确 prerelease 全部纳入支持。清单写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。
 
 ## 已验证并承诺支持的版本
 
@@ -23,9 +23,10 @@
 - `0.2.1-alpha.1`
 - `0.2.1-alpha.2`
 - `0.2.1-alpha.3`
+- `0.2.1-alpha.4`
 
-每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。开发依赖与提交锁文件统一 pin 到 `0.2.0-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。清单按版本顺序排列并只增不减，已承诺版本不会被后续晋级移除；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
-跨版本运行时：0.1.5-rc.2 至 0.1.6-alpha.2 使用 Cordis `4.0.2` / schemastery `3.18.2`；0.1.7-alpha.1 使用 `4.0.3` / `3.18.3`；0.1.7-alpha.2 至 0.2.0-rc.2 使用 `4.0.4` / `3.18.4`；0.2.1-alpha.1 与 0.2.1-alpha.2 使用 `4.0.5-alpha.1` / `3.18.5-alpha.1`；0.2.1-alpha.3 使用 `4.0.5-alpha.2` / `3.18.5-alpha.2`。0.2.1 宿主声明的 prerelease 下限分别由 peer `|| ~4.0.5-alpha.1 || ~4.0.5-alpha.2` 与 dependency `|| ~3.18.5-alpha.1 || ~3.18.5-alpha.2` 接受；开发 pin 保持 `0.2.0-rc.2`。0.1.5-rc.3 把 Cordis 与 schemastery 从 caret 改写为精确 `4.0.2` / `3.18.2`，与 rc.2 是同一对副本；`scripts/upgrade-dsh.mjs` 与 `scripts/check-dsh-compat.mjs` 的下限解析把 caret、波浪号与精确 pin 统一按声明下限处理。
+每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。`engines.dsh` 声明与 peer OR 完全相同的精确 OR：自 `0.2.1-alpha.4` 起宿主准入预检在该字段存在时只读它，更早宿主继续读 peer OR；`pnpm compat:check` 强制两者与唯一清单一致。开发依赖与提交锁文件统一 pin 到 `0.2.0-rc.2`。主 CI 使用冻结锁文件验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行相同的兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。清单按版本顺序排列并只增不减，已承诺版本不会被后续晋级移除；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
+跨版本运行时：0.1.5-rc.2 至 0.1.6-alpha.2 使用 Cordis `4.0.2` / schemastery `3.18.2`；0.1.7-alpha.1 使用 `4.0.3` / `3.18.3`；0.1.7-alpha.2 至 0.2.0-rc.2 使用 `4.0.4` / `3.18.4`；0.2.1-alpha.1 与 0.2.1-alpha.2 使用 `4.0.5-alpha.1` / `3.18.5-alpha.1`；0.2.1-alpha.3 与 0.2.1-alpha.4 使用 `4.0.5-alpha.2` / `3.18.5-alpha.2`。0.2.1 宿主声明的 prerelease 下限分别由 peer `|| ~4.0.5-alpha.1 || ~4.0.5-alpha.2` 与 dependency `|| ~3.18.5-alpha.1 || ~3.18.5-alpha.2` 接受；开发 pin 保持 `0.2.0-rc.2`。0.1.5-rc.3 把 Cordis 与 schemastery 从 caret 改写为精确 `4.0.2` / `3.18.2`，与 rc.2 是同一对副本；`scripts/upgrade-dsh.mjs` 与 `scripts/check-dsh-compat.mjs` 的下限解析把 caret、波浪号与精确 pin 统一按声明下限处理。
 
 
 `dsh-client-ui-primitives` 的发布 bundle 导入 `diff`，但上游没有将其声明为运行时依赖。本插件将 `diff`（`>=9 <10`）声明为 peer。alpha.2 的 bundle 还导入 `simple-icons@16.31.0`，同样未声明运行时依赖；本插件将 `simple-icons`（`>=16.31.0 <17`）声明为 peer，并以 `16.31.0` 做开发依赖 pin。这样严格依赖解析器也能满足上游 bundle 的导入。
@@ -135,13 +136,29 @@ Git Client 从 primitives 的公开入口复用 `DiffBlock`，不导入官方 `u
 
 候选验证于 2026-10-15 在开发机完成。`DSH_COMPAT_MODE=warn` 安装 `0.2.1-alpha.3` 后，`pnpm compat:check`、`pnpm test`（299）、`pnpm docs:check`、`pnpm build` 与 `pnpm test:artifact` 全部通过；候选安装树对上游 `@deepseek-ai/cordis-plugin-include@~1.0.10-alpha.2` 与 `@deepseek-ai/cordis-plugin-group@~1.0.5-alpha.2` 有 peer 警告，那两个包不是本插件的 peer。随后在 alpha.3 安装树上以正式门禁重跑 `pnpm compat:check` 通过，开发 pin 与锁文件恢复 `0.2.0-rc.2`。
 
+## 0.2.1-alpha.4 接口差异评估
+
+晋级 `0.2.1-alpha.4` 前，对照了本地标签 `dsh-v0.2.1-alpha.3` 与 `dsh-v0.2.1-alpha.4` 的公开源码，以及 npm 发布包的 manifest 与运行时 bundle。本插件直接调用的服务没有破坏性改动，已有结构探测继续工作：
+
+- **必须处理：peer OR、`engines.dsh` 与插件准入预检。** 每个 `@deepseek-ai/dsh-*` 包 lockstep 升到 `0.2.1-alpha.4`。`app-boot` 兼容预检与 `plugin-manager` 改为先读插件 manifest 的 `engines.dsh`：该字段存在时由它单独判定准入，不再逐一检查 peer；字段缺失时回退原有的 `@deepseek-ai/dsh-*` peer `semver.satisfies`（含 prerelease）检查。本插件新增 `engines.dsh` 声明，内容与 peer 精确 OR 完全一致，`pnpm compat:check` 校验两者与唯一清单同步；旧宿主忽略该字段，准入行为不变。上游 `PluginCompatibility.peers` 改名 `requirements`，属宿主内部结构，本插件不消费。
+- **插件直接调用的服务源码未改。** `dsh-subprocess`、`dsh-settings`、`dsh-llm`、`dsh-api-session-controller`、`dsh-client-connection`、`dsh-client-ui-session`、`dsh-client-ui-sidebar-right`、`dsh-client-ui-slots`、`dsh-client-ui-primitives`、`dsh-client-ui-settings` / `-plugins`、`dsh-client-locale`、`dsh-client-resources`、`dsh-client-store`、`dsh-agent-default-model`、`dsh-util-code-language`、`dsh-working-directory` 与 `dsh-experimental-worktree` 在 alpha.3→alpha.4 间只有 manifest 版本 bump。`resolveExecutable` / `spawn`、`configForms.get`、`useSessions(...byId[id].cwd)` / `projectionValues`、`openTab` / `openResource`、`GenerateOptions` 与 `stream` 的 `text-delta`、`conversation.input.left`、Medium glyph、`diffTotals` / `DiffBlock` 标签等接缝全部保持。
+- **`ui-conversation` 输入机内部重构。** alpha.4 把斜杠命令从触发词文本改为编辑器内 command chip，`InputEvent` / `DraftSnapshot` 相应调整并新增 `resolveClaim`。Git 只占用 `conversation.input.left` 插槽，不实现 `InputTriggerController`，该插槽契约与渲染路径未变。
+- **`dsh-subprocess-local` 的 Linux 容器选择重构为可失效重探的选择器。** 仅影响 Linux 上 systemd scope 决策与 terminal 启动路径；本插件经 `dsh-subprocess` 以独立 argv 调用 `git`，不经 PTY，接口未变。
+- **宿主运行时下限不变。** alpha.4 仍声明 Cordis `~4.0.5-alpha.2` 与 schemastery `~3.18.5-alpha.2`；既有 `|| ~*-alpha.2` 子句已覆盖，不再追加。
+- **不能写进 peer OR 的新包。** plugin-market 家族（`dsh-plugin-market`、`dsh-client-ui-plugin-market`、`dsh-util-plugin-market-index`、`dsh-experimental-plugin-market-bundle`）从 `0.2.1-alpha.4` 起才发布；写成与支持清单相同的 peer OR 会让旧宿主预检失败。本插件不从这些包导入。
+- **没有新的未声明 bundle 依赖。** 对本插件消费的十七个上游包逐一比对 alpha.3 与 alpha.4 tarball 的运行时顶层导入，清单逐项一致；`diff`、`simple-icons`、`zustand` 与 `immer` peer 继续覆盖既有未声明导入。schemastery `3.18.5-alpha.2` 的 `.volatile()` 与 cosmokit volatile 引用语义不变，适配层原样工作。
+
+候选验证于 2026-10-16 在开发机完成。`DSH_COMPAT_MODE=warn` 安装 `0.2.1-alpha.4` 后，`pnpm compat:check`、`pnpm test`（299）、`pnpm docs:check`、`pnpm build` 与 `pnpm test:artifact` 全部通过；随后在候选安装树上以正式门禁重跑 `pnpm compat:check` 通过，开发 pin 与锁文件恢复 `0.2.0-rc.2`。
+
+同日在开发机用发布的 `@deepseek-ai/dsh@0.2.1-alpha.4` npm 包启动隔离 `DSH_HOME` 的 Web 宿主做实机验证：`dsh plugin --profile web add` 装入本分支构建的 tarball，准入预检直接读取新增的 `engines.dsh` 并通过，组合树出现 `dsh-plugin-git` 行；启动无告警，客户端 bundle 正常供给。浏览器会话中 Git 三个侧栏页（Changes / Diff / Graph / Worktrees）按真实仓库状态渲染，暂存与取消暂存写操作落在正确仓库根，插件管理页该 bundle 的配置卡正常渲染。未配置模型，未覆盖提交信息生成。
+
 ## 静态一致性门禁
 
 上游 DSH 包把同级依赖写成 caret，例如 `^0.1.5-rc.2`。这个范围接受同一 core 上更后的 prerelease，pnpm 在 `autoInstallPeers` 下会装成 registry 里当前最高的匹配版本。只钉住根清单时，锁文件仍会混入 `0.1.5-rc.3`、`0.1.7-alpha.1` 或更旧的 `0.1.1-rc.2`。`.pnpmfile.cjs` 在每次安装时把传递依赖、可选依赖和 peer 里的全部 `@deepseek-ai/dsh-*` 改成当前精确版本。目标版本优先取 `DSH_COMPAT_VERSION`，否则取根 devDependency 的唯一 pin。根清单自己的 devDependency pin 和多版本 peer OR 范围保持不变。
 
 `pnpm compat:check` 在构建之前检查：
 
-1. peer dependencies 是否与精确版本清单一致；
+1. peer dependencies 与 `engines.dsh` 是否与精确版本清单一致；
 2. 每个 DSH peer 是否有对应开发依赖；
 3. 所有 DSH 开发依赖是否 pin 在同一已支持版本；
 4. 当前 `node_modules` 中每个已声明的 DSH 包是否存在且解析到该 pin；

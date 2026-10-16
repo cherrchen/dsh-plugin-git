@@ -6,3 +6,4 @@ node_modules/
 .pnpm-store/
 .zcode/
 .cursor/
+.tmp/

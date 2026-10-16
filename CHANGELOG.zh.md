@@ -4,6 +4,12 @@
 
 本文件记录本 package 的所有重要变更。格式参照 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本遵循 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) —— 本包处于 pre-1.0，minor 版本之间仍可能改变 API。每个已发布版本同时有对应的 [GitHub Release](https://github.com/cherrchen/dsh-plugin-git/releases)，附该版本的 tarball。
 
+## [Unreleased]
+
+### Changed
+
+- 精确 DSH 支持清单纳入 `0.2.1-alpha.4`，验证范围覆盖 `0.1.5-rc.2` 至 `0.2.1-alpha.4` 的全部已发布版本。manifest 同时新增 `engines.dsh` 声明，内容与精确版本集合一致——自 `0.2.1-alpha.4` 起宿主准入预检在该字段存在时只读它——`pnpm compat:check` 强制其与 peer 范围同步。
+
 ## [0.2.6] — 2026-10-15
 
 ### Added

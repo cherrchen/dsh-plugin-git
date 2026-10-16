@@ -27,6 +27,7 @@ const IGNORED_DIRS = new Set([
   'lib',
   '.pnpm-store',
   '.zcode',
+  '.tmp',
 ]);
 
 /** 必须存在的文档系统骨架（相对仓库根）。 */
