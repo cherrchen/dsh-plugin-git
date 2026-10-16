@@ -4,6 +4,12 @@ English | [中文](CHANGELOG.zh.md)
 
 All notable changes to this package are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) — the package is pre-1.0, so a minor release may still change the API. Each published version also has a [GitHub Release](https://github.com/cherrchen/dsh-plugin-git/releases) carrying its tarball.
 
+## [Unreleased]
+
+### Changed
+
+- The exact DSH support list now covers `0.2.1-alpha.4`, extending the verified range to every published release from `0.1.5-rc.2` through `0.2.1-alpha.4`. The manifest also declares `engines.dsh` with the same exact-version set — the field hosts since `0.2.1-alpha.4` evaluate alone for admission when present — and `pnpm compat:check` keeps it in lockstep with the peer ranges.
+
 ## [0.2.6] — 2026-10-15
 
 ### Added

@@ -97,6 +97,16 @@ for (const [name, range] of Object.entries(peers)) {
   if (!(name in devs)) failures.push(`${name} is a peer dependency but has no development pin`)
 }
 
+// Hosts since 0.2.1-alpha.4 admit a plugin by `engines.dsh` alone when it is
+// present, ignoring the peer ranges. Keep the field identical to the peer OR
+// so both gates accept exactly the supported list on every host.
+const enginesDsh = manifest.engines?.dsh
+if (enginesDsh === undefined) {
+  failures.push('engines.dsh is missing; hosts since 0.2.1-alpha.4 read it as the plugin compatibility gate')
+} else if (enginesDsh !== expectedPeerRange && !candidateMode) {
+  failures.push(`engines.dsh is ${enginesDsh}; expected ${expectedPeerRange}`)
+}
+
 const pins = new Set(Object.values(devs))
 if (pins.size !== 1) failures.push(`development dependencies must pin one DSH release; found ${[...pins].join(', ') || '(none)'}`)
 const pin = [...pins][0]

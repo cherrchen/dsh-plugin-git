@@ -67,6 +67,12 @@
 
 修正：升级脚本与 `pnpm compat:check` 把波浪号下限里的 prerelease 当成精确 pin。Cordis peer 与 schemastery 依赖各加一条 `|| ~…` 备选，不抬高旧宿主下限。这两个 DSH 版本仍不是支持清单中的承诺。
 
+## 后续修正（2026-10-16）：`engines.dsh` 成为准入判定的首选字段
+
+`0.2.1-alpha.4` 的 `app-boot` 兼容预检与 `plugin-manager` 改为先读插件 manifest 的 `engines.dsh`：该字段存在时由它单独判定准入，peer 集合不再参与判定；字段缺失时才回退到原有的逐 peer 检查。`PluginCompatibility.peers` 同时改名 `requirements`。
+
+修正：manifest 新增 `engines.dsh`，内容与精确 peer OR 完全一致，`pnpm compat:check` 强制它与唯一清单同步。唯一清单仍是唯一真源；peer OR 继续承担旧宿主的准入判定和安装器的 peer 解析语义，不能因为 `engines.dsh` 存在而删除。
+
 ## Related Documents
 
 - [DSH 兼容契约](../reference/dsh-compatibility.md)
