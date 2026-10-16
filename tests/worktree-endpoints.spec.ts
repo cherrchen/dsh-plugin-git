@@ -1,10 +1,9 @@
-import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs'
+import { execFileSync, spawn } from 'node:child_process'
+import { accessSync, constants, existsSync, mkdtempSync, realpathSync, statSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { delimiter, join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
-import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apply } from '../src/index.ts'
 import { canonicalPath } from '../src/path-identity.ts'
@@ -28,6 +27,60 @@ function repository(): string {
   return root
 }
 
+// Endpoint tests exercise session/RPC semantics over real git, not the upstream
+// runtime's per-spawn containment probes (a blocking systemd query on Linux CI).
+function localSubprocess() {
+  const reader = (parts: Buffer[]) => ({
+    readFrom: (from: number) => {
+      const buffer = Buffer.concat(parts).subarray(from)
+      return { text: buffer.toString('utf8'), nextOffset: from + buffer.length, lossy: false }
+    },
+  })
+  return {
+    resolveExecutable: async (command: string) => {
+      for (const directory of (process.env['PATH'] ?? '').split(delimiter)) {
+        const candidate = join(directory, command)
+        try {
+          if (!statSync(candidate).isFile()) continue
+          accessSync(candidate, constants.X_OK)
+          return candidate
+        } catch {}
+      }
+      throw new Error(`localSubprocess: ${command} was not found on PATH`)
+    },
+    spawn(spec: { argv: readonly string[]; cwd: string; env?: NodeJS.ProcessEnv; signal?: AbortSignal }) {
+      const env = { ...process.env }
+      for (const [key, value] of Object.entries(spec.env ?? {})) {
+        if (value === undefined) delete env[key]
+        else env[key] = value
+      }
+      const child = spawn(spec.argv[0]!, [...spec.argv.slice(1)], {
+        cwd: spec.cwd,
+        env,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        ...(spec.signal !== undefined ? { signal: spec.signal } : {}),
+      })
+      const stdoutParts: Buffer[] = []
+      const stderrParts: Buffer[] = []
+      child.stdout?.on('data', (chunk: Buffer) => stdoutParts.push(chunk))
+      child.stderr?.on('data', (chunk: Buffer) => stderrParts.push(chunk))
+      return {
+        stdin: undefined,
+        stdout: undefined,
+        stderr: undefined,
+        collected: { stdout: reader(stdoutParts), stderr: reader(stderrParts) },
+        done: new Promise<{ exitCode: number | null; signal: NodeJS.Signals | null }>((resolve, reject) => {
+          child.once('error', reject)
+          child.once('close', (exitCode, signal) => resolve({ exitCode, signal }))
+        }),
+        terminate: () => { child.kill('SIGTERM') },
+        terminateForHostExit: () => { child.kill('SIGKILL') },
+        waitForExit: async () => true,
+      }
+    },
+  }
+}
+
 type Reply = { ok: true; value: unknown } | { ok: false; error: { message: string } }
 
 interface Mounted {
@@ -42,8 +95,7 @@ async function mounted(options: {
   fs?: Record<string, unknown>
 } = {}): Promise<Mounted> {
   const ctx = new Context()
-  const fiber = ctx.plugin(LocalSubprocessRuntime)
-  await fiber.await()
+  ctx.provide('subprocess', localSubprocess() as never)
   ctx.provide('webServer', {} as never)
   let captured: Mounted['call'] | undefined
   ctx.provide('connection', {
@@ -68,15 +120,14 @@ async function mounted(options: {
   apply(ctx, (options.config ?? {}) as never)
   await new Promise((resolve) => setImmediate(resolve))
   if (captured === undefined) throw new Error('git RPC was not registered')
-  return { call: captured, dispose: () => fiber.dispose() }
+  return { call: captured, dispose: async () => {} }
 }
 
 describe('worktree endpoints', { timeout: 20_000 }, () => {
   it.each(['local', 'upstream'])('accepts %s creation when its directory projection arrives before the RPC reply', async (mode) => {
     const repo = repository()
     const ctx = new Context()
-    const fiber = ctx.plugin(LocalSubprocessRuntime)
-    await fiber.await()
+    ctx.provide('subprocess', localSubprocess() as never)
     let handler: ((endpoint: string, payload: unknown, signal: AbortSignal) => Promise<Reply>) | undefined
     let cwd = repo
     let rebound: Promise<void> | undefined
@@ -123,7 +174,6 @@ describe('worktree endpoints', { timeout: 20_000 }, () => {
     } finally {
       controller.dispose()
       await rebound
-      await fiber.dispose()
     }
   })
 
@@ -174,8 +224,7 @@ describe('worktree endpoints', { timeout: 20_000 }, () => {
     const repo = repository()
     const entered: string[] = []
     const ctx = new Context()
-    const fiber = ctx.plugin(LocalSubprocessRuntime)
-    await fiber.await()
+    ctx.provide('subprocess', localSubprocess() as never)
     ctx.provide('webServer', {} as never)
     let captured: Mounted['call'] | undefined
     ctx.provide('connection', {
@@ -198,19 +247,15 @@ describe('worktree endpoints', { timeout: 20_000 }, () => {
     } as never)
     apply(ctx, { worktrees: { enabled: true } } as never)
     await new Promise((resolve) => setImmediate(resolve))
-    try {
-      if (captured === undefined) throw new Error('git RPC was not registered')
-      const created = await captured('create-worktree', { sessionId: 'session-a', repository: repo, name: 'wt-enter' })
-      expect(created.ok).toBe(true)
-      if (created.ok) {
-        const value = created.value as { path: string; entered?: boolean }
-        expect(value.entered).toBe(true)
-        expect(canonicalPath(value.path, repo)).toBe(`${realpathSync(repo)}/.agents/worktrees/wt-enter`)
-      }
-      expect(entered.map(path => canonicalPath(path, repo))).toEqual([`${realpathSync(repo)}/.agents/worktrees/wt-enter`])
-    } finally {
-      await fiber.dispose()
+    if (captured === undefined) throw new Error('git RPC was not registered')
+    const created = await captured('create-worktree', { sessionId: 'session-a', repository: repo, name: 'wt-enter' })
+    expect(created.ok).toBe(true)
+    if (created.ok) {
+      const value = created.value as { path: string; entered?: boolean }
+      expect(value.entered).toBe(true)
+      expect(canonicalPath(value.path, repo)).toBe(`${realpathSync(repo)}/.agents/worktrees/wt-enter`)
     }
+    expect(entered.map(path => canonicalPath(path, repo))).toEqual([`${realpathSync(repo)}/.agents/worktrees/wt-enter`])
   })
 
   it('delegates creation to a mounted upstream runtime with the session agent', async () => {
