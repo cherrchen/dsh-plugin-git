@@ -150,6 +150,8 @@ Git Client 从 primitives 的公开入口复用 `DiffBlock`，不导入官方 `u
 
 候选验证于 2026-10-16 在开发机完成。`DSH_COMPAT_MODE=warn` 安装 `0.2.1-alpha.4` 后，`pnpm compat:check`、`pnpm test`（299）、`pnpm docs:check`、`pnpm build` 与 `pnpm test:artifact` 全部通过；随后在候选安装树上以正式门禁重跑 `pnpm compat:check` 通过，开发 pin 与锁文件恢复 `0.2.0-rc.2`。
 
+同日在开发机用发布的 `@deepseek-ai/dsh@0.2.1-alpha.4` npm 包启动隔离 `DSH_HOME` 的 Web 宿主做实机验证：`dsh plugin --profile web add` 装入本分支构建的 tarball，准入预检直接读取新增的 `engines.dsh` 并通过，组合树出现 `dsh-plugin-git` 行；启动无告警，客户端 bundle 正常供给。浏览器会话中 Git 三个侧栏页（Changes / Diff / Graph / Worktrees）按真实仓库状态渲染，暂存与取消暂存写操作落在正确仓库根，插件管理页该 bundle 的配置卡正常渲染。未配置模型，未覆盖提交信息生成。
+
 ## 静态一致性门禁
 
 上游 DSH 包把同级依赖写成 caret，例如 `^0.1.5-rc.2`。这个范围接受同一 core 上更后的 prerelease，pnpm 在 `autoInstallPeers` 下会装成 registry 里当前最高的匹配版本。只钉住根清单时，锁文件仍会混入 `0.1.5-rc.3`、`0.1.7-alpha.1` 或更旧的 `0.1.1-rc.2`。`.pnpmfile.cjs` 在每次安装时把传递依赖、可选依赖和 peer 里的全部 `@deepseek-ai/dsh-*` 改成当前精确版本。目标版本优先取 `DSH_COMPAT_VERSION`，否则取根 devDependency 的唯一 pin。根清单自己的 devDependency pin 和多版本 peer OR 范围保持不变。
