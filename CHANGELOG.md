@@ -8,7 +8,7 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ### Changed
 
-- The exact DSH support list now covers `0.2.1-alpha.4`, extending the verified range to every published release from `0.1.5-rc.2` through `0.2.1-alpha.4`. The manifest also declares `engines.dsh` with the same exact-version set — the field hosts since `0.2.1-alpha.4` evaluate alone for admission when present — and `pnpm compat:check` keeps it in lockstep with the peer ranges.
+- The exact DSH support list now covers `0.2.1-rc.2`, extending the verified range to every published release from `0.1.5-rc.2` through `0.2.1-rc.2`. The manifest also declares `engines.dsh` with the same exact-version set — the field hosts since `0.2.1-alpha.4` evaluate alone for admission when present — and `pnpm compat:check` keeps it in lockstep with the peer ranges.
 
 ## [0.2.6] — 2026-10-15
 
