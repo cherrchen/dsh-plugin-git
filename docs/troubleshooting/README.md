@@ -15,3 +15,4 @@
 - [`minimum-release-age-dev-pin.md`](minimum-release-age-dev-pin.md) —— 主 CI 冻结安装因 pnpm 24 小时发布冷却拒绝未满一天的开发 pin；用当前 pin 整表替换 `minimumReleaseAgeExclude`（同名包只认第一条版本）。
 - [`windows-desktop-console-flood.md`](windows-desktop-console-flood.md) —— Windows 桌面端终端窗口风暴与 Git 界面空白：宿主 `CreateProcessW` 缺 `CREATE_NO_WINDOW` 放大焦点事件，客户端刷新无合并且轮次互相判旧。
 - [`worktree-endpoints-linux-ci-timeout.md`](worktree-endpoints-linux-ci-timeout.md) —— 兼容矩阵 Linux 车道 `worktree-endpoints` 用例间歇性超时：`dsh-subprocess-local` 每次 spawn 阻塞探测用户 systemd 且只锁正向缓存，尾部无界；该 spec 改为注入直起 `child_process` 的 fake subprocess 服务。
+- [`session-log-newer-harness.md`](session-log-newer-harness.md) —— 旧宿主打开新版写入的会话报「历史加载失败」：`0.2.1-alpha.3` 起写入 `job/registered` / `job/settled` 必需事件，更早 harness 的持久化读路径按未知非 ignorable 事件整段拒读，属上游前向兼容防护而非插件缺陷。
