@@ -168,6 +168,10 @@ Git Client 从 primitives 的公开入口复用 `DiffBlock`，不导入官方 `u
 
 候选验证于 2026-10-17 在开发机完成。`DSH_COMPAT_MODE=warn` 下分别以 `0.2.1-alpha.5`、`0.2.1-rc.1`、`0.2.1-rc.2` 三条车道安装，`pnpm compat:check`、`pnpm test`（299）、`pnpm docs:check`、`pnpm build` 与 `pnpm test:artifact` 全部通过；晋级清单写入后在 `0.2.1-rc.2` 安装树上以正式门禁重跑 `pnpm compat:check` 通过，开发 pin 与锁文件恢复 `0.2.0-rc.2`。
 
+## Session 日志的回读边界（降级不可读）
+
+宿主持久化读路径拒绝解释包含未知必需事件的日志：`dsh-session-persistence` 对不在 `KNOWN_SESSION_EVENT_TYPES` 且未标 `ignorable` 的事件直接拒绝。`0.2.1-alpha.3` 起写入方新增 `job/registered` / `job/settled` 两个必需事件（后台作业登记，agent 的 bash 调用即产生）；因此凡在 ≥ `0.2.1-alpha.3` 宿主上运行过这类作业的会话，回到 `0.2.1-alpha.2` 及更早版本（含 `0.2.0-rc.2`）打开时，历史加载以 `SESSION_QUERY_PERSISTENCE_FAILED` 失败。这是上游刻意的前向兼容防护，与本插件的支持声明无关——插件不读 Session 日志，宿主该行为不受插件影响。症状与解法见 [troubleshooting 条目](../troubleshooting/session-log-newer-harness.md)。
+
 ## 静态一致性门禁
 
 上游 DSH 包把同级依赖写成 caret，例如 `^0.1.5-rc.2`。这个范围接受同一 core 上更后的 prerelease，pnpm 在 `autoInstallPeers` 下会装成 registry 里当前最高的匹配版本。只钉住根清单时，锁文件仍会混入 `0.1.5-rc.3`、`0.1.7-alpha.1` 或更旧的 `0.1.1-rc.2`。`.pnpmfile.cjs` 在每次安装时把传递依赖、可选依赖和 peer 里的全部 `@deepseek-ai/dsh-*` 改成当前精确版本。目标版本优先取 `DSH_COMPAT_VERSION`，否则取根 devDependency 的唯一 pin。根清单自己的 devDependency pin 和多版本 peer OR 范围保持不变。
