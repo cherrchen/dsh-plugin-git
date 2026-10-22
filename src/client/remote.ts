@@ -2,7 +2,7 @@
 import type { GitRpcClient } from './controller.ts'
 import type { GitRemoteCapability, GitRemoteGeneration, GitRemoteWriteContext } from '../remote/types.ts'
 import type { BoundRemote, RemoteRepositorySet, RemoteCheckoutReceipt } from '../remote/git.ts'
-import type { RemoteComment, RemoteFile, RemoteIssue, RemotePage, RemotePull, RemoteRepository, RemoteRepositoryFacts, RemoteResult, RemoteNotice } from '../remote/provider.ts'
+import type { RemoteComment, RemoteCommit, RemoteIssue, RemotePage, RemotePull, RemoteRepository, RemoteRepositoryFacts, RemoteResult, RemoteNotice, RemoteReview } from '../remote/provider.ts'
 
 const OFF: GitRemoteCapability = { state: 'off', reason: 'implementation-pending', auth: { state: 'off' } }
 const equal = (a: GitRemoteGeneration | undefined, b: GitRemoteGeneration | undefined) => a !== undefined && b !== undefined && a.instanceId === b.instanceId && a.revision === b.revision
@@ -68,8 +68,11 @@ export interface RemoteClientState {
   readonly commentsNext?: string | undefined
   readonly inline: readonly RemoteComment[]
   readonly inlineNext?: string | undefined
+  readonly commits: readonly RemoteCommit[]
+  readonly commitsNext?: string | undefined
+  readonly reviews: readonly RemoteReview[]
+  readonly reviewsNext?: string | undefined
   readonly checkout?: RemoteCheckoutReceipt | undefined
-  readonly comparison?: { readonly files: RemotePage<RemoteFile>; readonly baseSha: string; readonly headSha: string } | undefined
   readonly busy: boolean
   /** True while a background page pull appends to an already-rendered list. */
   readonly streaming: boolean
@@ -90,7 +93,7 @@ export class GitRemoteController {
   private listState: 'open' | 'closed' | 'all' = 'open'
   private readonly unsubscribe: () => void
   constructor(private readonly feature: GitRemoteFeature, private readonly sessionId?: string) {
-    this.state = { capability: feature.getSnapshot(), remotes: [], items: [], comments: [], inline: [], busy: false, streaming: false, unknown: false }
+    this.state = { capability: feature.getSnapshot(), remotes: [], items: [], comments: [], inline: [], commits: [], reviews: [], busy: false, streaming: false, unknown: false }
     this.unsubscribe = feature.subscribe(() => {
       const capability = feature.getSnapshot()
       if (capability.state === 'off' || (this.state.generation !== undefined && capability.state === 'on' && !equal(this.state.generation, capability.generation))) this.clear(this.state.repository)
@@ -103,7 +106,7 @@ export class GitRemoteController {
   private clear(repository?: string): void {
     this.epoch += 1; this.active.abort(); this.active = new AbortController()
     if (this.streamResume !== undefined) { clearTimeout(this.streamResume); this.streamResume = undefined }
-    this.state = { capability: this.feature.getSnapshot(), ...(repository === undefined ? {} : { repository }), remotes: [], items: [], comments: [], inline: [], busy: false, streaming: false, unknown: false }
+    this.state = { capability: this.feature.getSnapshot(), ...(repository === undefined ? {} : { repository }), remotes: [], items: [], comments: [], inline: [], commits: [], reviews: [], busy: false, streaming: false, unknown: false }
   }
   setRepository(repository: string | undefined): void { if (repository === this.state.repository) return; this.clear(repository); this.patch({}); if (repository !== undefined) void this.load() }
   private async call<T>(endpoint: string, payload: Record<string, unknown> = {}, signal = this.active.signal): Promise<T> {
@@ -128,7 +131,7 @@ export class GitRemoteController {
       const list = await this.call<RemoteResult<RemotePage<RemotePull | RemoteIssue>>>(kind === 'pulls' ? 'remote-list-prs' : 'remote-list-issues', { ...target, state, pages: FIRST_PAGES })
       if (epoch !== this.epoch || !equal(facts.generation, list.generation)) return
       this.listKind = kind; this.listState = state
-      this.patch({ target, generation: facts.generation, facts: facts.value, items: list.value.items, itemsNext: list.value.next, detail: undefined, comparison: undefined, comments: [], commentsNext: undefined, inline: [], inlineNext: undefined, streamError: undefined, unknown: false })
+      this.patch({ target, generation: facts.generation, facts: facts.value, items: list.value.items, itemsNext: list.value.next, detail: undefined, comments: [], commentsNext: undefined, inline: [], inlineNext: undefined, commits: [], commitsNext: undefined, reviews: [], reviewsNext: undefined, streamError: undefined, unknown: false })
       this.stream(epoch)
     })
   }
@@ -138,9 +141,10 @@ export class GitRemoteController {
       const detail = await this.call<RemoteResult<RemotePull | RemoteIssue>>(kind === 'pulls' ? 'remote-pr' : 'remote-issue', { ...target, number: n })
       const comments = await this.call<RemoteResult<RemotePage<RemoteComment>>>('remote-comments', { ...target, number: n, pages: FIRST_PAGES })
       const inline = kind === 'pulls' ? await this.call<RemoteResult<RemotePage<RemoteComment>>>('remote-comments', { ...target, number: n, inline: true, pages: FIRST_PAGES }) : undefined
-      const comparison = kind === 'pulls' ? await this.call<RemoteResult<NonNullable<RemoteClientState['comparison']>>>('remote-files', { ...target, number: n, pages: FIRST_PAGES }) : undefined
-      if (epoch !== this.epoch || !equal(detail.generation, comments.generation) || (inline !== undefined && !equal(detail.generation, inline.generation)) || (comparison !== undefined && !equal(detail.generation, comparison.generation))) return
-      this.patch({ facts: this.state.facts === undefined ? undefined : { ...this.state.facts, actions: { ...this.state.facts.actions, canClose: detail.value.author?.userId === this.state.facts.viewer?.userId || this.state.facts.permissions.push === true ? true : this.state.facts.permissions.push === false ? false : 'unknown' } }, itemsNext: undefined, detail: detail.value, generation: detail.generation, comments: comments.value.items, commentsNext: comments.value.next, inline: inline?.value.items ?? [], inlineNext: inline?.value.next, comparison: comparison?.value, streamError: undefined, unknown: false })
+      const commits = kind === 'pulls' ? await this.call<RemoteResult<RemotePage<RemoteCommit>>>('remote-commits', { ...target, number: n, pages: FIRST_PAGES }) : undefined
+      const reviews = kind === 'pulls' ? await this.call<RemoteResult<RemotePage<RemoteReview>>>('remote-reviews', { ...target, number: n, pages: FIRST_PAGES }) : undefined
+      if (epoch !== this.epoch || !equal(detail.generation, comments.generation) || (inline !== undefined && !equal(detail.generation, inline.generation)) || (commits !== undefined && !equal(detail.generation, commits.generation)) || (reviews !== undefined && !equal(detail.generation, reviews.generation))) return
+      this.patch({ facts: this.state.facts === undefined ? undefined : { ...this.state.facts, actions: { ...this.state.facts.actions, canClose: detail.value.author?.userId === this.state.facts.viewer?.userId || this.state.facts.permissions.push === true ? true : this.state.facts.permissions.push === false ? false : 'unknown' } }, itemsNext: undefined, detail: detail.value, generation: detail.generation, comments: comments.value.items, commentsNext: comments.value.next, inline: inline?.value.items ?? [], inlineNext: inline?.value.next, commits: commits?.value.items ?? [], commitsNext: commits?.value.next, reviews: reviews?.value.items ?? [], reviewsNext: reviews?.value.next, streamError: undefined, unknown: false })
       this.stream(epoch)
     })
   }
@@ -156,7 +160,7 @@ export class GitRemoteController {
   }
   private hasPendingCursor(): boolean {
     const s = this.state
-    return s.itemsNext !== undefined || s.commentsNext !== undefined || s.inlineNext !== undefined || s.comparison?.files.next !== undefined
+    return s.itemsNext !== undefined || s.commentsNext !== undefined || s.inlineNext !== undefined || s.commitsNext !== undefined || s.reviewsNext !== undefined
   }
   /** @returns `true` only when the loop drained every cursor; errors and superseded state return `false`. */
   private async streamLoop(epoch: number): Promise<boolean> {
@@ -193,13 +197,20 @@ export class GitRemoteController {
           this.patch({ inline: appendUnique(this.state.inline, page.value.items, comment => comment.id), inlineNext: page.value.next })
           continue
         }
-        const comparison = s.comparison
-        if (comparison !== undefined && comparison.files.next !== undefined && number !== undefined) {
-          const cursor = comparison.files.next
-          const page = await this.call<RemoteResult<NonNullable<RemoteClientState['comparison']>>>('remote-files', { ...target, number, cursor, expectedBaseSha: comparison.baseSha, expectedHeadSha: comparison.headSha })
+        if (s.commitsNext !== undefined && number !== undefined) {
+          const cursor = s.commitsNext
+          const page = await this.call<RemoteResult<RemotePage<RemoteCommit>>>('remote-commits', { ...target, number, cursor })
           if (epoch !== this.epoch || !equal(generation, page.generation)) return false
-          if (this.state.comparison !== comparison) continue
-          this.patch({ comparison: { ...comparison, files: { ...page.value.files, items: appendUnique(comparison.files.items, page.value.files.items, file => file.path) } } })
+          if (this.state.commitsNext !== cursor) continue
+          this.patch({ commits: appendUnique(this.state.commits, page.value.items, entry => entry.sha), commitsNext: page.value.next })
+          continue
+        }
+        if (s.reviewsNext !== undefined && number !== undefined) {
+          const cursor = s.reviewsNext
+          const page = await this.call<RemoteResult<RemotePage<RemoteReview>>>('remote-reviews', { ...target, number, cursor })
+          if (epoch !== this.epoch || !equal(generation, page.generation)) return false
+          if (this.state.reviewsNext !== cursor) continue
+          this.patch({ reviews: appendUnique(this.state.reviews, page.value.items, entry => entry.id), reviewsNext: page.value.next })
           continue
         }
         return true

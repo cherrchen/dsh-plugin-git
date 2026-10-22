@@ -7,16 +7,15 @@ import { GitRemoteController, type GitRemoteFeature } from '../remote.ts'
 import { resolveGitController, type GitSessionControllers } from '../session-controllers.ts'
 import { effectiveWorkspacePath } from '../workspace-path.ts'
 import { useGitWorkspace } from '../use-git-workspace.ts'
-import { validRange, type RemoteDiffAnchor } from '../../remote/diff.ts'
 import { sameRepository } from '../../remote/git.ts'
 import type { RemotePull, RemoteRepository } from '../../remote/provider.ts'
-import { IconRefreshOutline16 } from '../../compat/dsh-icons.tsx'
+import { IconRefreshOutline16, IconRightUpOutline16 } from '../../compat/dsh-icons.tsx'
 import { GitIconButton } from '../details/GitIconButton.tsx'
 import { parseGitRemoteItemAddress, type GitRemoteItemPayload } from '../contract.ts'
 import { RemoteAuthControl } from '../remote/RemoteAuthControl.tsx'
 import { RemoteCommentCard, RemoteDetailSection, remoteMarkdownLabels } from '../remote/RemoteDetailSection.tsx'
 import { RemotePullActions, type RemoteConfirmKind } from '../remote/RemotePullActions.tsx'
-import { RemoteComparisonFiles } from '../remote/RemoteComparisonFiles.tsx'
+import { RemotePullHistory } from '../remote/RemotePullHistory.tsx'
 import { RemoteComposer, type RemoteReviewEvent } from '../remote/RemoteComposer.tsx'
 import css from '../GitRemoteSurface.module.css'
 
@@ -43,12 +42,10 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
   const [checkoutName, setCheckoutName] = useState('')
   const [body, setBody] = useState('')
   const [confirm, setConfirm] = useState<RemoteConfirmKind>()
-  const [anchor, setAnchor] = useState<RemoteDiffAnchor>()
-  const [startAnchor, setStartAnchor] = useState<RemoteDiffAnchor>()
   const detail = state.detail
   const pr = detail !== undefined && 'head' in detail ? detail as RemotePull : undefined
   const capability = state.capability
-  useEffect(() => { setConfirm(undefined); setAnchor(undefined); setStartAnchor(undefined); setBody('') }, [state.generation?.instanceId, state.generation?.revision, state.repository, detail?.number, pr?.head.sha])
+  useEffect(() => { setConfirm(undefined); setBody('') }, [state.generation?.instanceId, state.generation?.revision, state.repository, detail?.number, pr?.head.sha])
   const writable = state.facts?.viewer !== undefined && !state.busy && !state.unknown
   const labels = useMemo(() => remoteMarkdownLabels(t), [t])
   const write = (endpoint: string, values: Record<string, unknown> = {}): Promise<boolean> => {
@@ -60,27 +57,24 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
       return true
     })
   }
-  const selectAnchor = (next: RemoteDiffAnchor, extend: boolean): void => {
-    if (extend && anchor !== undefined && validRange(anchor, next)) {
-      setStartAnchor(anchor); setAnchor(next); return
-    }
-    setAnchor(next); setStartAnchor(undefined)
-  }
   const targetMatches = identity !== undefined && state.target !== undefined && sameRepository(state.target, identity)
   const detailMatches = payload !== undefined && detail !== undefined && detail.number === payload.number
     && (payload.kind === 'issues' ? !('head' in detail) : 'head' in detail)
-  const handledRevision = useRef(-1)
+  // Each load/open is attempted once per key; a failure leaves the error visible instead of retrying in a hot loop.
+  const handled = useRef('')
   useEffect(() => {
     if (payload === undefined || identity === undefined || state.repository === undefined || state.busy) return
-    if (!targetMatches) { void controller.load(payload.kind, identity); return }
-    if (!detailMatches || handledRevision.current !== revision) {
-      handledRevision.current = revision
-      void controller.open(payload.number, payload.kind)
+    const generation = state.generation
+    const genKey = generation === undefined ? '-' : `${generation.instanceId}:${generation.revision}`
+    if (!targetMatches) {
+      const key = `load:${identity.host}/${identity.owner}/${identity.repo}@${state.repository}:${genKey}`
+      if (handled.current !== key) { handled.current = key; void controller.load(payload.kind, identity) }
+      return
     }
-  }, [controller, payload, identity, state.repository, state.busy, targetMatches, detailMatches, revision])
+    const key = `open:${genKey}:${revision}:${payload.kind}/${payload.number}`
+    if (handled.current !== key) { handled.current = key; void controller.open(payload.number, payload.kind) }
+  }, [controller, payload, identity, state.repository, state.busy, state.generation, targetMatches, detailMatches, revision])
   if (capability.state === 'off' || payload === undefined) return <p className={css.empty}>{t('remote.unavailable')}</p>
-  const inlineEnabled = writable && body.trim() !== '' && anchor !== undefined
-    && pr !== undefined && anchor.commitSha === pr.head.sha && state.comparison?.files.next === undefined
   return <div className={css.root}>
     <div className={css.modeBar} data-git-remote-toolbar="">
       <span className={css.toolbarContext}>{payload.owner}/{payload.repo}</span>
@@ -111,20 +105,30 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
                   </Button>
                 </div>
               ) : (
-                <RemotePullActions
-                  pr={pr}
-                  actions={state.facts?.actions}
-                  writable={writable}
-                  confirm={confirm}
-                  checkoutName={checkoutName}
-                  viewer={state.facts?.viewer?.login}
-                  onCheckoutName={setCheckoutName}
-                  onCheckout={() => { void write('remote-checkout-pr', checkoutName.trim() === '' ? {} : { branch: checkoutName.trim() }) }}
-                  onRequest={setConfirm}
-                  onConfirm={() => { if (confirm !== undefined) void write(confirm) }}
-                  onCancel={() => { setConfirm(undefined) }}
-                  t={t}
-                />
+                <>
+                  <RemotePullActions
+                    pr={pr}
+                    actions={state.facts?.actions}
+                    writable={writable}
+                    confirm={confirm}
+                    checkoutName={checkoutName}
+                    viewer={state.facts?.viewer?.login}
+                    onCheckoutName={setCheckoutName}
+                    onCheckout={() => { void write('remote-checkout-pr', checkoutName.trim() === '' ? {} : { branch: checkoutName.trim() }) }}
+                    onRequest={setConfirm}
+                    onConfirm={() => { if (confirm !== undefined) void write(confirm) }}
+                    onCancel={() => { setConfirm(undefined) }}
+                    t={t}
+                  />
+                  {pr.url !== undefined && (
+                    <div className={css.actionsRow}>
+                      <a className={css.linkButton} href={`${pr.url}/files`} target="_blank" rel="noreferrer">
+                        {t('remote.filesChanged')}
+                        <IconRightUpOutline16 size={14} />
+                      </a>
+                    </div>
+                  )}
+                </>
               )}
               {state.comments.length > 0 && (
                 <section className={css.section} aria-label={t('remote.comments')}>
@@ -139,13 +143,10 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
                   ))}
                 </section>
               )}
-              {pr !== undefined && state.comparison !== undefined && (
-                <RemoteComparisonFiles
-                  files={state.comparison.files}
-                  baseSha={state.comparison.baseSha}
-                  headSha={state.comparison.headSha}
-                  anchor={anchor}
-                  onSelectAnchor={selectAnchor}
+              {pr !== undefined && (
+                <RemotePullHistory
+                  commits={state.commits}
+                  reviews={state.reviews}
                   inline={state.inline}
                   labels={labels}
                   t={t}
@@ -159,19 +160,8 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
               canComment={state.facts?.actions.canComment}
               canReview={state.facts?.actions.canReview}
               body={body}
-              inlineEnabled={inlineEnabled}
               onBody={setBody}
               onComment={() => { void write('remote-comment', { body }) }}
-              onInlineComment={() => {
-                void write('remote-inline-comment', {
-                  body,
-                  expectedHeadSha: anchor?.commitSha,
-                  path: anchor?.path,
-                  line: anchor?.line,
-                  side: anchor?.side,
-                  ...(startAnchor === undefined ? {} : { startLine: startAnchor.line, startSide: startAnchor.side }),
-                })
-              }}
               onReview={(event: RemoteReviewEvent) => { void write('remote-review', { body, event }) }}
               t={t}
             />

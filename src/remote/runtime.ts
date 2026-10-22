@@ -77,6 +77,8 @@ export class GitRemoteRuntime {
         case 'remote-list-issues': return this.provider.issues(target, request['state'] === 'closed' || request['state'] === 'all' ? request['state'] : 'open', paging(request), context)
         case 'remote-issue': return this.provider.issue(target, n(), context)
         case 'remote-comments': return this.provider.comments(target, n(), request['inline'] === true, paging(request), context)
+        case 'remote-commits': return this.provider.commits(target, n(), paging(request), context)
+        case 'remote-reviews': return this.provider.reviews(target, n(), paging(request), context)
         case 'remote-files': {
           // Pin file data to a single API head/base snapshot; head races invalidate the whole comparison.
           const page = paging(request)

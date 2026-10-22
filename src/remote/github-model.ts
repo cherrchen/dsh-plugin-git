@@ -1,6 +1,6 @@
 /** Strict GitHub-to-neutral projections and independent API/browser URL boundaries. */
 import { GitRemoteError } from './errors.ts'
-import type { RemoteAuthor, RemoteBranch, RemoteComment, RemoteFile, RemoteIssue, RemotePull, RemoteRepository } from './provider.ts'
+import type { RemoteAuthor, RemoteBranch, RemoteComment, RemoteCommit, RemoteFile, RemoteIssue, RemotePull, RemoteRepository, RemoteReview, RemoteReviewState } from './provider.ts'
 import { GIT_REMOTE_API_ORIGIN, GIT_REMOTE_WEB_ORIGIN } from './http.ts'
 
 export function invalidResponse(): never { throw new GitRemoteError('git/remote-unavailable', 'git-remote: invalid provider response') }
@@ -72,9 +72,41 @@ export function comment(value: unknown): RemoteComment {
     ...(data['start_side'] !== 'LEFT' && data['start_side'] !== 'RIGHT' ? {} : { startSide: data['start_side'] }),
     ...(typeof data['commit_id'] !== 'string' ? {} : { commitSha: data['commit_id'] }),
     ...(typeof data['in_reply_to_id'] !== 'number' ? {} : { replyTo: String(number(data['in_reply_to_id'])) }),
+    ...(typeof data['pull_request_review_id'] !== 'number' ? {} : { reviewId: String(number(data['pull_request_review_id'])) }),
   }
 }
 export function file(value: unknown): RemoteFile {
   const data = object(value)
   return { path: string(data['filename']), status: string(data['status']), additions: number(data['additions']), deletions: number(data['deletions']), ...(typeof data['previous_filename'] !== 'string' ? {} : { previousPath: data['previous_filename'] }), ...(typeof data['patch'] !== 'string' ? {} : { patch: data['patch'] }) }
+}
+export function commit(value: unknown): RemoteCommit {
+  const data = object(value)
+  const sha = string(data['sha'])
+  if (!/^[0-9a-f]{40,64}$/.test(sha)) return invalidResponse()
+  const inner = object(data['commit'])
+  const authored = inner['author'] == null ? undefined : object(inner['author'])['date']
+  const url = browserUrl(data['html_url'])
+  return {
+    sha,
+    subject: string(inner['message']).split('\n', 1)[0] ?? '',
+    author: author(data['author']),
+    ...(typeof authored !== 'string' ? {} : { date: authored }),
+    ...(url === undefined ? {} : { url }),
+  }
+}
+const REVIEW_STATES: Record<string, RemoteReviewState> = { APPROVED: 'approved', CHANGES_REQUESTED: 'changes-requested', COMMENTED: 'commented', DISMISSED: 'dismissed', PENDING: 'pending' }
+export function review(value: unknown): RemoteReview {
+  const data = object(value)
+  const rawState = string(data['state'])
+  const url = browserUrl(data['html_url'])
+  return {
+    id: String(number(data['id'])),
+    author: author(data['user']),
+    state: REVIEW_STATES[rawState] ?? 'commented',
+    rawState,
+    body: data['body'] == null ? '' : string(data['body']),
+    ...(url === undefined ? {} : { url }),
+    ...(typeof data['submitted_at'] !== 'string' ? {} : { submittedAt: data['submitted_at'] }),
+    ...(typeof data['commit_id'] !== 'string' ? {} : { commitSha: data['commit_id'] }),
+  }
 }

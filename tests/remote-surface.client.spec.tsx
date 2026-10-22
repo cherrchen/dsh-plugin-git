@@ -11,7 +11,7 @@ import { en } from '../src/client/locales.ts'
 const generation = { instanceId: 'host', revision: 1 }
 const repo = { provider: 'github', host: 'github.com', owner: 'owner', repo: 'repo' } as const
 const sha = 'a'.repeat(40)
-const pull = { number: 1, title: 'Example PR', body: 'Description', author: { userId: '1', login: 'alice' }, state: 'open', rawState: 'open', head: { repository: repo, ref: 'topic', sha }, base: { repository: repo, ref: 'main', sha }, draft: false }
+const pull = { number: 1, title: 'Example PR', body: 'Description', author: { userId: '1', login: 'alice' }, state: 'open', rawState: 'open', head: { repository: repo, ref: 'topic', sha }, base: { repository: repo, ref: 'main', sha }, draft: false, url: 'https://github.com/owner/repo/pull/1' }
 const resources: { dispose(): void }[] = []
 afterEach(() => { cleanup(); resources.splice(0).forEach(resource => resource.dispose()) })
 function fixture(unknown = false, handler?: (endpoint: string, payload: unknown) => { ok: boolean; value?: unknown; error?: unknown } | undefined) {
@@ -28,7 +28,7 @@ function fixture(unknown = false, handler?: (endpoint: string, payload: unknown)
     else if (endpoint === 'remote-list-prs') value = { generation, value: { items: [pull], truncated: false } }
     else if (endpoint === 'remote-pr') value = { generation, value: pull }
     else if (endpoint === 'remote-comments') value = { generation, value: { items: [], truncated: false } }
-    else if (endpoint === 'remote-files') value = { generation, value: { baseSha: sha, headSha: sha, files: { items: [{ path: 'file', status: 'modified', additions: 1, deletions: 1, patch: '@@ -1 +1 @@\n-old\n+new' }], truncated: false } } }
+    else if (endpoint === 'remote-commits' || endpoint === 'remote-reviews') value = { generation, value: { items: [], truncated: false } }
     else if (endpoint === 'remote-close-pr' && unknown) return { ok: false, error: { code: 'git/write-result-unknown', message: 'Unknown result' } }
     else value = {}
     return { ok: true, value }
@@ -74,6 +74,26 @@ describe('portable remote surface', () => {
     fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: en['remote.confirm'] }))
     await screen.findByText(en['remote.unknown'])
     expect((screen.getByRole('button', { name: en['remote.comment'] }) as HTMLButtonElement).disabled).toBe(true)
+  })
+  it('links to the GitHub files page and renders commit and review history without fetching diffs', async () => {
+    const { base, call } = fixture(false, (endpoint, payload) => {
+      if (endpoint === 'remote-commits') return { ok: true, value: { generation, value: { items: [{ sha, subject: 'Add the feature', author: { userId: '1', login: 'alice' }, date: '2024-01-01T00:00:00Z' }], truncated: false } } }
+      if (endpoint === 'remote-reviews') return { ok: true, value: { generation, value: { items: [{ id: '9', author: { userId: '2', login: 'bob' }, state: 'approved', rawState: 'APPROVED', body: 'LGTM' }], truncated: false } } }
+      if (endpoint === 'remote-comments') {
+        const inline = (payload as { inline?: boolean }).inline === true
+        return { ok: true, value: { generation, value: { items: inline ? [{ id: 'i1', body: 'line note', author: { userId: '2', login: 'bob' }, outdated: false, reviewId: '9', path: 'a.ts', line: 3 }] : [], truncated: false } } }
+      }
+      return undefined
+    })
+    const navigation = { address: 'dsh-resource://git-remote/owner/repo/pulls/1', params: { owner: 'owner', repo: 'repo', kind: 'pulls', number: 1 }, revision: 0 }
+    render(<GitRemoteItemSurface {...{ ...base, useTabInfo: () => ({ tab: { navigation } }) } as unknown as ComponentProps<typeof GitRemoteItemSurface>} />)
+    const files = await screen.findByRole('link', { name: new RegExp(en['remote.filesChanged']) })
+    expect(files.getAttribute('href')).toBe('https://github.com/owner/repo/pull/1/files')
+    await screen.findByText('Add the feature')
+    await screen.findByText('LGTM')
+    await screen.findByText(/a\.ts:3/)
+    expect(screen.queryByRole('button', { name: en['remote.approve'] })).not.toBeNull()
+    expect(call.mock.calls.some(args => args[1] === 'remote-files')).toBe(false)
   })
   it('appends streamed pages into the open list', async () => {
     const { base } = fixture(false, (endpoint, payload) => {

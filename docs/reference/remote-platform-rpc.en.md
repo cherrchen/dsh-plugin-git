@@ -60,8 +60,10 @@ Other repository endpoints carry repository/sessionId?/host:'github.com'/owner/r
 | remote-repository | Viewer, known original permission bits, five tri-state actions; storage writability proves no remote permission |
 | remote-list-prs / remote-list-issues | state?:open/closed/all, cursor?, pages?; Issue lists exclude PR entries |
 | remote-pr / remote-issue | number; explicit PR head/base repository/ref/SHA, open/closed/merged plus rawState |
-| remote-comments | number,inline?, cursor?, pages?; replyTo, commitSha, original line/side and outdated state |
-| remote-files | number, cursor?, pages?, expectedBaseSha?, expectedHeadSha?; files:{items,truncated,next?},baseSha,headSha; verify PR snapshot before/after the first page, then pin head/base on each continuation |
+| remote-comments | number,inline?, cursor?, pages?; replyTo, commitSha, original line/side, outdated state and `reviewId` (owning review id for nested display) |
+| remote-commits | number, cursor?, pages?; `{items,truncated,next?}` of `{sha,subject,author,date?,url?}` |
+| remote-reviews | number, cursor?, pages?; `{items,truncated,next?}` of `{id,author,state,rawState,body,url?,submittedAt?,commitSha?}` with `state` normalized to `approved/changes-requested/commented/dismissed/pending` |
+| remote-files | number, cursor?, pages?, expectedBaseSha?, expectedHeadSha?; files:{items,truncated,next?},baseSha,headSha; verify PR snapshot before/after the first page, then pin head/base on each continuation. PR detail no longer calls it proactively: file changes open the GitHub Files page via `pr.url + '/files'`; the capability remains for guarded write paths that need local coordinates |
 | remote-notifications | automatic?; review requests and own PR merged/closed/changes-requested events with stable ids; expand at most ten threads, explicitly mark truncation |
 
 Tokens go only to https://api.github.com with X-GitHub-Api-Version:2022-11-28. Pagination Link and GET redirects obey the same allowlist; browser links independently require https://github.com. Explicit projections prevent raw response leakage. Authenticated ETag/body caches are isolated by origin/viewer/generation/full path and query, and cleared when identity changes. Anonymous reads are manual only. Authenticated polling waits at least 60s and honors stricter X-Poll-Interval. Rate limits honor Retry-After/reset and bounded exponential backoff. Writes never retry automatically.
@@ -81,7 +83,7 @@ Every repository mutator is enumerated in isRepositoryWrite. In addition to repo
 | remote-checkout-pr | number,expectedHeadSha,branch?; optional nonconflicting branch name |
 | remote-issue-branch | number; existing create/switch operations create issue-N-slug |
 
-src/remote/diff.ts derives anchors from original hunk headers. Client and Host check file/commit/side/hunk and ordered multiline ranges. Missing/truncated/ambiguous rename or deletion patches remain readable with submission disabled. Payloads use line/side, start_line/start_side and commit_id, never deprecated position.
+src/remote/diff.ts derives anchors from original hunk headers and validates them on the Host: file/commit/side/hunk plus ordered multiline ranges. Payloads use line/side, start_line/start_side and commit_id, never deprecated position. The current portable UI renders no local diff and has no anchor picker, so `remote-inline-comment` stays unexposed; inline review comments are read-only and nested under their review via `reviewId`.
 
 Checkout fetches a private ref keyed by base repository hash and verifies API head SHA. Tracking updates use expected-old CAS, zero SHA for absence, head-moved for an advanced ref and refusal for divergence. Missing fetch mappings are appended. Branches start at the verified SHA; existing SHA/upstream must match. User branches and other worktrees are never forced. Receipts report switched/privateRefWritten/trackingRefPrepared/fetchMappingAdded/upstreamNotConfigured/branch, actual head when readable, and error. False means completion was not confirmed, not a promise of cross-ref/config rollback. Prepared state is not automatically deleted. Git transport uses existing Git credentials, without OAuth bridging.
 

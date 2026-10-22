@@ -36,7 +36,29 @@ export interface RemoteComment {
   readonly startSide?: 'LEFT' | 'RIGHT'
   readonly commitSha?: string
   readonly replyTo?: string
+  /** Owning review id for inline review comments; absent on conversation comments. */
+  readonly reviewId?: string
   readonly outdated: boolean
+}
+/** One commit belonging to a pull request's head history. */
+export interface RemoteCommit {
+  readonly sha: string
+  readonly subject: string
+  readonly author: RemoteAuthor | null
+  readonly date?: string
+  readonly url?: string
+}
+export type RemoteReviewState = 'approved' | 'changes-requested' | 'commented' | 'dismissed' | 'pending'
+/** One submitted review on a pull request; inline comments reference it via `reviewId`. */
+export interface RemoteReview {
+  readonly id: string
+  readonly author: RemoteAuthor | null
+  readonly state: RemoteReviewState
+  readonly rawState: string
+  readonly body: string
+  readonly url?: string
+  readonly submittedAt?: string
+  readonly commitSha?: string
 }
 export interface RemoteFile {
   readonly path: string
@@ -68,6 +90,8 @@ export interface RemoteProvider {
   issue(repo: RemoteRepository, number: number, context: RemoteReadContext): Promise<RemoteResult<RemoteIssue>>
   comments(repo: RemoteRepository, number: number, inline: boolean, page: RemotePageRequest, context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemoteComment>>>
   files(repo: RemoteRepository, number: number, page: RemotePageRequest, context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemoteFile>>>
+  commits(repo: RemoteRepository, number: number, page: RemotePageRequest, context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemoteCommit>>>
+  reviews(repo: RemoteRepository, number: number, page: RemotePageRequest, context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemoteReview>>>
   write(repo: RemoteRepository, expected: GitRemoteWriteContext, command: RemoteWrite, context: RemoteReadContext): Promise<RemoteResult<RemoteWriteReceipt>>
   notifications(repo: RemoteRepository, context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemoteNotice>>>
   dispose(): Promise<void>

@@ -60,8 +60,10 @@ Device Flow 只允许 `https://github.com/login/device`。刷新先 CAS 提交 r
 | `remote-repository` | viewer、原始已知权限位、五项动作三态；存储可写不能推导远端权限 |
 | `remote-list-prs` / `remote-list-issues` | `state?:open|closed|all, cursor?, pages?`；Issue 列表排除 PR |
 | `remote-pr` / `remote-issue` | `number`；PR 显式保存 head/base 仓库、ref、SHA；state 为 open/closed/merged，保留 rawState |
-| `remote-comments` | `number,inline?:boolean, cursor?, pages?`；inline 保存 replyTo、commitSha、原始行/side，outdated 不冒充当前坐标 |
-| `remote-files` | `number, cursor?, pages?, expectedBaseSha?, expectedHeadSha?`；返回 `{files:{items,truncated,next?},baseSha,headSha}`；首页读取前后核对 PR 快照，续页携带 expected SHA 并逐页核对 head/base 未动 |
+| `remote-comments` | `number,inline?:boolean, cursor?, pages?`；inline 保存 replyTo、commitSha、原始行/side 与 `reviewId`（归属的 review id，供按 review 分组展示），outdated 不冒充当前坐标 |
+| `remote-commits` | `number, cursor?, pages?`；返回 `{items,truncated,next?}`，commit 为 `{sha,subject,author,date?,url?}` |
+| `remote-reviews` | `number, cursor?, pages?`；返回 `{items,truncated,next?}`，review 为 `{id,author,state,rawState,body,url?,submittedAt?,commitSha?}`，`state` 归一为 `approved|changes-requested|commented|dismissed|pending` |
+| `remote-files` | `number, cursor?, pages?, expectedBaseSha?, expectedHeadSha?`；返回 `{files:{items,truncated,next?},baseSha,headSha}`；首页读取前后核对 PR 快照，续页携带 expected SHA 并逐页核对 head/base 未动。PR 详情页不主动调用：文件改动经 `pr.url + '/files'` 跳转 GitHub Files 页查看，该能力保留给需要本地坐标的受守护写路径 |
 | `remote-notifications` | `automatic?:boolean`；review request、自己 PR merged/closed/changes-requested，稳定事件 id；最多展开 10 个通知线程，超限标 truncated |
 
 API token 仅发往 `https://api.github.com`，带 `X-GitHub-Api-Version:2022-11-28`；Link 与 GET 重定向也校验该 origin。浏览器 URL 独立只允许 `https://github.com`。响应显式投影成中立模型，不透传 raw 对象。认证 ETag 正文按 origin/viewer/generation/完整路径与查询隔离；身份变化清空。匿名不自动轮询，认证轮询最短 60 秒且遵守更长的 X-Poll-Interval；429、primary/secondary 403 遵守 Retry-After/reset 与有界指数退避，不自动重试写请求。
@@ -81,7 +83,7 @@ API token 仅发往 `https://api.github.com`，带 `X-GitHub-Api-Version:2022-11
 | `remote-checkout-pr` | `number,expectedHeadSha,branch?`；可指定无冲突分支名 |
 | `remote-issue-branch` | `number`；复用 create/switch 创建 `issue-N-slug` |
 
-行内坐标由 `src/remote/diff.ts` 从原始 hunk 解析，Host 与 Client 都校验：必须属于同文件、commit、side、hunk；多行范围还须有序。缺 patch、截断、rename/deletion 无法可靠定位时可浏览但不提供安全锚点。提交用 line/side、start_line/start_side、commit_id，不用 deprecated position。
+行内坐标由 `src/remote/diff.ts` 从原始 hunk 解析并在 Host 校验：必须属于同文件、commit、side、hunk；多行范围还须有序。提交用 line/side、start_line/start_side、commit_id，不用 deprecated position。当前便携 UI 不渲染本地 diff、没有锚点选择器，因此不暴露 `remote-inline-comment` 入口；行内 review 评论只读展示并按 `reviewId` 嵌套在对应 review 下。
 
 checkout 抓取到含 base repo hash 的私有 ref，核验 API head SHA；同仓库 tracking 用 expected-old CAS（不存在用零 SHA），已领先则 head-moved、分叉拒绝，缺映射仅追加。分支从核验 SHA 创建/复用，核对已有 upstream；不覆盖用户分支，不强制切换其他 worktree。回执包含 switched、privateRefWritten、trackingRefPrepared、fetchMappingAdded、upstreamNotConfigured、branch、实际 head（可得时）与 error。false 表示该阶段未确认完成，不承诺跨 ref/config 原子回滚；出错不自动删除准备结果。Git 传输使用用户既有 Git 凭据，不桥接平台 OAuth。
 

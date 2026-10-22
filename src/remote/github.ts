@@ -3,7 +3,7 @@ import { remoteDiff, validRange } from './diff.ts'
 import type { GitRemoteAuth, GitRemoteSnapshot } from './auth.ts'
 import { GitRemoteError } from './errors.ts'
 import { GitRemoteHttp, GitRemoteHttpError, GIT_REMOTE_API_ORIGIN, GIT_REMOTE_WEB_ORIGIN, type GitRemoteHttpResponse } from './http.ts'
-import { apiPath, browserUrl, comment, file, invalidResponse, issue, number, object, objectNumber, pull, repositoryPath, string } from './github-model.ts'
+import { apiPath, browserUrl, comment, commit, file, invalidResponse, issue, number, object, objectNumber, pull, repositoryPath, review, string } from './github-model.ts'
 import type { RemotePage, RemotePageRequest, RemoteProvider, RemoteReadContext, RemoteRepository, RemoteRepositoryFacts, RemoteResult, RemoteWrite, RemoteWriteReceipt, RemoteNotice } from './provider.ts'
 import type { GitRemoteGeneration, GitRemoteViewer, GitRemoteWriteContext } from './types.ts'
 
@@ -178,6 +178,12 @@ export class GitHubProvider implements RemoteProvider {
   }
   files(repo: RemoteRepository, n: number, page: RemotePageRequest, context: RemoteReadContext) {
     return this.operation(repo, context, op => this.pages(`${repositoryPath(repo)}/pulls/${objectNumber(n)}/files`, op, file, page))
+  }
+  commits(repo: RemoteRepository, n: number, page: RemotePageRequest, context: RemoteReadContext) {
+    return this.operation(repo, context, op => this.pages(`${repositoryPath(repo)}/pulls/${objectNumber(n)}/commits`, op, commit, page))
+  }
+  reviews(repo: RemoteRepository, n: number, page: RemotePageRequest, context: RemoteReadContext) {
+    return this.operation(repo, context, op => this.pages(`${repositoryPath(repo)}/pulls/${objectNumber(n)}/reviews`, op, review, page))
   }
   notifications(repo: RemoteRepository, context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemoteNotice>>> {
     return this.operation(repo, context, async op => {

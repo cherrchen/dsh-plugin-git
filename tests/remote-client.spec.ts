@@ -101,33 +101,30 @@ describe('remote progressive lists', () => {
     expect(pages[1]?.[2]).toMatchObject({ cursor: '/p2' })
     controller.dispose(); feature.dispose()
   })
-  it('streams comments and files pages for the open detail and pins the comparison snapshot', async () => {
+  it('streams comment, inline, commit and review pages for the open detail', async () => {
     const head = { repository: repo, ref: 'topic', sha: 'a'.repeat(40) }
     const base = { repository: repo, ref: 'main', sha: 'a'.repeat(40) }
     const detail = { ...item(1), head, base, draft: false }
+    const paged = (request: { cursor?: string }, first: unknown[], rest: unknown[], next: string) =>
+      request.cursor === undefined
+        ? { items: first, truncated: true, next }
+        : { items: rest, truncated: false }
     const transport = rpc(async (endpoint, payload) => {
       if (endpoint === 'remote-pr') return { ok: true as const, value: { generation, value: detail } }
       if (endpoint === 'remote-comments') {
         const request = payload as { cursor?: string; inline?: boolean }
-        if (request.inline === true) return { ok: true as const, value: { generation, value: { items: [], truncated: false } } }
-        return {
-          ok: true as const,
-          value: {
-            generation,
-            value: request.cursor === undefined
-              ? { items: [{ id: '1', body: 'one', author: null, outdated: false }], truncated: true, next: '/c2' }
-              : { items: [{ id: '2', body: 'two', author: null, outdated: false }], truncated: false },
-          },
-        }
+        const page = request.inline === true
+          ? paged(request, [{ id: 'i1', body: 'inline one', author: null, outdated: false, reviewId: '7', path: 'a.ts', line: 3 }], [{ id: 'i1', body: 'inline one', author: null, outdated: false, reviewId: '7' }, { id: 'i2', body: 'inline two', author: null, outdated: false, reviewId: '7' }], '/i2')
+          : paged(request, [{ id: '1', body: 'one', author: null, outdated: false }], [{ id: '2', body: 'two', author: null, outdated: false }], '/c2')
+        return { ok: true as const, value: { generation, value: page } }
       }
-      if (endpoint === 'remote-files') {
-        const request = payload as { cursor?: string; expectedHeadSha?: string; expectedBaseSha?: string }
-        if (request.cursor === undefined) {
-          return { ok: true as const, value: { generation, value: { files: { items: [{ path: 'a.ts', status: 'modified', additions: 1, deletions: 0 }], truncated: true, next: '/f2' }, baseSha: base.sha, headSha: head.sha } } }
-        }
-        expect(request.expectedHeadSha).toBe(head.sha)
-        expect(request.expectedBaseSha).toBe(base.sha)
-        return { ok: true as const, value: { generation, value: { files: { items: [{ path: 'b.ts', status: 'added', additions: 1, deletions: 0 }], truncated: false }, baseSha: base.sha, headSha: head.sha } } }
+      if (endpoint === 'remote-commits') {
+        const request = payload as { cursor?: string }
+        return { ok: true as const, value: { generation, value: paged(request, [{ sha: 'c'.repeat(40), subject: 'one', author: null }], [{ sha: 'c'.repeat(40), subject: 'one', author: null }, { sha: 'd'.repeat(40), subject: 'two', author: null }], '/k2') } }
+      }
+      if (endpoint === 'remote-reviews') {
+        const request = payload as { cursor?: string }
+        return { ok: true as const, value: { generation, value: paged(request, [{ id: '7', author: null, state: 'approved', rawState: 'APPROVED', body: 'ok' }], [{ id: '8', author: null, state: 'commented', rawState: 'COMMENTED', body: 'note' }], '/r2') } }
       }
       return undefined
     })
@@ -137,9 +134,14 @@ describe('remote progressive lists', () => {
     await vi.waitFor(() => { expect(controller.getSnapshot().target).toBeDefined() })
     await controller.open(1, 'pulls')
     await vi.waitFor(() => {
-      expect(controller.getSnapshot().comments.map(comment => comment.id)).toEqual(['1', '2'])
-      expect(controller.getSnapshot().comparison?.files.items.map(file => file.path)).toEqual(['a.ts', 'b.ts'])
+      const snapshot = controller.getSnapshot()
+      expect(snapshot.comments.map(comment => comment.id)).toEqual(['1', '2'])
+      expect(snapshot.inline.map(comment => comment.id)).toEqual(['i1', 'i2'])
+      expect(snapshot.commits.map(entry => entry.sha)).toEqual(['c'.repeat(40), 'd'.repeat(40)])
+      expect(snapshot.reviews.map(entry => entry.id)).toEqual(['7', '8'])
     })
+    expect(transport.call.mock.calls.filter(call => call[1] === 'remote-files')).toHaveLength(0)
+    expect(controller.getSnapshot().streaming).toBe(false)
     controller.dispose(); feature.dispose()
   })
   it('stops the stream on error and resumes once after a bounded rate-limit reset', async () => {

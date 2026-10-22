@@ -56,6 +56,20 @@ describe('GitHub provider reads', () => {
     await expect(evil.provider.pulls(REPO, 'open', {}, { signal: SIG })).rejects.toMatchObject({ code: 'git/remote-unavailable' })
     expect(evil.calls).toHaveLength(2)
   })
+  it('projects pull commits and reviews, resuming each from its own cursor', async () => {
+    const s = setup(async path => {
+      if (path.includes('/commits')) return response([{ sha, commit: { message: 'Subject line\n\nbody', author: { date: '2024-01-01T00:00:00Z' } }, author: { id: 5, login: 'bob' }, html_url: `https://github.com/owner/repo/commit/${sha}` }], 200, path.includes('page=2') ? {} : { link: '<https://api.github.com/repos/owner/repo/pulls/1/commits?page=2>; rel="next"' })
+      return response([{ id: 9, user: { id: 2, login: 'carol' }, state: 'CHANGES_REQUESTED', body: 'fix it', html_url: 'https://github.com/owner/repo/pull/1#pullrequestreview-9', submitted_at: '2024-01-02T00:00:00Z', commit_id: sha }])
+    })
+    const commits = await s.provider.commits(REPO, 1, {}, { signal: SIG })
+    expect(commits.value.items[0]).toMatchObject({ sha, subject: 'Subject line', author: { login: 'bob' }, date: '2024-01-01T00:00:00Z', url: `https://github.com/owner/repo/commit/${sha}` })
+    expect(commits.value.next).toBe('/repos/owner/repo/pulls/1/commits?page=2')
+    const reviews = await s.provider.reviews(REPO, 1, {}, { signal: SIG })
+    expect(reviews.value.items[0]).toMatchObject({ id: '9', author: { login: 'carol' }, state: 'changes-requested', rawState: 'CHANGES_REQUESTED', body: 'fix it', submittedAt: '2024-01-02T00:00:00Z', commitSha: sha })
+    const continued = await s.provider.commits(REPO, 1, { cursor: commits.value.next }, { signal: SIG })
+    expect(s.calls.some(call => call.path === '/repos/owner/repo/pulls/1/commits?page=2')).toBe(true)
+    expect(continued.value.next).toBeUndefined()
+  })
   it('keeps missing permission bits unknown and never derives actions from writable storage', async () => {
     const s = setup(async () => response({ permissions: { pull: true, push: false } }))
     expect((await s.provider.repository(REPO, { signal: SIG })).value).toMatchObject({ viewer: { userId: '1' }, permissions: { push: false }, actions: { canMerge: false, canComment: true, canClose: 'unknown' } })

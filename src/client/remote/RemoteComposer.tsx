@@ -12,16 +12,14 @@ function reviewKey(event: RemoteReviewEvent): GitLocaleKey {
   return 'remote.requestChanges'
 }
 
-/** Comment body plus the comment / inline-comment / review write actions. */
-export function RemoteComposer({ writable, canComment, canReview, body, inlineEnabled, onBody, onComment, onInlineComment, onReview, t }: {
+/** Comment body plus the comment / review write actions. */
+export function RemoteComposer({ writable, canComment, canReview, body, onBody, onComment, onReview, t }: {
   readonly writable: boolean
   readonly canComment: boolean | 'unknown' | undefined
   readonly canReview: boolean | 'unknown' | undefined
   readonly body: string
-  readonly inlineEnabled: boolean
   readonly onBody: (value: string) => void
   readonly onComment: () => void
-  readonly onInlineComment: () => void
   readonly onReview: (event: RemoteReviewEvent) => void
   readonly t: (key: GitLocaleKey) => string
 }): ReactNode {
@@ -43,9 +41,6 @@ export function RemoteComposer({ writable, canComment, canReview, body, inlineEn
           onClick={onComment}
         >
           {t('remote.comment')}
-        </Button>
-        <Button variant="outline" size="sm" disabled={!inlineEnabled} onClick={onInlineComment}>
-          {t('remote.inlineComment')}
         </Button>
         {REVIEW_EVENTS.map(event => (
           <Button

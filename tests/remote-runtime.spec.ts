@@ -9,6 +9,8 @@ const sha = 'a'.repeat(40)
 const branch = { ref: 'main', sha, repo: { owner: { login: 'owner' }, name: 'repo' } }
 const pr = { number: 1, state: 'open', title: 'PR', body: '', user: { id: 1, login: 'alice' }, head: branch, base: branch }
 const file = { filename: 'a.ts', status: 'modified', additions: 1, deletions: 0 }
+const commit = { sha, commit: { message: 'Subject line\n\nbody', author: { date: '2024-01-01T00:00:00Z' } }, author: { id: 5, login: 'bob' }, html_url: `https://github.com/owner/repo/commit/${sha}` }
+const review = { id: 9, user: { id: 2, login: 'carol' }, state: 'CHANGES_REQUESTED', body: 'fix it', html_url: 'https://github.com/owner/repo/pull/1#pullrequestreview-9', submitted_at: '2024-01-02T00:00:00Z', commit_id: sha }
 const json = (value: unknown) => new Response(JSON.stringify(value), { headers: { 'content-type': 'application/json' } })
 afterEach(() => vi.unstubAllGlobals())
 function fixture(handler?: (url: string, init: RequestInit) => Promise<Response>) {
@@ -17,7 +19,7 @@ function fixture(handler?: (url: string, init: RequestInit) => Promise<Response>
   vi.stubGlobal('fetch', vi.fn(async (url: string, init: RequestInit) => {
     if (init.method !== 'GET') { writes.push(init); if (handler !== undefined) return handler(url, init); return json({ id: 1 }) }
     reads.push(url)
-    return json(url.endsWith('/user') ? { id: 1, login: 'alice' } : url.includes('/pulls/1/files') ? [file] : url.endsWith('/pulls/1') ? pr : url.includes('/pulls?') ? [pr] : { permissions: { push: true } })
+    return json(url.endsWith('/user') ? { id: 1, login: 'alice' } : url.includes('/pulls/1/files') ? [file] : url.includes('/pulls/1/commits') ? [commit] : url.includes('/pulls/1/reviews') ? [review] : url.endsWith('/pulls/1') ? pr : url.includes('/pulls?') ? [pr] : { permissions: { push: true } })
   }))
   const credentials: GitRemoteCredentialService = { readRecord: async () => undefined, modifyRecord: async () => undefined, deleteRecord: async () => {}, resolve: async () => ({ value: 'SENTINEL_TOKEN', source: 'env' }), describe: async () => ({ configured: true, writable: false }), describeRecord: async () => ({ configured: false, writable: false }) }
   const service = { remoteCommand: async (_root: string, args: string[]) => args[1] === 'get-url' ? 'git@github.com:owner/repo.git\n' : 'origin\n' } as unknown as GitService
@@ -66,8 +68,19 @@ describe('remote RPC owner', () => {
     await expect(runtime.handle('remote-list-prs', { ...expected, cursor: 'https://evil.example/x' }, signal, async () => {})).rejects.toMatchObject({ code: 'git/remote-unavailable' })
     await runtime.dispose()
   })
+  it('dispatches commit and review reads with cursor forwarding and neutral projection', async () => {
+    const { runtime, reads } = fixture()
+    const expected = await context(runtime)
+    const commits = await runtime.handle('remote-commits', { ...expected, number: 1 }, signal, async () => {}) as { value: { items: { sha: string; subject: string; author: { login: string } | null }[] } }
+    expect(commits.value.items[0]).toMatchObject({ sha, subject: 'Subject line', author: { login: 'bob' } })
+    const reviews = await runtime.handle('remote-reviews', { ...expected, number: 1, cursor: '/repos/owner/repo/pulls/1/reviews?page=2' }, signal, async () => {}) as { value: { items: { id: string; state: string; rawState: string; commitSha: string }[] } }
+    expect(reviews.value.items[0]).toMatchObject({ id: '9', state: 'changes-requested', rawState: 'CHANGES_REQUESTED', commitSha: sha })
+    expect(reads.some(url => url.includes('/pulls/1/commits'))).toBe(true)
+    expect(reads.some(url => url.includes('/pulls/1/reviews?page=2'))).toBe(true)
+    await runtime.dispose()
+  })
   it('classifies all remote repository mutators as writes', () => {
     for (const endpoint of ['remote-comment', 'remote-inline-comment', 'remote-review', 'remote-create-pr', 'remote-close-pr', 'remote-merge-pr', 'remote-checkout-pr', 'remote-issue-branch']) expect(isRepositoryWrite(endpoint)).toBe(true)
-    for (const endpoint of ['remote-capability', 'remote-list-prs', 'remote-pr', 'remote-list-issues', 'remote-issue', 'remote-comments', 'remote-files', 'remote-notifications']) expect(isRepositoryWrite(endpoint)).toBe(false)
+    for (const endpoint of ['remote-capability', 'remote-list-prs', 'remote-pr', 'remote-list-issues', 'remote-issue', 'remote-comments', 'remote-files', 'remote-commits', 'remote-reviews', 'remote-notifications']) expect(isRepositoryWrite(endpoint)).toBe(false)
   })
 })
