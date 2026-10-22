@@ -4,7 +4,7 @@ import type { GitRemoteAuth, GitRemoteSnapshot } from './auth.ts'
 import { GitRemoteError } from './errors.ts'
 import { GitRemoteHttp, GitRemoteHttpError, GIT_REMOTE_API_ORIGIN, GIT_REMOTE_WEB_ORIGIN, type GitRemoteHttpResponse } from './http.ts'
 import { apiPath, browserUrl, comment, file, invalidResponse, issue, number, object, objectNumber, pull, repositoryPath, string } from './github-model.ts'
-import type { RemotePage, RemoteProvider, RemoteReadContext, RemoteRepository, RemoteRepositoryFacts, RemoteResult, RemoteWrite, RemoteWriteReceipt, RemoteNotice } from './provider.ts'
+import type { RemotePage, RemotePageRequest, RemoteProvider, RemoteReadContext, RemoteRepository, RemoteRepositoryFacts, RemoteResult, RemoteWrite, RemoteWriteReceipt, RemoteNotice } from './provider.ts'
 import type { GitRemoteGeneration, GitRemoteViewer, GitRemoteWriteContext } from './types.ts'
 
 export function sameGeneration(a: GitRemoteGeneration, b: GitRemoteGeneration): boolean { return a.instanceId === b.instanceId && a.revision === b.revision }
@@ -126,24 +126,25 @@ export class GitHubProvider implements RemoteProvider {
     return { host: 'github.com', userId: String(number(data['id'])), login: string(data['login']), ...(typeof data['name'] !== 'string' ? {} : { name: data['name'] }), ...(avatarUrl === undefined ? {} : { avatarUrl }) }
   }
 
-  private async pages<T>(path: string, op: Operation, project: (value: unknown) => T, include: (value: unknown) => boolean = () => true, perPage = 100): Promise<RemotePage<T>> {
+  private async pages<T>(path: string, op: Operation, project: (value: unknown) => T, request: { include?: (value: unknown) => boolean; perPage?: number; cursor?: string; pages?: number } = {}): Promise<RemotePage<T>> {
     const items: T[] = []
-    let next: string | undefined = path + (path.includes('?') ? '&' : '?') + `per_page=${perPage}`
+    let next: string | undefined = request.cursor !== undefined ? apiPath(request.cursor) : path + (path.includes('?') ? '&' : '?') + `per_page=${request.perPage ?? 100}`
     const seen = new Set<string>()
-    for (let page = 0; next !== undefined && page < this.pageLimit; page += 1) {
+    const budget = Math.max(1, Math.min(this.pageLimit, Math.floor(request.pages ?? 1)))
+    for (let page = 0; next !== undefined && page < budget; page += 1) {
       const current = apiPath(next)
       if (seen.has(current)) return invalidResponse()
       seen.add(current)
       const result = await this.get(current, op)
       if (!Array.isArray(result.body)) return invalidResponse()
-      items.push(...result.body.filter(include).map(project))
+      items.push(...result.body.filter(request.include ?? (() => true)).map(project))
       next = undefined
       for (const link of (result.link ?? '').split(',')) {
         const match = /^\s*<([^>]+)>;\s*rel="next"\s*$/.exec(link)
         if (match?.[1] !== undefined) next = apiPath(match[1])
       }
     }
-    return { items, truncated: next !== undefined }
+    return { items, truncated: next !== undefined, ...(next === undefined ? {} : { next }) }
   }
 
   repository(repo: RemoteRepository, context: RemoteReadContext): Promise<RemoteResult<RemoteRepositoryFacts>> {
@@ -160,29 +161,29 @@ export class GitHubProvider implements RemoteProvider {
       } }
     })
   }
-  pulls(repo: RemoteRepository, state: 'open' | 'closed' | 'all', context: RemoteReadContext) {
-    return this.operation(repo, context, op => this.pages(`${repositoryPath(repo)}/pulls?state=${encodeURIComponent(state)}`, op, pull))
+  pulls(repo: RemoteRepository, state: 'open' | 'closed' | 'all', page: RemotePageRequest, context: RemoteReadContext) {
+    return this.operation(repo, context, op => this.pages(`${repositoryPath(repo)}/pulls?state=${encodeURIComponent(state)}`, op, pull, page))
   }
   pull(repo: RemoteRepository, n: number, context: RemoteReadContext) {
     return this.operation(repo, context, async op => pull((await this.get(`${repositoryPath(repo)}/pulls/${objectNumber(n)}`, op)).body))
   }
-  issues(repo: RemoteRepository, state: 'open' | 'closed' | 'all', context: RemoteReadContext) {
-    return this.operation(repo, context, op => this.pages(`${repositoryPath(repo)}/issues?state=${encodeURIComponent(state)}`, op, issue, value => object(value)['pull_request'] === undefined))
+  issues(repo: RemoteRepository, state: 'open' | 'closed' | 'all', page: RemotePageRequest, context: RemoteReadContext) {
+    return this.operation(repo, context, op => this.pages(`${repositoryPath(repo)}/issues?state=${encodeURIComponent(state)}`, op, issue, { ...page, include: value => object(value)['pull_request'] === undefined }))
   }
   issue(repo: RemoteRepository, n: number, context: RemoteReadContext) {
     return this.operation(repo, context, async op => issue((await this.get(`${repositoryPath(repo)}/issues/${objectNumber(n)}`, op)).body))
   }
-  comments(repo: RemoteRepository, n: number, inline: boolean, context: RemoteReadContext) {
-    return this.operation(repo, context, op => this.pages(`${repositoryPath(repo)}/${inline ? 'pulls' : 'issues'}/${objectNumber(n)}/comments`, op, comment))
+  comments(repo: RemoteRepository, n: number, inline: boolean, page: RemotePageRequest, context: RemoteReadContext) {
+    return this.operation(repo, context, op => this.pages(`${repositoryPath(repo)}/${inline ? 'pulls' : 'issues'}/${objectNumber(n)}/comments`, op, comment, page))
   }
-  files(repo: RemoteRepository, n: number, context: RemoteReadContext) {
-    return this.operation(repo, context, op => this.pages(`${repositoryPath(repo)}/pulls/${objectNumber(n)}/files`, op, file))
+  files(repo: RemoteRepository, n: number, page: RemotePageRequest, context: RemoteReadContext) {
+    return this.operation(repo, context, op => this.pages(`${repositoryPath(repo)}/pulls/${objectNumber(n)}/files`, op, file, page))
   }
   notifications(repo: RemoteRepository, context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemoteNotice>>> {
     return this.operation(repo, context, async op => {
       if (op.viewer === undefined) return { items: [], truncated: false }
       const prefix = repositoryPath(repo)
-      const threads = await this.pages(`${prefix}/notifications`, op, object, () => true, 50)
+      const threads = await this.pages(`${prefix}/notifications`, op, object, { perPage: 50, pages: this.pageLimit })
       const items: RemoteNotice[] = []
       for (const thread of threads.items.slice(0, 10)) {
         const subject = object(thread['subject'])
@@ -238,7 +239,7 @@ export class GitHubProvider implements RemoteProvider {
           case 'inline-comment':
             if (command.line < 1 || !Number.isSafeInteger(command.line) || (command.side !== 'LEFT' && command.side !== 'RIGHT') || command.path === '' || (command.startLine !== undefined && (!Number.isSafeInteger(command.startLine) || command.startLine < 1 || command.startLine > command.line || command.startSide !== command.side))) throw new GitRemoteError('git/remote-unavailable', 'git-remote: invalid inline coordinates')
             {
-              const files = await this.pages(`${prefix}/pulls/${command.number}/files`, op, file)
+              const files = await this.pages(`${prefix}/pulls/${command.number}/files`, op, file, { pages: this.pageLimit })
               const selected = files.items.find(entry => entry.path === command.path)
               const diff = selected === undefined ? undefined : remoteDiff(selected, pr.base.sha, pr.head.sha)
               const end = diff?.lines.find(line => line.anchor?.line === command.line && line.anchor.side === command.side)?.anchor

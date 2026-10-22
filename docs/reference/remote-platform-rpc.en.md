@@ -53,15 +53,15 @@ Device Flow verification is restricted to https://github.com/login/device. Refre
 
 remote-repositories accepts repository/sessionId? and returns `{state:'supported'|'no-remotes'|'unsupported',remotes:[{name,identity}]}`. Only supported GitHub HTTPS/SSH origin/upstream identities enter the allowlist; URL credentials and other hosts are rejected.
 
-Other repository endpoints carry repository/sessionId?/host:'github.com'/owner/repo. The Host verifies local remote membership. Reads return `{generation,value}`; lists use `{items,truncated}`. Pages contain at most 100 items, with a default ten-page cap (notifications use 50 per page); cache size is capped at 128 entries.
+Other repository endpoints carry repository/sessionId?/host:'github.com'/owner/repo. The Host verifies local remote membership. Reads return `{generation,value}`; lists use `{items,truncated,next?}`: `truncated` reports that upstream still has more beyond the fetched pages, and `next` is an opaque continuation cursor (the upstream `Link rel="next"`, origin-checked against the API allowlist and free of credentials). List endpoints additionally accept `{cursor?,pages?}`: `cursor` resumes from a previous `next` (the provider re-validates its origin and rejects foreign origins), `pages` bounds how many upstream pages one request may read (default 1, clamped to the per-request page cap). Each page holds at most 100 items (notifications 50) and a single request reads at most the page cap, but there is no total-item ceiling — the Client streams pages with the cursor until exhaustion; cache size is capped at 128 entries.
 
 | Endpoint | Additional fields / value |
 | --- | --- |
 | remote-repository | Viewer, known original permission bits, five tri-state actions; storage writability proves no remote permission |
-| remote-list-prs / remote-list-issues | state?:open/closed/all; Issue lists exclude PR entries |
+| remote-list-prs / remote-list-issues | state?:open/closed/all, cursor?, pages?; Issue lists exclude PR entries |
 | remote-pr / remote-issue | number; explicit PR head/base repository/ref/SHA, open/closed/merged plus rawState |
-| remote-comments | number,inline?; replyTo, commitSha, original line/side and outdated state |
-| remote-files | number; files:{items,truncated},baseSha,headSha; verify PR snapshot before/after loading |
+| remote-comments | number,inline?, cursor?, pages?; replyTo, commitSha, original line/side and outdated state |
+| remote-files | number, cursor?, pages?, expectedBaseSha?, expectedHeadSha?; files:{items,truncated,next?},baseSha,headSha; verify PR snapshot before/after the first page, then pin head/base on each continuation |
 | remote-notifications | automatic?; review requests and own PR merged/closed/changes-requested events with stable ids; expand at most ten threads, explicitly mark truncation |
 
 Tokens go only to https://api.github.com with X-GitHub-Api-Version:2022-11-28. Pagination Link and GET redirects obey the same allowlist; browser links independently require https://github.com. Explicit projections prevent raw response leakage. Authenticated ETag/body caches are isolated by origin/viewer/generation/full path and query, and cleared when identity changes. Anonymous reads are manual only. Authenticated polling waits at least 60s and honors stricter X-Poll-Interval. Rate limits honor Retry-After/reset and bounded exponential backoff. Writes never retry automatically.

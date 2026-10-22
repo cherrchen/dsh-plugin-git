@@ -18,6 +18,7 @@ function rpc(handler?: (endpoint: string, payload: unknown, signal?: AbortSignal
   return { call } as GitRpcClient & { call: typeof call }
 }
 const tick = () => new Promise(resolve => setImmediate(resolve))
+const item = (number: number) => ({ number, title: `Item ${number}`, body: '', state: 'open' as const, rawState: 'open', author: null })
 describe('remote client lifecycle', () => {
   it('aborts an old workspace and ignores a reply delivered after rebinding', async () => {
     let release: ((value: unknown) => void) | undefined
@@ -70,6 +71,103 @@ describe('remote client lifecycle', () => {
     await controller.load()
     expect(controller.getSnapshot().unknown).toBe(false)
     controller.dispose(); feature.dispose()
+  })
+})
+describe('remote progressive lists', () => {
+  it('streams remaining pages in the background and deduplicates by number', async () => {
+    const transport = rpc(async (endpoint, payload) => {
+      if (endpoint === 'remote-list-prs') {
+        const cursor = (payload as { cursor?: string }).cursor
+        return {
+          ok: true as const,
+          value: {
+            generation,
+            value: cursor === undefined
+              ? { items: [item(1)], truncated: true, next: '/p2' }
+              : { items: [item(1), item(2)], truncated: false },
+          },
+        }
+      }
+      return undefined
+    })
+    const feature = new GitRemoteFeature(transport); feature.refresh(); await tick()
+    const controller = new GitRemoteController(feature, 'session')
+    controller.setRepository('/repo')
+    await vi.waitFor(() => { expect(controller.getSnapshot().items.map(entry => entry.number)).toEqual([1, 2]) })
+    expect(controller.getSnapshot().itemsNext).toBeUndefined()
+    expect(controller.getSnapshot().streaming).toBe(false)
+    const pages = transport.call.mock.calls.filter(call => call[1] === 'remote-list-prs')
+    expect(pages).toHaveLength(2)
+    expect(pages[1]?.[2]).toMatchObject({ cursor: '/p2' })
+    controller.dispose(); feature.dispose()
+  })
+  it('streams comments and files pages for the open detail and pins the comparison snapshot', async () => {
+    const head = { repository: repo, ref: 'topic', sha: 'a'.repeat(40) }
+    const base = { repository: repo, ref: 'main', sha: 'a'.repeat(40) }
+    const detail = { ...item(1), head, base, draft: false }
+    const transport = rpc(async (endpoint, payload) => {
+      if (endpoint === 'remote-pr') return { ok: true as const, value: { generation, value: detail } }
+      if (endpoint === 'remote-comments') {
+        const request = payload as { cursor?: string; inline?: boolean }
+        if (request.inline === true) return { ok: true as const, value: { generation, value: { items: [], truncated: false } } }
+        return {
+          ok: true as const,
+          value: {
+            generation,
+            value: request.cursor === undefined
+              ? { items: [{ id: '1', body: 'one', author: null, outdated: false }], truncated: true, next: '/c2' }
+              : { items: [{ id: '2', body: 'two', author: null, outdated: false }], truncated: false },
+          },
+        }
+      }
+      if (endpoint === 'remote-files') {
+        const request = payload as { cursor?: string; expectedHeadSha?: string; expectedBaseSha?: string }
+        if (request.cursor === undefined) {
+          return { ok: true as const, value: { generation, value: { files: { items: [{ path: 'a.ts', status: 'modified', additions: 1, deletions: 0 }], truncated: true, next: '/f2' }, baseSha: base.sha, headSha: head.sha } } }
+        }
+        expect(request.expectedHeadSha).toBe(head.sha)
+        expect(request.expectedBaseSha).toBe(base.sha)
+        return { ok: true as const, value: { generation, value: { files: { items: [{ path: 'b.ts', status: 'added', additions: 1, deletions: 0 }], truncated: false }, baseSha: base.sha, headSha: head.sha } } }
+      }
+      return undefined
+    })
+    const feature = new GitRemoteFeature(transport); feature.refresh(); await tick()
+    const controller = new GitRemoteController(feature, 'session')
+    controller.setRepository('/repo')
+    await vi.waitFor(() => { expect(controller.getSnapshot().target).toBeDefined() })
+    await controller.open(1, 'pulls')
+    await vi.waitFor(() => {
+      expect(controller.getSnapshot().comments.map(comment => comment.id)).toEqual(['1', '2'])
+      expect(controller.getSnapshot().comparison?.files.items.map(file => file.path)).toEqual(['a.ts', 'b.ts'])
+    })
+    controller.dispose(); feature.dispose()
+  })
+  it('stops the stream on error and resumes once after a bounded rate-limit reset', async () => {
+    vi.useFakeTimers()
+    try {
+      let resumed = 0
+      const transport = rpc(async (endpoint, payload) => {
+        if (endpoint === 'remote-list-prs') {
+          const cursor = (payload as { cursor?: string }).cursor
+          if (cursor === undefined) return { ok: true as const, value: { generation, value: { items: [item(1)], truncated: true, next: '/p2' } } }
+          resumed += 1
+          if (resumed === 1) return { ok: false as const, error: { code: 'git/rate-limited', message: 'slow down', details: { resetAt: Date.now() + 60_000 } } }
+          return { ok: true as const, value: { generation, value: { items: [item(2)], truncated: false } } }
+        }
+        return undefined
+      })
+      const feature = new GitRemoteFeature(transport); feature.refresh(); await vi.advanceTimersByTimeAsync(0)
+      const controller = new GitRemoteController(feature, 'session')
+      controller.setRepository('/repo')
+      for (let i = 0; i < 10 && controller.getSnapshot().streamError === undefined; i += 1) await vi.advanceTimersByTimeAsync(0)
+      expect(controller.getSnapshot().streamError).toBe('slow down')
+      expect(controller.getSnapshot().streaming).toBe(false)
+      await vi.advanceTimersByTimeAsync(60_000)
+      for (let i = 0; i < 10 && controller.getSnapshot().items.length < 2; i += 1) await vi.advanceTimersByTimeAsync(0)
+      expect(controller.getSnapshot().items.map(entry => entry.number)).toEqual([1, 2])
+      expect(controller.getSnapshot().streamError).toBeUndefined()
+      controller.dispose(); feature.dispose()
+    } finally { vi.useRealTimers() }
   })
 })
 describe('safe diff anchors', () => {

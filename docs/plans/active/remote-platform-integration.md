@@ -88,7 +88,7 @@
 ### S3 — 中立 provider 与 REST 读取
 
 - [x] 提供中立 PR/Issue/viewer/permission/error 模型：PR 状态 open/closed/merged 并保留 raw-state，fork head/base 显式区分；支持 PR 列表/详情/文件比较/评论/线程与 Issue 列表/详情/评论读取。
-- [x] GitHub REST 使用版本头、AbortSignal、分页硬上限；API 与 web origins 独立。认证请求、重定向及分页 `Link` 只准入 API allowlist；浏览器 `html_url`、openExternal 与 device verification URL 只准入 HTTPS web allowlist且不带 token；`gh` 不作 REST 传输。
+- [x] GitHub REST 使用版本头、AbortSignal、单请求分页页数上限 + origin 校验游标续取（列表无总量天花板，Client 渐进流式补页）；API 与 web origins 独立。认证请求、重定向及分页 `Link` 只准入 API allowlist；浏览器 `html_url`、openExternal 与 device verification URL 只准入 HTTPS web allowlist且不带 token；`gh` 不作 REST 传输。
 - [x] 每 generation 至多一次 `GET /user`，以稳定 user.id 核验身份；分别呈现 storage、auth、viewer、仓库 permissions。动作检查为 true/false/unknown（unknown 允许尝试、服务端裁决）；`canMerge` 用 push，`canClose` 用作者本人或 push，不从存储可写推导权限。
 - [x] 认证 ETag 缓存按 host+viewer+repo+完整查询串隔离；账户变化全部失效。匿名只手动刷新；认证轮询 ≥60s 或遵守响应头的更严限制，处理 X-Poll-Interval/Retry-After/reset、primary/secondary rate limit 和指数退避；SSO/scope/认证错误分类可修复。
 - [x] mock transport 验证恶意 redirect/Link/URL、分页截断、取消、限流、SSO、权限 unknown、跨账户缓存与 generation 失效；不访问真实 GitHub。
@@ -161,6 +161,7 @@
 | 2026-10-22 | S1 | 落地 `src/remote/{types,credentials,feature}.ts`、`src/types.ts` 重导出、`src/index.ts` remote 边界分发与错误适配；`tests/remote-feature.spec.ts`、`tests/remote-endpoints.spec.ts` 新增。`pnpm exec vitest run tests/remote-feature.spec.ts tests/remote-endpoints.spec.ts tests/rpc-channel.spec.ts tests/host-entry.spec.ts`：4 文件 63 例全过；`pnpm build:types:standalone` exit 0；`pnpm docs:check` 与 `git diff --check` 通过；日志存仓库外临时目录（路径见交接报告） |
 | 2026-10-22 | S2 | 落地 `src/remote/{settings,errors,grant,http,probe,auth}.ts`、`Config.remote` schema 与 `@deepseek-ai/dsh-credentials` optional peer（`CREDENTIALS_SEAM_DSH_RELEASES` 子集）；`tests/remote-{auth,http,probe}.spec.ts` 新增。`pnpm exec vitest run tests/remote-auth.spec.ts tests/remote-http.spec.ts tests/remote-probe.spec.ts tests/remote-feature.spec.ts tests/remote-endpoints.spec.ts tests/rpc-channel.spec.ts tests/host-entry.spec.ts`：7 文件 98 例全过；`pnpm build:types:standalone`、`pnpm compat:check`、`pnpm docs:check` 与 `git diff --check` 均 exit 0。该次阶段检查时认证引擎仍未接 RPC，capability 为 `off`；后续进展见下方续作日志。无真实 OAuth。日志存仓库外 `/tmp/dsh-git-s2/` |
 | 2026-10-22 | S2–S7 续作 | 认证取消/slow_down/URL/正文超时修复；落地 `provider/github-model/github/git/runtime/diff`、RPC 接线与 Client 远程 surface/controller/通知。定向测试与类型检查已通过，主车道 43 文件 442 例通过；`compat:check`、`docs:check`、`build`、`test:artifact`（4 例）均 exit 0；17 个精确版本最终门禁全过，逐车道见下方。真实 OAuth、远端写入及跨平台手工验收 **Not verified** |
+| 2026-10-22 | S3/S6 续作 | 远程列表/评论/文件读取从"预算内一次取尽 + truncated 警示"改为游标渐进流式补页：`RemotePage` 增 opaque `next`，`remote-list-*`/`remote-comments`/`remote-files` 接受 `cursor`/`pages`，Provider 校验游标 origin 且单请求页数有界；Client controller 改追加式状态、后台串行续取、按 number/id/path 去重、限流按 resetAt 有界恢复一次；`remote-files` 续页以 expected SHA 钉住比较快照；truncated 警示条移除，files 未取尽前行内评论保持禁用。通知线程展开与写路径坐标校验的有界收集不变。`pnpm test` 43 文件 448 例、`pnpm build`、`pnpm docs:check` 均 exit 0。真实远端验收仍为 **Not verified** |
 
 ## 2026-10-22 自动验收快照
 

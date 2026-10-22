@@ -14,9 +14,11 @@ const sha = 'a'.repeat(40)
 const pull = { number: 1, title: 'Example PR', body: 'Description', author: { userId: '1', login: 'alice' }, state: 'open', rawState: 'open', head: { repository: repo, ref: 'topic', sha }, base: { repository: repo, ref: 'main', sha }, draft: false }
 const resources: { dispose(): void }[] = []
 afterEach(() => { cleanup(); resources.splice(0).forEach(resource => resource.dispose()) })
-function fixture(unknown = false) {
+function fixture(unknown = false, handler?: (endpoint: string, payload: unknown) => { ok: boolean; value?: unknown; error?: unknown } | undefined) {
   const actions = { canComment: true, canReview: true, canMerge: true, canClose: true, canCreatePr: true }
-  const call = vi.fn(async (_channel: string, endpoint: string) => {
+  const call = vi.fn(async (_channel: string, endpoint: string, payload: unknown) => {
+    const override = handler?.(endpoint, payload)
+    if (override !== undefined) return override as { ok: boolean; value?: unknown }
     let value: unknown
     if (endpoint === 'remote-capability') value = { state: 'on', generation, auth: { state: 'authenticated' }, credential: { configured: true, writable: false }, actions, loginAvailable: false }
     else if (endpoint === 'discover') value = '/repo'
@@ -72,5 +74,23 @@ describe('portable remote surface', () => {
     fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: en['remote.confirm'] }))
     await screen.findByText(en['remote.unknown'])
     expect((screen.getByRole('button', { name: en['remote.comment'] }) as HTMLButtonElement).disabled).toBe(true)
+  })
+  it('appends streamed pages into the open list', async () => {
+    const { base } = fixture(false, (endpoint, payload) => {
+      if (endpoint !== 'remote-list-prs') return undefined
+      const cursor = (payload as { cursor?: string }).cursor
+      return {
+        ok: true,
+        value: {
+          generation,
+          value: cursor === undefined
+            ? { items: [pull], truncated: true, next: '/p2' }
+            : { items: [{ ...pull, number: 2, title: 'Second PR' }], truncated: false },
+        },
+      }
+    })
+    render(<GitRemoteSurface {...{ ...base, openRemoteItem: vi.fn() } as unknown as ComponentProps<typeof GitRemoteSurface>} />)
+    await screen.findByRole('button', { name: /Example PR/ })
+    await screen.findByRole('button', { name: /Second PR/ })
   })
 })

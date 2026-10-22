@@ -80,7 +80,7 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
   }, [controller, payload, identity, state.repository, state.busy, targetMatches, detailMatches, revision])
   if (capability.state === 'off' || payload === undefined) return <p className={css.empty}>{t('remote.unavailable')}</p>
   const inlineEnabled = writable && body.trim() !== '' && anchor !== undefined
-    && pr !== undefined && anchor.commitSha === pr.head.sha && state.comparison?.files.truncated !== true
+    && pr !== undefined && anchor.commitSha === pr.head.sha && state.comparison?.files.next === undefined
   return <div className={css.root}>
     <div className={css.modeBar} data-git-remote-toolbar="">
       <span className={css.toolbarContext}>{payload.owner}/{payload.repo}</span>
@@ -102,7 +102,6 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
     <div className={css.body}>
       <div className={css.pad}>
         {state.repository === undefined ? <p className={css.empty}>{t('details.noWorkspace')}</p> : <>
-          {state.truncated && <p className={css.note} role="status">{t('remote.truncated')}</p>}
           {detail !== undefined && (
             <RemoteDetailSection detail={detail} labels={labels} t={t}>
               {pr === undefined ? (
@@ -184,7 +183,9 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
             </p>
           )}
         </>}
+        {!state.busy && state.streaming && <p className={css.loadingHint} role="status">{t('details.loading')}</p>}
         {state.busy && <p className={css.loadingHint} role="status">{t('details.loading')}</p>}
+        {state.streamError !== undefined && <p className={css.error} role="alert">{state.streamError}</p>}
         {state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
         {state.unknown && <p className={css.error} role="alert">{t('remote.unknown')}</p>}
       </div>

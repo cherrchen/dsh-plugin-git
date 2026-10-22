@@ -53,15 +53,15 @@ Device Flow 只允许 `https://github.com/login/device`。刷新先 CAS 提交 r
 
 `remote-repositories` 接收 `{repository,sessionId?}`，返回 `{state:'supported'|'no-remotes'|'unsupported',remotes:[{name,identity}]}`。仅 origin/upstream 中受支持的 GitHub HTTPS/SSH URL 进入允许集合；带 URL 凭据或其他 host 不准入。
 
-其余仓库端点都带 `{repository,sessionId?,host:'github.com',owner,repo}`，Host 核对目标属于该本地允许集合。读取返回 `{generation,value}`，列表 value 为 `{items,truncated}`，不会静默隐去分页上限：每页 ≤100、默认最多 10 页（通知每页 50），响应缓存最多 128 项。
+其余仓库端点都带 `{repository,sessionId?,host:'github.com',owner,repo}`，Host 核对目标属于该本地允许集合。读取返回 `{generation,value}`，列表 value 为 `{items,truncated,next?}`：`truncated` 表示上游在已取页之外还有更多内容，`next` 为不透明续页游标（上游 `Link rel="next"`，经 API origin 校验、不含 token）。列表端点额外接受 `{cursor?,pages?}`：`cursor` 从游标处继续（Provider 重新校验 origin，越界 origin 拒绝），`pages` 为本次请求最多读取的上游页数（默认 1，钳制在分页上限内）。每页 ≤100 条、单请求页数有上限（通知每页 50），列表无总条数天花板——Client 以游标渐进流式续取直至取尽；响应缓存最多 128 项。
 
 | 端点 | 附加字段 / value |
 | --- | --- |
 | `remote-repository` | viewer、原始已知权限位、五项动作三态；存储可写不能推导远端权限 |
-| `remote-list-prs` / `remote-list-issues` | `state?:open|closed|all`；Issue 列表排除 PR |
+| `remote-list-prs` / `remote-list-issues` | `state?:open|closed|all, cursor?, pages?`；Issue 列表排除 PR |
 | `remote-pr` / `remote-issue` | `number`；PR 显式保存 head/base 仓库、ref、SHA；state 为 open/closed/merged，保留 rawState |
-| `remote-comments` | `number,inline?:boolean`；inline 保存 replyTo、commitSha、原始行/side，outdated 不冒充当前坐标 |
-| `remote-files` | `number`；返回 `{files:{items,truncated},baseSha,headSha}`；读取前后核对 PR 快照 |
+| `remote-comments` | `number,inline?:boolean, cursor?, pages?`；inline 保存 replyTo、commitSha、原始行/side，outdated 不冒充当前坐标 |
+| `remote-files` | `number, cursor?, pages?, expectedBaseSha?, expectedHeadSha?`；返回 `{files:{items,truncated,next?},baseSha,headSha}`；首页读取前后核对 PR 快照，续页携带 expected SHA 并逐页核对 head/base 未动 |
 | `remote-notifications` | `automatic?:boolean`；review request、自己 PR merged/closed/changes-requested，稳定事件 id；最多展开 10 个通知线程，超限标 truncated |
 
 API token 仅发往 `https://api.github.com`，带 `X-GitHub-Api-Version:2022-11-28`；Link 与 GET 重定向也校验该 origin。浏览器 URL 独立只允许 `https://github.com`。响应显式投影成中立模型，不透传 raw 对象。认证 ETag 正文按 origin/viewer/generation/完整路径与查询隔离；身份变化清空。匿名不自动轮询，认证轮询最短 60 秒且遵守更长的 X-Poll-Interval；429、primary/secondary 403 遵守 Retry-After/reset 与有界指数退避，不自动重试写请求。

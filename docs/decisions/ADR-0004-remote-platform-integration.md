@@ -36,7 +36,7 @@
 
 7. **capability 四层分离**（互不推导）。`credential { configured, writable, source? }` 纯存储事实；`auth { state: off | anonymous | unauthenticated | signed-out | authenticated | invalid, source? }`；`viewer { host, userId, login, name, avatarUrl }`（每 generation 至多一次 `GET /user`）；`permissions` 原样透传 `/repos/{o}/{r}` 权限位；逐动作 `canComment / canReview / canMerge / canClose / canCreatePr` 三态 `true | false | 'unknown'`——`unknown` 时 UI 乐观可用、服务端裁决，`canMerge` 取 push 位，`canClose` = 作者本人或 push 位。seam 缺席时 capability 仍返回结构化 `{ state:'off', reason }`，其余 remote 操作明确拒绝。
 
-8. **传输与 origin 边界。** Host 内 `fetch` 直连 REST（`api.github.com`，`X-GitHub-Api-Version` 头，AbortSignal 取消，分页上限）；`gh` 不作传输层。provider 分别声明 `apiOrigin` 与 `webOrigin` allowlist：带 `Authorization` 的请求（含分页 Link 与重定向跟随）仅 `apiOrigin`；`html_url`、openExternal、device-flow `verification_uri` 走 `webOrigin` HTTPS 校验且不携带 token。REST 而非 GraphQL。
+8. **传输与 origin 边界。** Host 内 `fetch` 直连 REST（`api.github.com`，`X-GitHub-Api-Version` 头，AbortSignal 取消，单请求分页页数上限 + origin 校验的续页游标，无总量上限）；`gh` 不作传输层。provider 分别声明 `apiOrigin` 与 `webOrigin` allowlist：带 `Authorization` 的请求（含分页 Link 与重定向跟随）仅 `apiOrigin`；`html_url`、openExternal、device-flow `verification_uri` 走 `webOrigin` HTTPS 校验且不携带 token。REST 而非 GraphQL。
 
 9. **写操作一致性。** 全部 `remote-*` 写端点 payload 携带 host/owner/repo/对象号 + `expectedGeneration` + `expectedViewer`（`host + user.id` 稳定 id，login 仅展示）；逐操作 resolve 的单一凭据快照同时完成身份核对与该次调用，核对后 context 已变即拒绝、Client 刷新重确认，不得换另一份 token 发写。远端身份断言：payload 的 host/owner/repo 必须等于本地 origin/upstream 聚合解析出的身份（`assertSessionRepository` 只证本地路径一致）；写端点逐个进 `isRepositoryWrite`；工作区切换取消未发写。merge 必带 `expectedHeadSha` → GitHub `sha` 前置参数，head 已动 → 刷新重新确认；review 必带 `commit_id`（展示时 head SHA）；merge/close 两步确认（沿用 discard 先例）；permissions 预检 + protection/scope 拒绝透传；create PR 的 fork head/base 为显式模型字段。已发送写超时/取消 → "结果待确认" + 定向刷新对账；非幂等写不自动重试。
 
@@ -46,7 +46,7 @@
 
 12. **行内评论坐标。** 使用 `line`/`side`（多行 `start_line`/`start_side`），不以已弃用 `position` 为契约；`commit_id` 与坐标取自同一比较快照。远端 diff 模型保存 path、base/head SHA、old/new 原始行号与 side 锚点，渲染层引用锚点不反推行号；删行/重命名/多 hunk/过期线程/多行范围/patch 截断须可靠定位，否则可浏览但禁用行内提交并说明。
 
-13. **预算与缓存。** 匿名 = 仅手动刷新（不自动轮询）；认证 ≥60s 或遵 `X-Poll-Interval`/`Retry-After`/reset；429 与 secondary-rate-limit 403 指数退避；ETag 条件请求仅适用认证流量；缓存键含 `(host, viewer, repo, 完整查询串)`；分页硬上限；per REST 操作只做进程内 seam resolve。
+13. **预算与缓存。** 匿名 = 仅手动刷新（不自动轮询）；认证 ≥60s 或遵 `X-Poll-Interval`/`Retry-After`/reset；429 与 secondary-rate-limit 403 指数退避；ETag 条件请求仅适用认证流量；缓存键含 `(host, viewer, repo, 完整查询串)`；分页设单请求页数上限并以游标续取（用户可见列表无总量上限）；per REST 操作只做进程内 seam resolve。
 
 14. **通知。** review 请求 / 自己 PR 的 merged·closed·changes-requested / push 成功后建议建 PR，按事件 id 去重；经 `ctx.inject(['desktop'])` 子 fiber 的 `notification.show`；web 端降级为 tab 内徽标。
 
@@ -233,7 +233,7 @@
 #### R6 → 修订 Decision 3、4、7：操作边界与预算
 
 - "一次操作"边界：seam `resolve`/`describe*` 逐操作调用（进程内廉价读，守上游"不跨操作缓存"约定）；subprocess 探针仅在身份建立事件（R3）出现；capability 探测**零子进程零网络**，只报运行时已知事实。
-- 轮询预算：匿名=仅手动刷新（不自动轮询；60/h 预算撑不起轮询）；认证 ≥60s 或遵从 `X-Poll-Interval`/`Retry-After`/reset；429 与 secondary-rate-limit 403 指数退避；分页有硬上限。缓存键含 (host, viewer, repo, 完整查询串)；正文"304 不占主限额"表述修正为**仅适用认证流量**。
+- 轮询预算：匿名=仅手动刷新（不自动轮询；60/h 预算撑不起轮询）；认证 ≥60s 或遵从 `X-Poll-Interval`/`Retry-After`/reset；429 与 secondary-rate-limit 403 指数退避；分页设单请求页数上限，经 origin 校验的不透明游标续取，无总量天花板。缓存键含 (host, viewer, repo, 完整查询串)；正文"304 不占主限额"表述修正为**仅适用认证流量**。
 
 #### R7 → 修订 Decision 4、11：不承诺固定分层 + matrix 接入
 

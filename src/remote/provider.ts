@@ -46,7 +46,9 @@ export interface RemoteFile {
   readonly deletions: number
   readonly patch?: string
 }
-export interface RemotePage<T> { readonly items: readonly T[]; readonly truncated: boolean }
+export interface RemotePage<T> { readonly items: readonly T[]; readonly truncated: boolean; readonly next?: string }
+/** Progressive read request: resume from the opaque `cursor` and fetch at most `pages` upstream pages. */
+export interface RemotePageRequest { readonly cursor?: string; readonly pages?: number }
 export interface RemoteReadContext { readonly signal: AbortSignal; readonly automatic?: boolean; readonly beforeSend?: () => Promise<void> }
 export interface RemoteResult<T> { readonly generation: GitRemoteGeneration; readonly value: T }
 export interface RemoteRepositoryFacts {
@@ -60,12 +62,12 @@ export interface RemoteProvider {
   readonly webOrigin: string
   headRefspec(number: number): string
   repository(repo: RemoteRepository, context: RemoteReadContext): Promise<RemoteResult<RemoteRepositoryFacts>>
-  pulls(repo: RemoteRepository, state: 'open' | 'closed' | 'all', context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemotePull>>>
+  pulls(repo: RemoteRepository, state: 'open' | 'closed' | 'all', page: RemotePageRequest, context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemotePull>>>
   pull(repo: RemoteRepository, number: number, context: RemoteReadContext): Promise<RemoteResult<RemotePull>>
-  issues(repo: RemoteRepository, state: 'open' | 'closed' | 'all', context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemoteIssue>>>
+  issues(repo: RemoteRepository, state: 'open' | 'closed' | 'all', page: RemotePageRequest, context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemoteIssue>>>
   issue(repo: RemoteRepository, number: number, context: RemoteReadContext): Promise<RemoteResult<RemoteIssue>>
-  comments(repo: RemoteRepository, number: number, inline: boolean, context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemoteComment>>>
-  files(repo: RemoteRepository, number: number, context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemoteFile>>>
+  comments(repo: RemoteRepository, number: number, inline: boolean, page: RemotePageRequest, context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemoteComment>>>
+  files(repo: RemoteRepository, number: number, page: RemotePageRequest, context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemoteFile>>>
   write(repo: RemoteRepository, expected: GitRemoteWriteContext, command: RemoteWrite, context: RemoteReadContext): Promise<RemoteResult<RemoteWriteReceipt>>
   notifications(repo: RemoteRepository, context: RemoteReadContext): Promise<RemoteResult<RemotePage<RemoteNotice>>>
   dispose(): Promise<void>

@@ -13,7 +13,13 @@ import type { RemoteRepository, RemoteWrite } from './provider.ts'
 import type { GitRemoteGeneration, GitRemoteWriteContext } from './types.ts'
 
 function text(data: Record<string, unknown>, key: string, max = 65536): string { const value = string(data[key]); if (value.length > max) throw new GitRemoteError('git/remote-unavailable', 'git-remote: request text exceeds limit'); return value }
-function sha(data: Record<string, unknown>): string { const value = text(data, 'expectedHeadSha', 64); if (!/^[a-f0-9]{40,64}$/.test(value)) throw new GitRemoteError('git/remote-unavailable', 'git-remote: invalid expected commit'); return value }
+function sha(data: Record<string, unknown>, key = 'expectedHeadSha'): string { const value = text(data, key, 64); if (!/^[a-f0-9]{40,64}$/.test(value)) throw new GitRemoteError('git/remote-unavailable', 'git-remote: invalid expected commit'); return value }
+function paging(data: Record<string, unknown>): { cursor?: string; pages?: number } {
+  return {
+    ...(data['cursor'] === undefined ? {} : { cursor: text(data, 'cursor', 4096) }),
+    ...(data['pages'] === undefined ? {} : { pages: objectNumber(Number(data['pages'])) }),
+  }
+}
 export function remoteTarget(data: Record<string, unknown>): RemoteRepository {
   const target: RemoteRepository = { provider: 'github', host: 'github.com', owner: text(data, 'owner', 100), repo: text(data, 'repo', 100) }
   if (data['host'] !== target.host) throw new GitRemoteError('git/remote-identity-mismatch', 'git-remote: unsupported host')
@@ -66,15 +72,23 @@ export class GitRemoteRuntime {
       switch (endpoint) {
         case 'remote-notifications': return this.provider.notifications(target, context)
         case 'remote-repository': return this.provider.repository(target, context)
-        case 'remote-list-prs': return this.provider.pulls(target, request['state'] === 'closed' || request['state'] === 'all' ? request['state'] : 'open', context)
+        case 'remote-list-prs': return this.provider.pulls(target, request['state'] === 'closed' || request['state'] === 'all' ? request['state'] : 'open', paging(request), context)
         case 'remote-pr': return this.provider.pull(target, n(), context)
-        case 'remote-list-issues': return this.provider.issues(target, request['state'] === 'closed' || request['state'] === 'all' ? request['state'] : 'open', context)
+        case 'remote-list-issues': return this.provider.issues(target, request['state'] === 'closed' || request['state'] === 'all' ? request['state'] : 'open', paging(request), context)
         case 'remote-issue': return this.provider.issue(target, n(), context)
-        case 'remote-comments': return this.provider.comments(target, n(), request['inline'] === true, context)
+        case 'remote-comments': return this.provider.comments(target, n(), request['inline'] === true, paging(request), context)
         case 'remote-files': {
           // Pin file data to a single API head/base snapshot; head races invalidate the whole comparison.
+          const page = paging(request)
+          if (page.cursor !== undefined) {
+            const probe = await this.provider.pull(target, n(), context)
+            if (probe.value.head.sha !== sha(request) || probe.value.base.sha !== sha(request, 'expectedBaseSha')) throw new GitRemoteError('git/head-moved', 'git-remote: comparison changed during loading')
+            const files = await this.provider.files(target, n(), page, context)
+            if (!sameGeneration(probe.generation, files.generation)) throw new GitRemoteError('git/head-moved', 'git-remote: comparison changed during loading')
+            return { generation: files.generation, value: { files: files.value, baseSha: probe.value.base.sha, headSha: probe.value.head.sha } }
+          }
           const before = await this.provider.pull(target, n(), context)
-          const files = await this.provider.files(target, n(), context)
+          const files = await this.provider.files(target, n(), page, context)
           const after = await this.provider.pull(target, n(), context)
           if (!sameGeneration(before.generation, after.generation) || before.value.head.sha !== after.value.head.sha || before.value.base.sha !== after.value.base.sha) throw new GitRemoteError('git/head-moved', 'git-remote: comparison changed during loading')
           return { generation: after.generation, value: { files: files.value, baseSha: after.value.base.sha, headSha: after.value.head.sha } }

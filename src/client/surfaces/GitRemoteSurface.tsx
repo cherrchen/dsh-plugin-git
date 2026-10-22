@@ -74,7 +74,6 @@ export function GitRemoteSurface({ gitSessions, remoteFeature, openRemoteItem, s
             t={t}
           />
           {state.remotes.length === 0 && <p className={css.empty}>{t('remote.noRemote')}</p>}
-          {state.truncated && <p className={css.note} role="status">{t('remote.truncated')}</p>}
           <RemoteItemList
             kind={kind}
             items={state.items}
@@ -85,7 +84,9 @@ export function GitRemoteSurface({ gitSessions, remoteFeature, openRemoteItem, s
             t={t}
           />
         </>}
+        {!state.busy && state.streaming && <p className={css.loadingHint} role="status">{t('details.loading')}</p>}
         {state.busy && <p className={css.loadingHint} role="status">{t('details.loading')}</p>}
+        {state.streamError !== undefined && <p className={css.error} role="alert">{state.streamError}</p>}
         {state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
         {state.unknown && <p className={css.error} role="alert">{t('remote.unknown')}</p>}
       </div>

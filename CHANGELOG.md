@@ -4,6 +4,13 @@ English | [中文](CHANGELOG.zh.md)
 
 All notable changes to this package are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html) — the package is pre-1.0, so a minor release may still change the API. Each published version also has a [GitHub Release](https://github.com/cherrchen/dsh-plugin-git/releases) carrying its tarball.
 
+## [Unreleased]
+
+### Changed
+
+- GitHub Remote PR/Issue lists, detail comments, and comparison files no longer stop at a fixed pagination budget. `RemotePage` carries an opaque `next` cursor (the origin-checked `Link rel="next"`), and `remote-list-prs`, `remote-list-issues`, `remote-comments`, and `remote-files` accept `cursor`/`pages` request fields. The Client controller appends items in a serial background stream — a multi-page first request, then one page per continuation — deduplicating by number/comment id/file path, honoring generation checks, and recovering once at `resetAt` after a rate limit. The truncated banner is removed in favor of a streaming hint.
+- `remote-files` continuations pin the comparison snapshot: `expectedBaseSha`/`expectedHeadSha` are verified on every continuation page, so inline-comment coordinates never drift between pages. Inline comment submission stays disabled until all files are loaded, and the bounded collections used for notification expansion and write-path coordinate validation are unchanged.
+
 ## [0.2.7] — 2026-10-17
 
 ### Changed

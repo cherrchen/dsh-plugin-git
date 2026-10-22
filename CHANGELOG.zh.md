@@ -4,6 +4,13 @@
 
 本文件记录本 package 的所有重要变更。格式参照 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本遵循 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) —— 本包处于 pre-1.0，minor 版本之间仍可能改变 API。每个已发布版本同时有对应的 [GitHub Release](https://github.com/cherrchen/dsh-plugin-git/releases)，附该版本的 tarball。
 
+## [Unreleased]
+
+### Changed
+
+- GitHub Remote 的 PR/Issue 列表、详情评论与比较文件不再受固定分页预算截断。`RemotePage` 携带不透明 `next` 续页游标（经 origin 校验的 `Link rel="next"`），`remote-list-prs`、`remote-list-issues`、`remote-comments`、`remote-files` 接受 `cursor`/`pages` 请求字段。Client controller 以串行后台流追加条目——首请求多页、之后每次续取一页——按 number/评论 id/文件路径去重，逐页校验 generation，并在限流后按 `resetAt` 有界恢复一次。truncated 警示条移除，改为流式提示。
+- `remote-files` 续页钉住比较快照：每次续取校验 `expectedBaseSha`/`expectedHeadSha`，行内评论坐标不会跨页漂移。行内评论提交在文件全部加载完成前保持禁用；通知线程展开与写路径坐标校验的有界收集保持不变。
+
 ## [0.2.7] — 2026-10-17
 
 ### Changed
