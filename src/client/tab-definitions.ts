@@ -18,7 +18,11 @@ import {
   GIT_WORKTREES_ID,
   GIT_WORKTREES_KIND,
   GIT_DIFF_RESOURCE_PROTOCOL,
+  GIT_REMOTE_ITEM_ID,
+  GIT_REMOTE_ITEM_KIND,
+  GIT_REMOTE_ITEM_RESOURCE_PROTOCOL,
   parseGitDiffAddress,
+  parseGitRemoteItemAddress,
 } from './contract.ts'
 import { splitRepoPath } from './path-display.ts'
 import { BranchGlyph, GraphGlyph, WorktreeGlyph } from './LauncherIcons.tsx'
@@ -110,4 +114,22 @@ export function worktreesDefinition(t: TranslateNS<'git'>): SidebarRightTabDefin
 export function remoteDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
   const entry = { id: 'git-remote', order: 13, title: () => t('remote.title'), description: () => t('remote.description') }
   return { id: 'git.remote', kind: 'git.remote', title: () => t('remote.title'), guide: [entry] }
+}
+
+/**
+ * Remote pull/issue detail resource type: one shared body renders either item
+ * kind, and the address's owner/repo/kind/number is the tab identity.
+ */
+export function remoteItemDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
+  return {
+    id: GIT_REMOTE_ITEM_ID,
+    kind: GIT_REMOTE_ITEM_KIND,
+    patterns: [`dsh-resource://${GIT_REMOTE_ITEM_RESOURCE_PROTOCOL}/**`],
+    canOpen: address => parseGitRemoteItemAddress(address) !== undefined,
+    title: address => {
+      const payload = parseGitRemoteItemAddress(address)
+      if (payload === undefined) return t('remote.title')
+      return t(payload.kind === 'pulls' ? 'remote.tabPull' : 'remote.tabIssue', { number: payload.number })
+    },
+  }
 }

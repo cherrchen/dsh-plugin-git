@@ -1,0 +1,615 @@
+/*
+ * Git Remote surface: mode pills, context row, sections, and banner styles.
+ * Self-contained like GitGraphSurface.module.css — shared class names are
+ * redeclared here rather than imported across modules.
+ */
+
+.root {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+}
+
+/* Pulls/issues switch plus the compact refresh control. */
+.modeBar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 8px;
+}
+
+.modePills {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Repository identity text in a detail tab's toolbar. */
+.toolbarContext {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pad {
+  padding: 0 12px 18px;
+}
+
+.notice {
+  margin: 0;
+  padding: 6px 12px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.section {
+  margin-bottom: 12px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 4px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sectionTitle {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.sectionCount {
+  display: inline-grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.sectionActions {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.note {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+/* Platform authentication: status line, transport hint, and action row. */
+.authSection {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.authRow {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.authLogin {
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.authActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Device-flow prompt while a login attempt is pending. */
+.loginCard {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+}
+
+.loginCode {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--dsw-alias-label-primary);
+}
+
+.loginActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loginLink {
+  color: var(--dsw-alias-brand-primary);
+  font-size: 12px;
+}
+
+/* Remote target selector plus the open/closed/all filter. */
+.contextBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.repoChip {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 4px 0 8px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  text-align: left;
+}
+
+.repoChip:hover:not([aria-disabled='true']) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.repoChip:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.repoChip[aria-disabled='true'] {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+.repoChipText {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repoChevron {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.statePills {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+/* PR/issue rows: the hover band bleeds to the pane edges, past the pad inset. */
+.itemList {
+  display: grid;
+  gap: 2px;
+  margin: 0 -12px;
+  padding: 0;
+  list-style: none;
+}
+
+.itemRow {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.itemRow:hover:not([aria-disabled='true']) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.itemRow:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: -2px;
+}
+
+.itemRow[aria-disabled='true'] {
+  cursor: default;
+}
+
+.itemMain {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.itemTitle {
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemMeta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.itemNumber {
+  flex: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.itemAuthor {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Detail head: number, title, state tags, and the browser shortcut. */
+.detailHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.detailTitle {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.detailTags {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.iconLink {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.iconLink:hover {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.iconLink:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.detailMeta {
+  margin: 0 0 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+.detailBody {
+  margin-bottom: 8px;
+}
+
+/* Write actions and the two-step confirmation card. */
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.checkoutRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.checkoutRow > :first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.confirmCard {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  border: 0.5px solid var(--dsw-alias-state-error-primary);
+  border-radius: 8px;
+}
+
+.confirmText {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 6px;
+}
+
+/* Markdown comment cards for top-level and inline threads. */
+.commentCard {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.commentAuthor {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.commentRef {
+  color: var(--dsw-alias-label-tertiary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 400;
+}
+
+/* Per-file disclosure content: patch lines with selectable comment anchors. */
+.diffLines {
+  margin: 0 0 8px;
+  padding: 4px 0;
+  overflow: auto;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: pre;
+}
+
+.diffLine {
+  display: block;
+  width: 100%;
+  min-width: max-content;
+  padding: 0 8px;
+  border: 0;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+
+button.diffLine {
+  cursor: pointer;
+}
+
+button.diffLine:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+button.diffLine[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary) 16%, transparent);
+}
+
+.diffLine[data-kind='add'] {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.diffLine[data-kind='delete'] {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.diffLine[data-kind='header'] {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.diffGutter {
+  display: inline-block;
+  width: 4ch;
+  color: var(--dsw-alias-label-tertiary);
+  user-select: none;
+}
+
+.diffStats {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.diffAdd {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.diffDelete {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+/* Comment composer and its write actions. */
+.composer {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.field {
+  position: relative;
+  display: grid;
+  align-items: start;
+  gap: 5px;
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+}
+
+.field textarea {
+  width: 100%;
+  min-height: 36px;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  outline: none;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  overflow: hidden;
+  resize: vertical;
+}
+
+.field textarea:focus {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.composerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Create-PR modal fields. */
+.createBody {
+  display: grid;
+  gap: 10px;
+}
+
+.createField {
+  display: grid;
+  gap: 5px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+}
+
+.createField textarea {
+  width: 100%;
+  min-height: 60px;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  outline: none;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  resize: vertical;
+}
+
+.createField textarea:focus {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+/* Checkout receipt and write banners. */
+.receipt {
+  margin: 0 0 8px;
+  padding: 6px 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.receipt strong {
+  color: var(--dsw-alias-label-primary);
+  font-weight: 600;
+}
+
+.error {
+  margin: 0;
+  padding: 0 0 8px;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+  white-space: pre-line;
+}
+
+.empty,
+.loadingHint {
+  padding: 24px 8px;
+  color: var(--dsw-alias-label-tertiary);
+  text-align: center;
+  font-size: 12px;
+}

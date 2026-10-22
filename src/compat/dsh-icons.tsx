@@ -21,3 +21,5 @@ export const IconChevronDownOutline14 = compatibleIcon('IconChevronDownOutline14
 export const IconFolderOpenOutline16 = compatibleIcon('IconFolderOpenOutline16', 'IconFolderOpenOutlineMedium')
 export const IconPlusOutline16 = compatibleIcon('IconPlusOutline16', 'IconPlusOutlineMedium')
 export const IconRefreshOutline16 = compatibleIcon('IconRefreshOutline16', 'IconRefreshOutlineMedium')
+export const IconRightUpOutline16 = compatibleIcon('IconRightUpOutline16', 'IconRightUpOutlineMedium')
+export const IconUserOutline16 = compatibleIcon('IconUserOutline16', 'IconUserOutlineMedium')

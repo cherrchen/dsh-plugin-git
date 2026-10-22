@@ -12,6 +12,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import { GitRemoteFeature, remoteNoticeKeys } from './remote.ts'
 import { GitRemoteSurface, GitRemoteTitle } from './surfaces/GitRemoteSurface.tsx'
+import { GitRemoteItemSurface } from './surfaces/GitRemoteItemSurface.tsx'
 import { GitBranchControl } from './GitBranchControl.tsx'
 import { GitDetailsHeaderActions } from './GitDetailsHeaderActions.tsx'
 import { GitChangesSurface } from './surfaces/GitChangesSurface.tsx'
@@ -47,9 +48,12 @@ import {
   GIT_GRAPH_KIND,
   GIT_WORKTREES_ID,
   GIT_WORKTREES_KIND,
+  GIT_REMOTE_ITEM_ID,
   gitDiffAddress,
+  gitRemoteItemAddress,
 } from './contract.ts'
-import { changesDefinition, diffDefinition, graphDefinition, worktreesDefinition, remoteDefinition } from './tab-definitions.ts'
+import type { RemoteRepository } from '../remote/provider.ts'
+import { changesDefinition, diffDefinition, graphDefinition, worktreesDefinition, remoteDefinition, remoteItemDefinition } from './tab-definitions.ts'
 import { en, NS, zh, type GitLocaleKey } from './locales.ts'
 import { injectDshGitSettings } from '../compat/dsh-client-settings.ts'
 
@@ -110,6 +114,11 @@ export function apply(ctx: ClientContext): void {
     ctx.sidebarRight.openResource(gitDiffAddress(path, staged), { params: { path, staged } })
   }
   gitSessions.setDiffNavigator(openDiff)
+  // A pull/issue opens as a resource tab whose address is the remote identity;
+  // one shared body renders either kind from the navigation payload.
+  const openRemoteItem = (target: RemoteRepository, kind: 'pulls' | 'issues', number: number): void => {
+    ctx.sidebarRight.openResource(gitRemoteItemAddress(target, kind, number), { params: { owner: target.owner, repo: target.repo, kind, number } })
+  }
 
   ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'git: dictionaries')
   const t = ctx.locale.bind(NS)
@@ -120,9 +129,11 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => {
     const unsubscribe = remoteFeature.subscribe(() => {
       if (remoteFeature.getSnapshot().state === 'on' && remoteTabDispose === undefined) {
-        remoteSurfaces.push(ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({ name: 'sidebar.right.pane.tab', key: 'git.remote', locale: NS, inject: () => ({ gitSessions, remoteFeature }) }, GitRemoteSurface)))
+        remoteSurfaces.push(ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({ name: 'sidebar.right.pane.tab', key: 'git.remote', locale: NS, inject: () => ({ gitSessions, remoteFeature, openRemoteItem }) }, GitRemoteSurface)))
+        remoteSurfaces.push(ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register({ name: 'sidebar.right.pane.tab', key: GIT_REMOTE_ITEM_ID, locale: NS, inject: () => ({ gitSessions, remoteFeature }) }, GitRemoteItemSurface)))
         remoteSurfaces.push(ctx.slots.inject('sidebar.right.pane.tab.title', () => ctx.slots.register({ name: 'sidebar.right.pane.tab.title', key: 'git.remote', locale: NS, inject: () => ({ remoteFeature }) }, GitRemoteTitle)))
         remoteTabDispose = ctx.sidebarRightTabs.register(remoteDefinition(t))
+        remoteSurfaces.push(ctx.sidebarRightTabs.register(remoteItemDefinition(t)))
       } else if (remoteFeature.getSnapshot().state === 'off') { remoteTabDispose?.(); remoteTabDispose = undefined; remoteSurfaces.splice(0).forEach(dispose => dispose()) }
     })
     remoteFeature.start()

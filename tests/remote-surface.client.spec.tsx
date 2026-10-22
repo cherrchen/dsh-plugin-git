@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ComponentProps } from 'react'
 import { GitRemoteSurface } from '../src/client/surfaces/GitRemoteSurface.tsx'
+import { GitRemoteItemSurface } from '../src/client/surfaces/GitRemoteItemSurface.tsx'
 import { GitRemoteFeature } from '../src/client/remote.ts'
 import { GitSessionControllers } from '../src/client/session-controllers.ts'
 import type { GitRpcClient } from '../src/client/controller.ts'
@@ -13,7 +14,7 @@ const sha = 'a'.repeat(40)
 const pull = { number: 1, title: 'Example PR', body: 'Description', author: { userId: '1', login: 'alice' }, state: 'open', rawState: 'open', head: { repository: repo, ref: 'topic', sha }, base: { repository: repo, ref: 'main', sha }, draft: false }
 const resources: { dispose(): void }[] = []
 afterEach(() => { cleanup(); resources.splice(0).forEach(resource => resource.dispose()) })
-function mount(unknown = false) {
+function fixture(unknown = false) {
   const actions = { canComment: true, canReview: true, canMerge: true, canClose: true, canCreatePr: true }
   const call = vi.fn(async (_channel: string, endpoint: string) => {
     let value: unknown
@@ -33,26 +34,41 @@ function mount(unknown = false) {
   const rpc = { call } as GitRpcClient
   const feature = new GitRemoteFeature(rpc); resources.push(feature); feature.refresh()
   const sessions = new GitSessionControllers(rpc); resources.push(sessions)
-  const props = { gitSessions: sessions, remoteFeature: feature, sessionId: 's', useSessions: (selector: (value: unknown) => unknown) => selector({ byId: { s: { cwd: '/repo' } } }), t: (key: keyof typeof en) => en[key] } as unknown as ComponentProps<typeof GitRemoteSurface>
-  render(<GitRemoteSurface {...props} />)
+  const base = { gitSessions: sessions, remoteFeature: feature, sessionId: 's', useSessions: (selector: (value: unknown) => unknown) => selector({ byId: { s: { cwd: '/repo' } } }), t: (key: keyof typeof en) => en[key] }
+  return { call, base }
+}
+function mountList() {
+  const { call, base } = fixture()
+  const openRemoteItem = vi.fn()
+  render(<GitRemoteSurface {...{ ...base, openRemoteItem } as unknown as ComponentProps<typeof GitRemoteSurface>} />)
+  return { call, openRemoteItem }
+}
+function mountItem(unknown = false) {
+  const { call, base } = fixture(unknown)
+  const navigation = { address: 'dsh-resource://git-remote/owner/repo/pulls/1', params: { owner: 'owner', repo: 'repo', kind: 'pulls', number: 1 }, revision: 0 }
+  const props = { ...base, useTabInfo: () => ({ tab: { navigation } }) } as unknown as ComponentProps<typeof GitRemoteItemSurface>
+  render(<GitRemoteItemSurface {...props} />)
   return { call }
 }
 describe('portable remote surface', () => {
-  it('browses PRs and requires two steps before closing the displayed commit', async () => {
-    const { call } = mount()
-    fireEvent.click(await screen.findByText('#1 Example PR · open'))
+  it('opens a pull request detail tab from the list row', async () => {
+    const { openRemoteItem } = mountList()
+    fireEvent.click(await screen.findByRole('button', { name: /Example PR/ }))
+    expect(openRemoteItem).toHaveBeenCalledWith(repo, 'pulls', 1)
+  })
+  it('requires two steps before closing the displayed commit', async () => {
+    const { call } = mountItem()
     await screen.findByText('Description')
-    expect(screen.queryByText(en['remote.login'])).toBeNull()
-    fireEvent.click(screen.getByText(en['remote.close']))
+    fireEvent.click(screen.getByRole('button', { name: en['remote.close'] }))
     const dialog = screen.getByRole('alertdialog')
     expect(call.mock.calls.some(args => args[1] === 'remote-close-pr')).toBe(false)
     fireEvent.click(within(dialog).getByRole('button', { name: en['remote.confirm'] }))
     await waitFor(() => expect(call.mock.calls.filter(args => args[1] === 'remote-close-pr')).toHaveLength(1))
   })
   it('shows unknown outcomes without automatically enabling another write', async () => {
-    mount(true)
-    fireEvent.click(await screen.findByText('#1 Example PR · open')); await screen.findByText('Description')
-    fireEvent.click(screen.getByText(en['remote.close']))
+    mountItem(true)
+    await screen.findByText('Description')
+    fireEvent.click(screen.getByRole('button', { name: en['remote.close'] }))
     fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: en['remote.confirm'] }))
     await screen.findByText(en['remote.unknown'])
     expect((screen.getByRole('button', { name: en['remote.comment'] }) as HTMLButtonElement).disabled).toBe(true)

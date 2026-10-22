@@ -1,5 +1,6 @@
 /** Stable Git right-sidebar tab identities shared by registration and `ctx.sidebarRight`. */
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
+import type { RemoteRepository } from '../remote/provider.ts'
 
 /** Implementation id (body-seat key) of the Git Changes tab type. */
 export const GIT_CHANGES_ID = '@dsh-electron/dsh-plugin-git/changes' as const
@@ -24,6 +25,12 @@ export const GIT_GRAPH_KIND = 'git.graph' as const
 
 /** Tab kind (`openTab` discriminator) of the Git Worktrees page. */
 export const GIT_WORKTREES_KIND = 'git.worktrees' as const
+
+/** Implementation id (body-seat key) of the remote pull/issue detail tab type. */
+export const GIT_REMOTE_ITEM_ID = '@dsh-electron/dsh-plugin-git/remote-item' as const
+
+/** Tab kind claimed by remote item resource addresses. */
+export const GIT_REMOTE_ITEM_KIND = 'git.remote.item' as const
 
 /** Which sides of the comparison a Diff tab shows. */
 export type GitDiffMode = 'worktree' | 'staged'
@@ -89,5 +96,68 @@ export function parseGitDiffAddress(address: string): GitDiffPayload | undefined
 declare module '@deepseek-ai/dsh-client-ui-sidebar-right/client' {
   interface SidebarRightResourceParamsMap {
     [GIT_DIFF_RESOURCE_PROTOCOL]: GitDiffPayload
+  }
+}
+
+/** The resource type remote pull/issue detail tabs are addressed under. */
+export const GIT_REMOTE_ITEM_RESOURCE_PROTOCOL = 'git-remote' as const
+
+/** Open arguments for one remote pull/issue detail tab. */
+export interface GitRemoteItemPayload {
+  /** Remote owner login; the repository follows the workspace binding. */
+  readonly owner: string
+  /** Remote repository name. */
+  readonly repo: string
+  /** List kind the item was opened from. */
+  readonly kind: 'pulls' | 'issues'
+  /** Pull/issue number on the remote. */
+  readonly number: number
+}
+
+const REMOTE_ITEM_PREFIX = `dsh-resource://${GIT_REMOTE_ITEM_RESOURCE_PROTOCOL}/`
+
+/**
+ * Address of one remote detail tab: remote identity plus item number. The exact
+ * address is the tab identity, so re-opening the same item reveals its tab.
+ * @param target - Remote repository identity owning the item.
+ * @param kind - `pulls` or `issues`.
+ * @param number - Remote pull/issue number.
+ * @returns The `dsh-resource://git-remote/...` address.
+ */
+export function gitRemoteItemAddress(target: RemoteRepository, kind: 'pulls' | 'issues', number: number): string {
+  return `${REMOTE_ITEM_PREFIX}${encodeURIComponent(target.owner)}/${encodeURIComponent(target.repo)}/${kind}/${number}`
+}
+
+/**
+ * Decode a remote item address back into its open payload.
+ * @param address - The tab's navigation address.
+ * @returns The payload, or `undefined` when the address is not a remote item.
+ */
+export function parseGitRemoteItemAddress(address: string): GitRemoteItemPayload | undefined {
+  if (!address.startsWith(REMOTE_ITEM_PREFIX)) return undefined
+  const parts = address.slice(REMOTE_ITEM_PREFIX.length).split('/')
+  if (parts.length !== 4) return undefined
+  const rawOwner = parts[0]
+  const rawRepo = parts[1]
+  const kind = parts[2]
+  const rawNumber = parts[3]
+  if (rawOwner === undefined || rawRepo === undefined || rawNumber === undefined || (kind !== 'pulls' && kind !== 'issues')) return undefined
+  const number = Number(rawNumber)
+  if (!Number.isInteger(number) || number <= 0) return undefined
+  let owner: string
+  let repo: string
+  try {
+    owner = decodeURIComponent(rawOwner)
+    repo = decodeURIComponent(rawRepo)
+  } catch {
+    return undefined
+  }
+  if (owner === '' || repo === '') return undefined
+  return { owner, repo, kind, number }
+}
+
+declare module '@deepseek-ai/dsh-client-ui-sidebar-right/client' {
+  interface SidebarRightResourceParamsMap {
+    [GIT_REMOTE_ITEM_RESOURCE_PROTOCOL]: GitRemoteItemPayload
   }
 }
