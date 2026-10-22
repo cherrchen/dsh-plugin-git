@@ -6,4 +6,4 @@ Only **currently executing** large plans live here. Every plan states its status
 
 ## Entries
 
-None.
+- [remote-platform-integration](remote-platform-integration.en.md) — ADR-0004 remote platform integration; In progress, started 2026-10-22. Covers S0–S7; stage status and acceptance evidence live in the plan body.

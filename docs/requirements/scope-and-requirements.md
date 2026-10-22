@@ -25,6 +25,7 @@
 | FR-11 | 生成 system message 可在 Plugin configuration 编辑（`git-commit-message` 命名空间设置卡） |
 | FR-12 | Desktop 存在时提供 reveal-in-folder / open-path 原生动作；不存在时核心功能完整可用 |
 | FR-13 | 跟随会话有效目录：宿主投影 `workingDirectory` 为非空字符串时用它，否则用会话头 `cwd`。目录变化后 Git 显示新检出，且不得再对旧检出执行写操作 |
+| FR-15 | GitHub PR/Issue、认证、比较、PR 评论/review、已推送分支创建 PR、close/merge、SHA 核验 checkout 与 Issue 分支；credentials 硬门禁、身份前置条件、未知写结果与安全行内坐标见远程 RPC 参考 |
 | FR-14 | 识别主检出与 linked worktree；专用 Worktrees 侧栏 tab 列出同一仓库的全部检出（来源不限）。进入另一个检出只作用于当前会话，并复用宿主工作目录切换；该会话没有活 agent 时不提供进入。创建 worktree：宿主挂载上游 `worktrees` 服务时委托其创建；未挂载时经 `git-worktrees` 设置的 `enabled` 开关启用本插件的本地实现（检出池默认 `<仓库根>/.agents/worktrees/`，可在设置中改）。不删除或修剪 worktree |
 
 ## 非功能需求
@@ -41,11 +42,11 @@
 
 - DSH 兼容版本采用精确清单，唯一真源为 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)；支持声明、升级候选验证与 CI 门禁见 [DSH 兼容契约](../reference/dsh-compatibility.md)。
 - Client 主 fiber 包含全部 portable 贡献；原生增强只能放在 `ctx.inject(['desktop'], ...)` 子 fiber，且只声明其消费的结构化方法；provider unload 必须移除增强而保留核心 UI。
-- GitHub 与远端凭据工作流不在本包内（见下"非目标"），直到另行决策加入。
+- GitHub 与远端凭据工作流已由 [ADR-0004](../decisions/ADR-0004-remote-platform-integration.md)（Proposed，评审闭合待冻结）决议纳入，按 [remote-platform-integration](../plans/active/remote-platform-integration.md) 分阶段实施。Current：完整 seam 下已接入认证、REST 读写、PR checkout、Issue 分支与可移植 Remote UI；无 seam/不完整 seam 仍整功能 off，其他 remote 端点 fail-closed。真实 OAuth、远端写入、平台手工与完整版本矩阵的验收状态见计划日志。契约细节 canonical 于 [远程平台 RPC](../reference/remote-platform-rpc.md)。
 
 ## 非目标
 
-以下明确排除（canonical 于根 README [Git operations](../../README.md#git-operations) 末段）：GitHub 认证、hosting provider 工作流、凭据提示、issues、pull requests、stash、cherry-pick、merge-conflict 编辑。删除和修剪 Git worktree 也排除：创建委托宿主上游实验性 `worktrees` 服务（存在时），或由 `git-worktrees` 设置开启的本地实现；本包只发现检出并在宿主目录服务可用且该会话有活 agent 时进入检出。
+以下明确排除（canonical 于根 README [Git operations](../../README.md#git-operations) 末段）：stash、cherry-pick、merge-conflict 编辑。GitHub 认证、hosting provider 工作流、凭据提示、issues、pull requests 已经 ADR-0004 授权进入分阶段实施，不再是永久排除项；当前可用范围与未验证项见远程平台 RPC 和实施计划，不把 mock 验证冒充真实平台验收。删除和修剪 Git worktree 也排除：创建委托宿主上游实验性 `worktrees` 服务（存在时），或由 `git-worktrees` 设置开启的本地实现；本包只发现检出并在宿主目录服务可用且该会话有活 agent 时进入检出。
 
 ## 相关文档
 

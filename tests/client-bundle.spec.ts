@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { SUPPORTED_DSH_RELEASES } from '../src/compat/dsh-version.ts'
+import { CREDENTIALS_SEAM_DSH_RELEASES, SUPPORTED_DSH_RELEASES } from '../src/compat/dsh-version.ts'
 
 const packageRoot = resolve(import.meta.dirname, '..')
 
@@ -37,8 +37,11 @@ describe('Git client bundle', () => {
     const dshPeers = Object.entries(manifest.peerDependencies)
       .filter(([name]) => name.startsWith('@deepseek-ai/dsh-'))
     expect(dshPeers.length).toBeGreaterThan(0)
-    for (const [, range] of dshPeers) {
-      expect(range).toBe(SUPPORTED_DSH_RELEASES.join(' || '))
+    for (const [name, range] of dshPeers) {
+      const expected = name === '@deepseek-ai/dsh-credentials'
+        ? CREDENTIALS_SEAM_DSH_RELEASES.join(' || ')
+        : SUPPORTED_DSH_RELEASES.join(' || ')
+      expect(range).toBe(expected)
     }
   })
 })

@@ -210,7 +210,7 @@ Commit history is read with a paged `git log` (`GIT_LOG_FORMAT`, one commit per 
 
 Commit message generation is opt-in at the host: it needs an LLM runtime and a resolvable model (the session default, or a custom `provider`/`model`). A staged diff (capped by `commitMessage.maxDiffBytes`) is sent to that route and the streamed suggestion is written into the editable commit message input. The system prompt defaults to a Conventional Commit instruction and can be overridden from Plugin configuration. Generation is suggestion-only — it never stages, commits, or pushes anything.
 
-GitHub authentication, hosting-provider workflows, credential prompts, issues, pull requests, stash, cherry-pick, and merge-conflict editing remain outside this package. Push and sync invoke `git push` / `git pull --rebase` as separate argv values and surface Git's own errors when remotes or credentials are missing.
+GitHub Remote is available when the host provides the complete optional credentials seam: authentication, PR/Issue browsing, comparisons, PR comments/reviews, verified checkout, Issue branches, and guarded create/close/merge. See the [remote RPC contract](docs/reference/remote-platform-rpc.en.md) for configuration, limits, credential handling and unknown-result recovery, and the [active plan](docs/plans/active/remote-platform-integration.en.md) for acceptance evidence and unverified external scenarios. Git fetch/push uses existing Git transport credentials, independently of platform login. Stash, cherry-pick and merge-conflict editing remain outside this package.
 
 <a id="npm-publication"></a>
 ## npm publication
@@ -240,7 +240,7 @@ None. Commit-message generation is an independent Host LLM request and does not 
 
 ## Known Limitations and Deferred Work
 
-- **No credential UI** — push and sync call Git with no prompt for remotes or credentials; a missing `origin` or rejected auth fails as a Git command error.
+- **Independent Git transport** — Remote platform login does not configure Git fetch/push credentials; existing helpers or SSH remain responsible for Git authentication.
 - **Bounded command output** — a diff larger than `maxOutputBytes` retains only the subprocess collector's tail, so deployments handling very large diffs must raise that validated setting.
 - **Generation needs host + model** — commit message generation requires a host LLM runtime and a resolvable model (session default or a custom route in Plugin configuration); without either, the Generate action stays disabled or reports `git/generation-unavailable`.
 - **Worktree entry needs a live directory service** — without the host working-directory service, or without a live agent for that session, the checkout list stays read-only. Writes then keep the previous caller-supplied repository contract. A missing directory is not repaired here; recovery belongs to the host working-directory service.

@@ -10,5 +10,5 @@
 
 ## 索引
 
-- 进行中：暂无。
+- 进行中：[remote-platform-integration](active/remote-platform-integration.md) —— ADR-0004 远程平台集成分阶段实施（In progress；阶段进度与验收证据以计划正文为准）。
 - 已完成：[npm-first-release](completed/npm-first-release.md) —— npm 首次发布与 Release 流水线。

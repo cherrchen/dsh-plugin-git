@@ -29,6 +29,20 @@
     "src/types.ts",
     "src/log.ts",
     "src/commit-message.ts",
-    "src/commit-message-settings.ts"
+    "src/commit-message-settings.ts",
+    "src/remote/types.ts",
+    "src/remote/credentials.ts",
+    "src/remote/errors.ts",
+    "src/remote/feature.ts",
+    "src/remote/settings.ts",
+    "src/remote/grant.ts",
+    "src/remote/http.ts",
+    "src/remote/probe.ts",
+    "src/remote/auth.ts",
+    "src/remote/provider.ts",
+    "src/remote/github-model.ts",
+    "src/remote/github.ts",
+    "src/remote/git.ts",
+    "src/remote/runtime.ts"
   ]
 }

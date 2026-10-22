@@ -104,3 +104,10 @@ export function worktreesDefinition(t: TranslateNS<'git'>): SidebarRightTabDefin
     guide: [guideEntry],
   }
 }
+
+
+/** Remote page; keep guide metadata in a structural local value for older sidebar schemas. */
+export function remoteDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
+  const entry = { id: 'git-remote', order: 13, title: () => t('remote.title'), description: () => t('remote.description') }
+  return { id: 'git.remote', kind: 'git.remote', title: () => t('remote.title'), guide: [entry] }
+}

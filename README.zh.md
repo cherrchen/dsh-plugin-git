@@ -210,7 +210,7 @@ Discard 通过明确的 index、working tree 与 clean 操作还原一条 staged
 
 Commit message 生成在宿主侧按需启用：需要 LLM runtime 与可解析的模型（会话默认，或自定义 `provider`/`model`）。staged diff（受 `commitMessage.maxDiffBytes` 上限约束）会发送到该路由，流式生成的建议写入可编辑的 commit message 输入框。System prompt 默认为 Conventional Commit 说明，可在插件配置中覆盖。生成只提供建议 —— 它绝不 stage、commit 或 push 任何内容。
 
-GitHub authentication、hosting-provider workflows、credential prompts、issues、pull requests、stash、cherry-pick 与 merge-conflict editing 不属于本 package。Push 与 sync 以独立 argv values 调用 `git push`／`git pull --rebase`，在缺少 remote 或 credentials 时展示 Git 自身的错误。
+宿主提供完整可选 credentials seam 时，Remote 提供认证、PR/Issue 浏览、比较、PR 评论/review、核验 checkout、Issue 分支及受保护 create/close/merge。配置、限制、凭据处理与未知结果恢复以[远程 RPC 契约](docs/reference/remote-platform-rpc.md)为准，验收证据及尚未验证的外部场景见[进行中计划](docs/plans/active/remote-platform-integration.md)。Git fetch/push 独立使用现有 Git 传输凭据。Stash、cherry-pick 与 merge-conflict 编辑仍不在本包范围。
 
 <a id="npm-publication"></a>
 ## npm 发布
@@ -240,7 +240,7 @@ pnpm pack
 
 ## Known Limitations and Deferred Work
 
-- **无 credential UI** — push 与 sync 调用 Git 时不提示 remote 或 credentials；缺少 `origin` 或认证被拒时以 Git command error 失败。
+- **独立 Git 传输**——Remote 平台登录不配置 Git fetch/push 凭据；Git 认证仍由现有 helper 或 SSH 负责。
 - **Command output 有界** — 大于 `maxOutputBytes` 的 diff 只保留 subprocess collector tail；处理超大 diff 的 deployment 必须提高这一 validated setting。
 - **生成依赖 host 与模型** — commit message 生成需要 host LLM runtime 与可解析的模型（会话默认或插件配置中的自定义路由）；两者缺其一时，Generate 动作保持禁用或报告 `git/generation-unavailable`。
 - **进入工作树需要活的目录服务** — 没有宿主工作目录服务，或该会话没有活的 agent 时，检出列表只读。写操作此时仍沿用原先由调用方提供仓库路径的契约。目录消失后的恢复不属于本包，由宿主工作目录服务负责。

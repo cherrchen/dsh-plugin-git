@@ -724,6 +724,9 @@ export class GitClientController {
    * @param fields - Endpoint fields other than `repository`.
    * @returns `true` when this binding still owns the published snapshot.
    */
+  private pushObserver: ((repository: string, head: string) => void) | undefined
+  setPushObserver(observer: ((repository: string, head: string) => void) | undefined): void { this.pushObserver = observer }
+
   private async mutate(endpoint: string, fields: Record<string, unknown>): Promise<boolean> {
     const signal = this.operations.signal
     const generation = this.operationGeneration
@@ -738,6 +741,7 @@ export class GitClientController {
         // the loaded graph so the Graph surface reloads instead of rendering the
         // pre-mutation log.
         this.patch({ repository: next, loading: false, graphLoaded: false })
+        if (endpoint === 'push' || endpoint === 'sync') this.pushObserver?.(repositoryRoot, next.head ?? next.branch ?? '')
         return true
       } catch (error) {
         if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) return false

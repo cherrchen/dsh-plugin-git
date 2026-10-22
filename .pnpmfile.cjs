@@ -14,6 +14,10 @@ const { join } = require('node:path')
 const { developmentPin, pinDshDependencies } = require('./scripts/dsh-release-wave.cjs')
 
 const root = __dirname
+const compatibilitySource = readFileSync(join(root, 'src/compat/dsh-version.ts'), 'utf8')
+const releases = name => [...compatibilitySource.match(new RegExp('export const ' + name + ' = \\[([^\\]]*)\\]'))[1].matchAll(/'([^']+)'/g)].map(item => item[1])
+const supportedReleases = releases('SUPPORTED_DSH_RELEASES')
+const credentialReleases = releases('CREDENTIALS_SEAM_DSH_RELEASES')
 const rootManifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 
 function targetVersion() {
@@ -29,7 +33,13 @@ function isRootPackage(pkg, context) {
 }
 
 function readPackage(pkg, context) {
-  return pinDshDependencies(pkg, targetVersion(), {
+  const version = targetVersion()
+  if (isRootPackage(pkg, context) && supportedReleases.includes(version) && !credentialReleases.includes(version)) {
+    // pnpm installs a root peer as a direct edge even when optional. Omit only
+    // this development-lane edge; the published manifest remains unchanged.
+    if (pkg.peerDependencies) delete pkg.peerDependencies['@deepseek-ai/dsh-credentials']
+  }
+  return pinDshDependencies(pkg, version, {
     skipPeerDependencies: isRootPackage(pkg, context),
   })
 }

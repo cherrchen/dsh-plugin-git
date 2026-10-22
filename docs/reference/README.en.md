@@ -12,3 +12,4 @@ Holds **stable, look-up-when-needed technical facts**: internal APIs, schemas, p
 
 - [dsh-compatibility.md](dsh-compatibility.md) — Exact supported DSH releases, the static consistency gate, and candidate upgrade promotion flow.
 - [git-graph-layout.md](git-graph-layout.md) — Git Graph Layout Engine: the DAG → Layout → Renderer data flow, lane semantics, pagination continuation, renderer contract, and topology invariants.
+- [remote-platform-rpc.md](remote-platform-rpc.md) — Wire contract of the `/git` channel `remote-*` endpoints: the structured capability answer, fail-closed rejection, and the error-code set.

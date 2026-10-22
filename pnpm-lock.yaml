@@ -7,7 +7,7 @@ settings:
 overrides:
   '@deepseek-ai/schemastery': 3.18.4
 
-pnpmfileChecksum: sha256-FvmIf+qDUC2CFKGDWIkpQ5xJtlC1UhG+LSjFTI4T+lU=
+pnpmfileChecksum: sha256-UVwodBinq3P1SWa+G6VwmR711JEbEYScdnWRKZk8HHk=
 
 importers:
 
@@ -71,6 +71,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: 0.2.0-rc.2
         version: 0.2.0-rc.2(@deepseek-ai/cordis@4.0.4)
+      '@deepseek-ai/dsh-credentials':
+        specifier: 0.2.0-rc.2
+        version: 0.2.0-rc.2(@deepseek-ai/cordis@4.0.4)(@deepseek-ai/dsh-invariants@0.2.0-rc.2(@deepseek-ai/cordis@4.0.4))
       '@deepseek-ai/dsh-llm':
         specifier: 0.2.0-rc.2
         version: 0.2.0-rc.2(@deepseek-ai/cordis@4.0.4)

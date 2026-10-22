@@ -6,4 +6,4 @@
 
 ## 条目
 
-暂无。
+- [remote-platform-integration](remote-platform-integration.md) —— ADR-0004 远程平台集成；In progress，2026-10-22 开始。覆盖 S0–S7；阶段进度与验收证据以计划正文为准。
