@@ -1,8 +1,9 @@
 /** Pull-request history sections: the commit list and reviews with their inline comments nested. */
 import { useMemo } from 'react'
 import type { ReactNode } from 'react'
-import { MarkdownText, Tag, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Tag, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownLabels, TagTone } from '@deepseek-ai/dsh-client-ui-primitives'
+import { DshCompactMarkdownText } from '../../compat/dsh-markdown.tsx'
 import { IconRightUpOutline16 } from '../../compat/dsh-icons.tsx'
 import type { RemoteComment, RemoteCommit, RemoteReview, RemoteReviewState } from '../../remote/provider.ts'
 import type { GitLocaleKey } from '../locales.ts'
@@ -43,7 +44,7 @@ function InlineCommentCard({ comment, labels, t }: {
         <span className={css.commentRef}> · {comment.path ?? ''}:{comment.line ?? '—'}</span>
         {comment.outdated && <span className={css.commentRef}> · {t('remote.outdated')}</span>}
       </strong>
-      <MarkdownText text={comment.body} labels={labels} variant="compact" />
+      <DshCompactMarkdownText text={comment.body} labels={labels} />
     </article>
   )
 }
@@ -108,7 +109,7 @@ export function RemotePullHistory({ commits, reviews, inline, labels, t }: {
                 {review.submittedAt !== undefined && <span className={css.commentRef}> · {review.submittedAt.slice(0, 10)}</span>}
                 {review.url !== undefined && <ExternalLink url={review.url} label={t('remote.openBrowser')} />}
               </strong>
-              {review.body !== '' && <MarkdownText text={review.body} labels={labels} variant="compact" />}
+              {review.body !== '' && <DshCompactMarkdownText text={review.body} labels={labels} />}
               {byReview.get(review.id)?.map(comment => (
                 <InlineCommentCard key={comment.id} comment={comment} labels={labels} t={t} />
               ))}

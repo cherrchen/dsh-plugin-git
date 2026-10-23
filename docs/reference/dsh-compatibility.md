@@ -208,3 +208,5 @@ Git Client 从 primitives 的公开入口复用 `DiffBlock`，不导入官方 `u
 ## 远程平台续作验收
 
 Remote 的可选 seam 使用本地结构契约（`src/remote/credentials-types.ts`），生产源码/发布声明不要求旧宿主解析不存在的 credentials 包。新车道通过 optional peer/dev pin 与已发布构造器差分测试核对 key/ref 语法；旧车道不要求此 peer 拥有开发 pin，矩阵需检查真实安装树中该包缺失。主车道与完整矩阵的本次结果记录在[远程集成计划](../plans/active/remote-platform-integration.md)，不以开发 pin 的通过替代逐车道证据。
+
+远程正文与评论通过 `src/compat/dsh-markdown.tsx` 使用宿主的 `MarkdownText`。适配层只要求所有车道共有的 `text` / `labels` 类型，并单独传递可选的 `variant: 'compact'` 展示提示：支持该参数的宿主保留紧凑排版，较早实现忽略提示、使用默认排版，不影响内容和本地化代码控件。`tests/dsh-markdown.client.spec.tsx` 在每个车道渲染实际安装的官方组件；远程页面不再内嵌 diff，相关遗留样式也不应进入产物，原有“使用宿主 DiffBlock、不打包私有 renderer”的 artifact 断言保持有效。

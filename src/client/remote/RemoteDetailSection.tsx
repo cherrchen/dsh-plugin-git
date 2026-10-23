@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import type { ReactNode } from 'react'
-import { MarkdownText, Tag, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Tag, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
+import { DshCompactMarkdownText } from '../../compat/dsh-markdown.tsx'
 import { IconRightUpOutline16 } from '../../compat/dsh-icons.tsx'
 import type { RemoteComment, RemoteIssue, RemotePull } from '../../remote/provider.ts'
 import type { GitLocaleKey } from '../locales.ts'
@@ -35,7 +36,7 @@ export function RemoteCommentCard({ comment, labels }: {
   return (
     <article className={css.commentCard}>
       <strong className={css.commentAuthor}>{comment.author?.login}</strong>
-      <MarkdownText text={comment.body} labels={labels} variant="compact" />
+      <DshCompactMarkdownText text={comment.body} labels={labels} />
     </article>
   )
 }
@@ -77,7 +78,7 @@ export function RemoteDetailSection({ detail, labels, t, children }: {
       </div>
       {meta === undefined ? null : <p className={css.detailMeta}>{meta}</p>}
       <div className={css.detailBody}>
-        <MarkdownText text={detail.body} labels={labels} variant="compact" />
+        <DshCompactMarkdownText text={detail.body} labels={labels} />
       </div>
       {children}
     </section>
