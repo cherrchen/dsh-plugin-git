@@ -8,8 +8,8 @@ describe('Git + right-sidebar migration', () => {
   it('registers all three tab types with their guide entries', async () => {
     const bench = await gitBench()
     expect(bench.fake.sidebarRightTabs.guide().map(entry => [entry.kind, entry.order])).toEqual([
-      ['git.changes', 10],
-      ['git.graph', 11],
+      ['git.changes', 11],
+      ['git.graph', 12],
     ])
     await bench.fiber.dispose()
     expect(bench.fake.sidebarRightTabs.guide()).toHaveLength(0)

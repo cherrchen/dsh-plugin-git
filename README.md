@@ -133,7 +133,7 @@ Git joins the tab-type system through the upstream right sidebar's standard two-
 
 Dynamic client plugins may not import runtime values from another plugin package — only `import type` — so the type references erase completely from the bundle and no `external` entry is needed.
 
-**Stage one** — `ctx.sidebarRightTabs.register(definition)` registers three tab types: `git.changes` and `git.graph` are page types (opened by kind, one tab per pane) that each contribute one guide entry (Changes `order: 10`, Graph `order: 11`), replacing the old Details launcher cards on the guide page; `git.diff` is a resource type with pattern `dsh-resource://git/diff/**`, a `canOpen` that validates the address decodes, and a title taken from the decoded file name.
+**Stage one** — `ctx.sidebarRightTabs.register(definition)` registers three tab types: `git.changes` and `git.graph` are page types (opened by kind, one tab per pane) that each contribute one guide entry (Changes `order: 11`, Graph `order: 12`), replacing the old Details launcher cards on the guide page; `git.diff` is a resource type with pattern `dsh-resource://git/diff/**`, a `canOpen` that validates the address decodes, and a title taken from the decoded file name. Optional Worktrees and Remote entries use orders 13 and 14, keeping all Git entries between Workspace files (10) and New terminal (20). Graph uses commit-lane artwork; Remote uses a cloud with upload/download arrows.
 
 **Stage two** — each type's body component injects the `sidebar.right.pane.tab` seat under the definition's `id`; bodies read `{ address, params, revision }` from `useTabInfo().tab.navigation`.
 

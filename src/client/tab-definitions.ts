@@ -25,7 +25,10 @@ import {
   parseGitRemoteItemAddress,
 } from './contract.ts'
 import { splitRepoPath } from './path-display.ts'
-import { BranchGlyph, GraphGlyph, WorktreeGlyph } from './LauncherIcons.tsx'
+import { BranchGlyph, GraphGlyph, RemoteGlyph, WorktreeGlyph } from './LauncherIcons.tsx'
+
+// The host places workspace files at 10 and the new-terminal entry at 20.
+const GUIDE_ORDER = { changes: 11, graph: 12, worktrees: 13, remote: 14 } as const
 
 /**
  * The Changes page type, plus its guide entry.
@@ -35,7 +38,7 @@ import { BranchGlyph, GraphGlyph, WorktreeGlyph } from './LauncherIcons.tsx'
 export function changesDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
   const guideEntry = {
     id: 'git-changes',
-    order: 10,
+    order: GUIDE_ORDER.changes,
     title: () => t('launcher.changes.title'),
     description: () => t('launcher.changes.description'),
     icon: BranchGlyph,
@@ -73,7 +76,7 @@ export function diffDefinition(): SidebarRightTabDefinition {
 export function graphDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
   const guideEntry = {
     id: 'git-graph',
-    order: 11,
+    order: GUIDE_ORDER.graph,
     title: () => t('launcher.graph.title'),
     description: () => t('launcher.graph.description'),
     icon: GraphGlyph,
@@ -96,7 +99,7 @@ export function graphDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinitio
 export function worktreesDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
   const guideEntry = {
     id: 'git-worktrees',
-    order: 12,
+    order: GUIDE_ORDER.worktrees,
     title: () => t('launcher.worktrees.title'),
     description: () => t('launcher.worktrees.description'),
     icon: WorktreeGlyph,
@@ -112,7 +115,7 @@ export function worktreesDefinition(t: TranslateNS<'git'>): SidebarRightTabDefin
 
 /** Remote page; keep guide metadata in a structural local value for older sidebar schemas. */
 export function remoteDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
-  const entry = { id: 'git-remote', order: 13, title: () => t('remote.title'), description: () => t('remote.description') }
+  const entry = { id: 'git-remote', order: GUIDE_ORDER.remote, title: () => t('remote.title'), description: () => t('remote.description'), icon: RemoteGlyph }
   return { id: 'git.remote', kind: 'git.remote', title: () => t('remote.title'), guide: [entry] }
 }
 

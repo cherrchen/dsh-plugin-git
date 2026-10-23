@@ -86,8 +86,8 @@ describe('Git client lifecycle', () => {
     expect(graphDefinition.kind).toBe(GIT_GRAPH_KIND)
 
     // Guide entries replace the old launcher cards: changes then graph, in order.
-    expect(changesDefinition.guide?.map(entry => entry.order)).toEqual([10])
-    expect(graphDefinition.guide?.map(entry => entry.order)).toEqual([11])
+    expect(changesDefinition.guide?.map(entry => entry.order)).toEqual([11])
+    expect(graphDefinition.guide?.map(entry => entry.order)).toEqual([12])
     expect(diffDefinition.guide).toBeUndefined()
 
     const composer = registrations.find(entry => entry.id === 'git-context') as {

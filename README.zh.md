@@ -133,7 +133,7 @@ Git 通过上游右侧边栏的标准两阶段注册接入 tab-type 体系。Cli
 
 动态 client plugin 不允许 import 其他 plugin 包的运行时值，只允许 `import type`；因此类型引用在 bundle 中被完全擦除，`external` 不再需要。
 
-**阶段一**——`ctx.sidebarRightTabs.register(definition)` 注册三个 tab type：`git.changes` 与 `git.graph` 是 page type（按 kind 打开，每个 pane 单例），并各贡献一个 guide 条目（Changes `order: 10`、Graph `order: 11`），在 guide 页替代旧 Details Launcher 卡片；`git.diff` 是 resource type，pattern `dsh-resource://git/diff/**`，`canOpen` 校验地址可解码，tab 标题取解码出的文件名。
+**阶段一**——`ctx.sidebarRightTabs.register(definition)` 注册三个 tab type：`git.changes` 与 `git.graph` 是 page type（按 kind 打开，每个 pane 单例），并各贡献一个 guide 条目（Changes `order: 11`、Graph `order: 12`），在 guide 页替代旧 Details Launcher 卡片；`git.diff` 是 resource type，pattern `dsh-resource://git/diff/**`，`canOpen` 校验地址可解码，tab 标题取解码出的文件名。可选 Worktrees 与 Remote 条目分别使用顺序 13、14，使所有 Git 入口统一排在“工作区文件”（10）与“新建终端”（20）之间。Graph 使用提交轨道图标；Remote 使用云端与上传/下载箭头图标。
 
 **阶段二**——每个 tab type 的 body 组件注入 `sidebar.right.pane.tab` 座（key 即 definition 的 `id`），body 通过 `useTabInfo().tab.navigation` 读取 `{ address, params, revision }`。
 
