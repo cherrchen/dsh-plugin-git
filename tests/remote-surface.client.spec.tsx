@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ComponentProps } from 'react'
 import { GitRemoteSurface } from '../src/client/surfaces/GitRemoteSurface.tsx'
 import { GitRemoteItemSurface } from '../src/client/surfaces/GitRemoteItemSurface.tsx'
@@ -8,16 +8,18 @@ import { GitRemoteFeature } from '../src/client/remote.ts'
 import { GitSessionControllers } from '../src/client/session-controllers.ts'
 import type { GitRpcClient } from '../src/client/controller.ts'
 import { en } from '../src/client/locales.ts'
+import { RemoteLoading } from '../src/client/remote/RemoteLoading.tsx'
 const generation = { instanceId: 'host', revision: 1 }
 const repo = { provider: 'github', host: 'github.com', owner: 'owner', repo: 'repo' } as const
 const sha = 'a'.repeat(40)
 const pull = { number: 1, title: 'Example PR', body: 'Description', author: { userId: '1', login: 'alice' }, state: 'open', rawState: 'open', head: { repository: repo, ref: 'topic', sha }, base: { repository: repo, ref: 'main', sha }, draft: false, url: 'https://github.com/owner/repo/pull/1' }
 const resources: { dispose(): void }[] = []
 afterEach(() => { cleanup(); resources.splice(0).forEach(resource => resource.dispose()) })
-function fixture(unknown = false, handler?: (endpoint: string, payload: unknown) => { ok: boolean; value?: unknown; error?: unknown } | undefined) {
+type Reply = { ok: boolean; value?: unknown; error?: unknown }
+function fixture(unknown = false, handler?: (endpoint: string, payload: unknown) => Reply | undefined | Promise<Reply | undefined>) {
   const actions = { canComment: true, canReview: true, canMerge: true, canClose: true, canCreatePr: true }
   const call = vi.fn(async (_channel: string, endpoint: string, payload: unknown) => {
-    const override = handler?.(endpoint, payload)
+    const override = await handler?.(endpoint, payload)
     if (override !== undefined) return override as { ok: boolean; value?: unknown }
     let value: unknown
     if (endpoint === 'remote-capability') value = { state: 'on', generation, auth: { state: 'authenticated' }, credential: { configured: true, writable: false }, actions, loginAvailable: false }
@@ -53,6 +55,50 @@ function mountItem(unknown = false) {
   return { call }
 }
 describe('portable remote surface', () => {
+  it('shows connection feedback and skeletons without an empty-remote warning, then recovers from failure', async () => {
+    let release!: (reply: Reply) => void
+    const { base } = fixture(false, endpoint => endpoint === 'remote-repository' ? new Promise(resolve => { release = resolve }) : undefined)
+    const { container } = render(<GitRemoteSurface {...{ ...base, openRemoteItem: vi.fn() } as unknown as ComponentProps<typeof GitRemoteSurface>} />)
+    await screen.findByText(en['remote.connecting'])
+    expect(container.querySelector('[data-git-remote-skeleton]')).not.toBeNull()
+    expect(screen.queryByText(en['remote.noRemote'])).toBeNull()
+    await act(async () => { release({ ok: false, error: { code: 'git/remote-unavailable', message: 'Connection timed out' } }) })
+    await screen.findByRole('alert')
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(container.querySelector('[data-git-remote-skeleton]')).toBeNull()
+    expect((screen.getByRole('button', { name: en['details.refresh'] }) as HTMLButtonElement).disabled).toBe(false)
+  })
+  it('keeps existing pulls readable with their original kind while an issue list is loading', async () => {
+    let release!: (reply: Reply) => void
+    const { base } = fixture(false, endpoint => endpoint === 'remote-list-issues' ? new Promise(resolve => { release = resolve }) : undefined)
+    const openRemoteItem = vi.fn()
+    render(<GitRemoteSurface {...{ ...base, openRemoteItem } as unknown as ComponentProps<typeof GitRemoteSurface>} />)
+    await screen.findByRole('button', { name: /Example PR/ })
+    fireEvent.click(screen.getByRole('button', { name: en['remote.issues'], exact: true }))
+    await screen.findByText(en['remote.loadingItems'])
+    fireEvent.click(screen.getByRole('button', { name: /Example PR/ }))
+    expect(openRemoteItem).toHaveBeenCalledWith(repo, 'pulls', 1)
+    await act(async () => { release({ ok: true, value: { generation, value: { items: [], truncated: false } } }) })
+    await screen.findByText(en['remote.noItems'])
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+  it('explains a slow connection after eight seconds and cleans up when loading ends', async () => {
+    vi.useFakeTimers()
+    try {
+      const t = (key: keyof typeof en) => en[key]
+      const view = render(<RemoteLoading pending="repository" t={t} />)
+      expect(screen.queryByText(en['remote.slowConnection'])).toBeNull()
+      await act(async () => { await vi.advanceTimersByTimeAsync(8000) })
+      expect(screen.getByText(en['remote.slowConnection'])).not.toBeNull()
+      view.rerender(<RemoteLoading t={t} />)
+      expect(screen.queryByRole('status')).toBeNull()
+      expect(vi.getTimerCount()).toBe(0)
+      view.rerender(<RemoteLoading pending="authorization" t={t} />)
+      await act(async () => { await vi.advanceTimersByTimeAsync(8000) })
+      expect(screen.getByText(en['remote.waitingAuth'])).not.toBeNull()
+      expect(screen.queryByText(en['remote.slowConnection'])).toBeNull()
+    } finally { vi.useRealTimers() }
+  })
   it('opens a pull request detail tab from the list row', async () => {
     const { openRemoteItem } = mountList()
     fireEvent.click(await screen.findByRole('button', { name: /Example PR/ }))

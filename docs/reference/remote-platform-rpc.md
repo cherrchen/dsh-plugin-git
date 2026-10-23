@@ -68,6 +68,10 @@ Device Flow 只允许 `https://github.com/login/device`。刷新先 CAS 提交 r
 
 API token 仅发往 `https://api.github.com`，带 `X-GitHub-Api-Version:2022-11-28`；Link 与 GET 重定向也校验该 origin。浏览器 URL 独立只允许 `https://github.com`。响应显式投影成中立模型，不透传 raw 对象。认证 ETag 正文按 origin/viewer/generation/完整路径与查询隔离；身份变化清空。匿名不自动轮询，认证轮询最短 60 秒且遵守更长的 X-Poll-Interval；429、primary/secondary 403 遵守 Retry-After/reset 与有界指数退避，不自动重试写请求。
 
+### Client 加载反馈（Current）
+
+Remote 列表、详情与认证弹窗通过顶部状态条区分查找远端、连接 GitHub、读取列表/讨论、认证连接、等待用户授权及提交操作。网络等待超过 8 秒显示慢响应提示；等待 Device Flow 用户授权不标为慢网。首次列表加载使用骨架占位，不提前显示“没有远端”或筛选结果为空。列表及详情关联集合首批仅请求一页，其余由现有游标机制后台补齐，并显示补页状态。刷新或切换筛选时保留已有条目及其原始 PR/Issue 类型，可继续打开详情；写入仍受 busy/unknown 门禁保护。请求失败后移除加载反馈、显示错误，并恢复显式刷新入口。所有文案提供中英文，动画遵守 reduced-motion 偏好。
+
 ## 受保护写操作
 
 所有仓库 mutator 逐项进入 `isRepositoryWrite`。payload 在仓库字段之外，必须有 `{expectedGeneration,expectedViewer:{host,userId},requestId}`。requestId 为 8–200 位字母/数字/连字符，同一进程重复提交只返回第一次的结果，包括未知结果；最多保留 512 个提交，满后拒绝，不能用淘汰重放副作用。Host 在准入和发送前核对会话仓库、远端身份、stable viewer 与单份 token 快照；最后解析只用来比较，发送仍用被核对的原 token。

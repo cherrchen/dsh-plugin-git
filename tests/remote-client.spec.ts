@@ -98,6 +98,7 @@ describe('remote progressive lists', () => {
     expect(controller.getSnapshot().streaming).toBe(false)
     const pages = transport.call.mock.calls.filter(call => call[1] === 'remote-list-prs')
     expect(pages).toHaveLength(2)
+    expect(pages[0]?.[2]).toMatchObject({ pages: 1 })
     expect(pages[1]?.[2]).toMatchObject({ cursor: '/p2' })
     controller.dispose(); feature.dispose()
   })

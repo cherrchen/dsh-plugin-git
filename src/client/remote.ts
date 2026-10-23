@@ -7,7 +7,7 @@ import type { RemoteComment, RemoteCommit, RemoteIssue, RemotePage, RemotePull, 
 const OFF: GitRemoteCapability = { state: 'off', reason: 'implementation-pending', auth: { state: 'off' } }
 const equal = (a: GitRemoteGeneration | undefined, b: GitRemoteGeneration | undefined) => a !== undefined && b !== undefined && a.instanceId === b.instanceId && a.revision === b.revision
 /** Upstream pages fetched by the first request of a progressive list; continuations take one page each. */
-const FIRST_PAGES = 3
+const FIRST_PAGES = 1
 /** Longest reset wait for one automatic stream resume after `git/rate-limited`. */
 const STREAM_RESUME_MAX_MS = 600_000
 export class RemoteRpcError extends Error {
@@ -53,6 +53,7 @@ export class GitRemoteFeature {
   }
   dispose(): void { this.owner.abort(); clearInterval(this.timer); this.listeners.clear() }
 }
+export type RemotePending = 'repositories' | 'repository' | 'items' | 'detail' | 'auth' | 'authorization' | 'write'
 export interface RemoteClientState {
   readonly capability: GitRemoteCapability
   readonly repository?: string | undefined
@@ -61,6 +62,7 @@ export interface RemoteClientState {
   readonly facts?: RemoteRepositoryFacts | undefined
   readonly generation?: GitRemoteGeneration | undefined
   readonly items: readonly (RemotePull | RemoteIssue)[]
+  readonly listKind?: 'pulls' | 'issues' | undefined
   /** Opaque list continuation cursor; absent once the list is fully loaded. */
   readonly itemsNext?: string | undefined
   readonly detail?: RemotePull | RemoteIssue | undefined
@@ -74,6 +76,7 @@ export interface RemoteClientState {
   readonly reviewsNext?: string | undefined
   readonly checkout?: RemoteCheckoutReceipt | undefined
   readonly busy: boolean
+  readonly pending?: RemotePending | undefined
   /** True while a background page pull appends to an already-rendered list. */
   readonly streaming: boolean
   /** Set when the background stream stopped on an error or an overlong rate-limit reset. */
@@ -114,26 +117,28 @@ export class GitRemoteController {
     if (!reply.ok) { const error = reply.error as { code?: string; message?: string; details?: unknown }; throw new RemoteRpcError(error.code ?? 'git/remote-unavailable', error.message ?? 'Git remote request failed', error.details) }
     return reply.value as T
   }
-  private async run(work: (epoch: number) => Promise<void>): Promise<void> {
+  private async run(work: (epoch: number) => Promise<void>, pending: RemotePending = 'write'): Promise<void> {
     if (this.disposed || this.state.busy) return
-    const epoch = this.epoch; this.patch({ busy: true, error: undefined })
+    const epoch = this.epoch; this.patch({ busy: true, pending, error: undefined })
     try { await work(epoch) } catch (error) { if (epoch === this.epoch) this.patch({ error: error instanceof Error ? error.message : String(error), unknown: error instanceof RemoteRpcError && error.code === 'git/write-result-unknown' || this.state.unknown }) }
-    finally { if (epoch === this.epoch) { this.patch({ busy: false }); this.feature.refresh() } }
+    finally { if (epoch === this.epoch) { this.patch({ busy: false, pending: undefined }); this.feature.refresh() } }
   }
   async load(kind: 'pulls' | 'issues' = 'pulls', selected?: RemoteRepository, state: 'open' | 'closed' | 'all' = 'open'): Promise<void> {
     await this.run(async epoch => {
       const repositories = await this.call<RemoteRepositorySet>('remote-repositories')
       const target = selected ?? this.state.target ?? repositories.remotes[0]?.identity
       if (epoch !== this.epoch) return
-      this.patch({ remotes: repositories.remotes })
+      this.patch({ remotes: repositories.remotes, pending: 'repository' })
       if (target === undefined) return
       const facts = await this.call<RemoteResult<RemoteRepositoryFacts>>('remote-repository', target as unknown as Record<string, unknown>)
+      if (epoch !== this.epoch) return
+      this.patch({ pending: 'items' })
       const list = await this.call<RemoteResult<RemotePage<RemotePull | RemoteIssue>>>(kind === 'pulls' ? 'remote-list-prs' : 'remote-list-issues', { ...target, state, pages: FIRST_PAGES })
       if (epoch !== this.epoch || !equal(facts.generation, list.generation)) return
       this.listKind = kind; this.listState = state
-      this.patch({ target, generation: facts.generation, facts: facts.value, items: list.value.items, itemsNext: list.value.next, detail: undefined, comments: [], commentsNext: undefined, inline: [], inlineNext: undefined, commits: [], commitsNext: undefined, reviews: [], reviewsNext: undefined, streamError: undefined, unknown: false })
+      this.patch({ target, generation: facts.generation, facts: facts.value, listKind: kind, items: list.value.items, itemsNext: list.value.next, detail: undefined, comments: [], commentsNext: undefined, inline: [], inlineNext: undefined, commits: [], commitsNext: undefined, reviews: [], reviewsNext: undefined, streamError: undefined, unknown: false })
       this.stream(epoch)
-    })
+    }, 'repositories')
   }
   async open(n: number, kind: 'pulls' | 'issues'): Promise<void> {
     await this.run(async epoch => {
@@ -146,7 +151,7 @@ export class GitRemoteController {
       if (epoch !== this.epoch || !equal(detail.generation, comments.generation) || (inline !== undefined && !equal(detail.generation, inline.generation)) || (commits !== undefined && !equal(detail.generation, commits.generation)) || (reviews !== undefined && !equal(detail.generation, reviews.generation))) return
       this.patch({ facts: this.state.facts === undefined ? undefined : { ...this.state.facts, actions: { ...this.state.facts.actions, canClose: detail.value.author?.userId === this.state.facts.viewer?.userId || this.state.facts.permissions.push === true ? true : this.state.facts.permissions.push === false ? false : 'unknown' } }, itemsNext: undefined, detail: detail.value, generation: detail.generation, comments: comments.value.items, commentsNext: comments.value.next, inline: inline?.value.items ?? [], inlineNext: inline?.value.next, commits: commits?.value.items ?? [], commitsNext: commits?.value.next, reviews: reviews?.value.items ?? [], reviewsNext: reviews?.value.next, streamError: undefined, unknown: false })
       this.stream(epoch)
-    })
+    }, 'detail')
   }
   /** Continue any pending page cursor in the background, one upstream page per call. */
   private stream(epoch: number): void {
@@ -238,15 +243,16 @@ export class GitRemoteController {
   }
   async authAction(endpoint: string): Promise<void> {
     if (endpoint === 'remote-sign-out' && this.state.busy) { this.clear(this.state.repository); this.patch({}) }
-    await this.run(async epoch => { await this.call(endpoint); if (epoch === this.epoch) { this.clear(this.state.repository); this.patch({}) } })
+    await this.run(async epoch => { await this.call(endpoint); if (epoch === this.epoch) { this.clear(this.state.repository); this.patch({}) } }, 'auth')
   }
   async login(show: (value: { userCode: string; verificationUri: string; attemptId: string }) => void): Promise<void> {
     await this.run(async epoch => {
       const login = await this.call<{ userCode: string; verificationUri: string; attemptId: string }>('remote-login')
       if (epoch !== this.epoch) return
       show(login)
+      this.patch({ pending: 'authorization' })
       await this.call('remote-poll-login', { attemptId: login.attemptId })
-    })
+    }, 'auth')
   }
   async cancelLogin(attemptId: string): Promise<void> { await this.call('remote-cancel-login', { attemptId }); this.feature.refresh() }
   async write(endpoint: string, values: Record<string, unknown>): Promise<void> {

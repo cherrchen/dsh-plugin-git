@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import { Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IconUserOutline16 } from '../../compat/dsh-icons.tsx'
 import { GitIconButton } from '../details/GitIconButton.tsx'
 import { RemoteAuthSection, type RemoteLoginAttempt } from './RemoteAuthSection.tsx'
+import { RemoteLoading } from './RemoteLoading.tsx'
+import css from '../GitRemoteSurface.module.css'
 import type { GitRemoteController } from '../remote.ts'
 import type { GitRemoteCapabilityOn } from '../../remote/types.ts'
 import type { GitRemoteViewer } from '../../remote/types.ts'
@@ -19,6 +21,7 @@ export function RemoteAuthControl({ capability, viewer, busy, controller, t }: {
 }): ReactNode {
   const [open, setOpen] = useState(false)
   const [login, setLogin] = useState<RemoteLoginAttempt>()
+  const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
   return (
     <>
       <GitIconButton label={t('remote.auth')} onClick={() => { setOpen(true) }}>
@@ -30,6 +33,8 @@ export function RemoteAuthControl({ capability, viewer, busy, controller, t }: {
         title={t('remote.auth')}
         closeLabel={t('branch.cancel')}
       >
+        <RemoteLoading pending={state.pending} t={t} />
+        {state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
         <RemoteAuthSection
           capability={capability}
           viewer={viewer}

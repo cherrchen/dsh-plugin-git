@@ -15,6 +15,7 @@ import { RemoteContextBar, type RemoteListState } from '../remote/RemoteContextB
 import { RemoteItemList } from '../remote/RemoteItemList.tsx'
 import { RemoteCreateDialog } from '../remote/RemoteCreateDialog.tsx'
 import { RemoteNotices } from '../remote/RemoteNotices.tsx'
+import { RemoteLoading, RemoteListSkeleton } from '../remote/RemoteLoading.tsx'
 import css from '../GitRemoteSurface.module.css'
 
 type Props = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'git'> & {
@@ -38,6 +39,8 @@ export function GitRemoteSurface({ gitSessions, remoteFeature, openRemoteItem, s
   const [create, setCreate] = useState(false)
   const capability = state.capability
   const writable = state.facts?.viewer !== undefined && !state.busy && !state.unknown
+  const loadingList = state.pending === 'repositories' || state.pending === 'repository' || state.pending === 'items'
+  const displayedKind = state.listKind ?? kind
   if (capability.state === 'off') return <p className={css.empty}>{t('remote.unavailable')}</p>
   return <div className={css.root} data-git-remote-surface="">
     <div className={css.modeBar} data-git-remote-toolbar="">
@@ -61,31 +64,35 @@ export function GitRemoteSurface({ gitSessions, remoteFeature, openRemoteItem, s
       </GitIconButton>
     </div>
     <RemoteNotices notices={notices} t={t} />
+    <div className={css.loadingArea}>
+      <RemoteLoading pending={state.pending} streaming={state.streaming} t={t} />
+    </div>
     <div className={css.body}>
       <div className={css.pad}>
         {state.repository === undefined ? <p className={css.empty}>{t('details.noWorkspace')}</p> : <>
           <RemoteContextBar
             remotes={state.remotes}
-            target={state.target}
+            target={state.target ?? state.remotes[0]?.identity}
             listState={listState}
             busy={state.busy}
             onSelect={remote => { void controller.load(kind, remote.identity, listState) }}
             onListState={next => { setListState(next); void controller.load(kind, undefined, next) }}
             t={t}
           />
-          {state.remotes.length === 0 && <p className={css.empty}>{t('remote.noRemote')}</p>}
-          <RemoteItemList
-            kind={kind}
-            items={state.items}
-            busy={state.busy}
-            writable={writable}
-            onOpen={number => { if (state.target !== undefined) openRemoteItem(state.target, kind, number) }}
-            onCreate={() => { setCreate(true) }}
-            t={t}
-          />
+          {!state.busy && state.error === undefined && state.remotes.length === 0 && <p className={css.empty}>{t('remote.noRemote')}</p>}
+          {loadingList && state.items.length === 0 ? <RemoteListSkeleton /> : (
+            <RemoteItemList
+              kind={displayedKind}
+              items={state.items}
+              busy={state.busy && !loadingList}
+              writable={writable}
+              onOpen={number => { if (state.target !== undefined) openRemoteItem(state.target, displayedKind, number) }}
+              onCreate={() => { setCreate(true) }}
+              t={t}
+            />
+          )}
+          {!state.busy && !state.streaming && state.itemsNext === undefined && state.error === undefined && state.target !== undefined && state.items.length === 0 && <p className={css.empty}>{t('remote.noItems')}</p>}
         </>}
-        {!state.busy && state.streaming && <p className={css.loadingHint} role="status">{t('details.loading')}</p>}
-        {state.busy && <p className={css.loadingHint} role="status">{t('details.loading')}</p>}
         {state.streamError !== undefined && <p className={css.error} role="alert">{state.streamError}</p>}
         {state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
         {state.unknown && <p className={css.error} role="alert">{t('remote.unknown')}</p>}

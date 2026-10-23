@@ -13,6 +13,7 @@ import { IconRefreshOutline16, IconRightUpOutline16 } from '../../compat/dsh-ico
 import { GitIconButton } from '../details/GitIconButton.tsx'
 import { parseGitRemoteItemAddress, type GitRemoteItemPayload } from '../contract.ts'
 import { RemoteAuthControl } from '../remote/RemoteAuthControl.tsx'
+import { RemoteLoading } from '../remote/RemoteLoading.tsx'
 import { RemoteCommentCard, RemoteDetailSection, remoteMarkdownLabels } from '../remote/RemoteDetailSection.tsx'
 import { RemotePullActions, type RemoteConfirmKind } from '../remote/RemotePullActions.tsx'
 import { RemotePullHistory } from '../remote/RemotePullHistory.tsx'
@@ -92,6 +93,9 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
       >
         <IconRefreshOutline16 size={14} />
       </GitIconButton>
+    </div>
+    <div className={css.loadingArea}>
+      <RemoteLoading pending={state.pending} streaming={state.streaming} t={t} />
     </div>
     <div className={css.body}>
       <div className={css.pad}>
@@ -173,8 +177,6 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
             </p>
           )}
         </>}
-        {!state.busy && state.streaming && <p className={css.loadingHint} role="status">{t('details.loading')}</p>}
-        {state.busy && <p className={css.loadingHint} role="status">{t('details.loading')}</p>}
         {state.streamError !== undefined && <p className={css.error} role="alert">{state.streamError}</p>}
         {state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
         {state.unknown && <p className={css.error} role="alert">{t('remote.unknown')}</p>}
