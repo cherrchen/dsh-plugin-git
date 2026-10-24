@@ -2,10 +2,11 @@ import { useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { Tag, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
-import { DshCompactMarkdownText } from '../../compat/dsh-markdown.tsx'
 import { IconRightUpOutline16 } from '../../compat/dsh-icons.tsx'
-import type { RemoteComment, RemoteIssue, RemotePull } from '../../remote/provider.ts'
+import type { RemoteIssue, RemotePull } from '../../remote/provider.ts'
 import type { GitLocaleKey } from '../locales.ts'
+import { RemoteMarkdown } from './RemoteMarkdown.tsx'
+import { RemoteAvatar } from './RemoteAvatar.tsx'
 import css from '../GitRemoteSurface.module.css'
 
 /** Localized chrome for every MarkdownText on this page. */
@@ -28,20 +29,7 @@ function detailStateTone(state: RemoteIssue['state'] | RemotePull['state']): 'su
   return 'success'
 }
 
-/** One comment card: author line plus the markdown body. */
-export function RemoteCommentCard({ comment, labels }: {
-  readonly comment: RemoteComment
-  readonly labels: MarkdownLabels
-}): ReactNode {
-  return (
-    <article className={css.commentCard}>
-      <strong className={css.commentAuthor}>{comment.author?.login}</strong>
-      <DshCompactMarkdownText text={comment.body} labels={labels} />
-    </article>
-  )
-}
-
-/** Detail head and body: number, title, state tags, browser shortcut, markdown. */
+/** Detail head and opening post: number, title, state tags, browser shortcut, then the description as the first timeline card. */
 export function RemoteDetailSection({ detail, labels, t, children }: {
   readonly detail: RemotePull | RemoteIssue
   readonly labels: MarkdownLabels
@@ -77,8 +65,29 @@ export function RemoteDetailSection({ detail, labels, t, children }: {
         </span>
       </div>
       {meta === undefined ? null : <p className={css.detailMeta}>{meta}</p>}
-      <div className={css.detailBody}>
-        <DshCompactMarkdownText text={detail.body} labels={labels} />
+      <div className={css.tlItem}>
+        <span className={css.tlAvatar}><RemoteAvatar login={detail.author?.login} url={detail.author?.avatarUrl} size={20} /></span>
+        <article className={css.tlCard}>
+          <header className={css.tlCardHead}>
+            <strong>{detail.author?.login}</strong>
+            <span className={css.tlMeta}>{t('remote.opened')}</span>
+            {detail.createdAt !== undefined && (
+              <time className={css.tlMeta} dateTime={detail.createdAt} title={detail.createdAt}>{detail.createdAt.slice(0, 10)}</time>
+            )}
+            {detail.url === undefined ? null : (
+              <Tooltip label={t('remote.openBrowser')} side="top" delayMs={200}>
+                <a className={css.iconLink} href={detail.url} target="_blank" rel="noreferrer" aria-label={t('remote.openBrowser')}>
+                  <IconRightUpOutline16 size={14} />
+                </a>
+              </Tooltip>
+            )}
+          </header>
+          <div className={css.tlCardBody}>
+            {detail.body === ''
+              ? <p className={css.tlEmpty}>{t('remote.noDescription')}</p>
+              : <RemoteMarkdown text={detail.body} labels={labels} detailsLabel={t('remote.details')} />}
+          </div>
+        </article>
       </div>
       {children}
     </section>

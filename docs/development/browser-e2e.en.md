@@ -25,7 +25,7 @@ Deterministic fixtures replace external GitHub OAuth/REST services and gh/creden
 The current seven browser cases cover:
 
 - Chinese/English labels for gh, OAuth and credential references;
-- Source updates after selecting Git credential helper, rediscovery, sign-out and clearing the local grant;
+- Disconnecting and reconnecting GitHub CLI through the method radios (the signed-out marker is cleared first inside the same run), plus a dialog-width assertion and screenshots;
 - The complete internal anonymous-to-OAuth device-login flow and cancellation;
 - Absence of token bodies from browser RPC responses and page content;
 - Authentication isolation between separate browser contexts and credential stores.

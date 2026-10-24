@@ -18,6 +18,15 @@ export function browserUrl(value: unknown): string | undefined {
   } catch { /* Untrusted browser links are omitted. */ }
   return undefined
 }
+/** Avatar images are admitted only from GitHub's dedicated avatar host. */
+export function avatarUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  try {
+    const url = new URL(value)
+    if (url.origin === 'https://avatars.githubusercontent.com' && url.username === '' && url.password === '') return url.href
+  } catch { /* Untrusted image sources are omitted. */ }
+  return undefined
+}
 export function apiPath(value: string): string {
   let url: URL
   try { url = new URL(value, GIT_REMOTE_API_ORIGIN) } catch { return invalidResponse() }
@@ -34,7 +43,8 @@ export function objectNumber(n: number): number { if (!Number.isSafeInteger(n) |
 function author(value: unknown): RemoteAuthor | null {
   if (value == null) return null
   const user = object(value)
-  return { userId: String(number(user['id'])), login: string(user['login']) }
+  const avatar = avatarUrl(user['avatar_url'])
+  return { userId: String(number(user['id'])), login: string(user['login']), ...(avatar === undefined ? {} : { avatarUrl: avatar }) }
 }
 function branch(value: unknown): RemoteBranch {
   const data = object(value)
@@ -53,7 +63,7 @@ export function issue(value: unknown): RemoteIssue {
   const rawState = string(data['state'])
   if (rawState !== 'open' && rawState !== 'closed') return invalidResponse()
   const url = browserUrl(data['html_url'])
-  return { number: objectNumber(number(data['number'])), title: string(data['title']), body: data['body'] == null ? '' : string(data['body']), state: rawState, rawState, author: author(data['user']), ...(url === undefined ? {} : { url }) }
+  return { number: objectNumber(number(data['number'])), title: string(data['title']), body: data['body'] == null ? '' : string(data['body']), state: rawState, rawState, author: author(data['user']), ...(url === undefined ? {} : { url }), ...(typeof data['created_at'] !== 'string' ? {} : { createdAt: data['created_at'] }) }
 }
 export function pull(value: unknown): RemotePull {
   const data = object(value)
@@ -73,6 +83,7 @@ export function comment(value: unknown): RemoteComment {
     ...(typeof data['commit_id'] !== 'string' ? {} : { commitSha: data['commit_id'] }),
     ...(typeof data['in_reply_to_id'] !== 'number' ? {} : { replyTo: String(number(data['in_reply_to_id'])) }),
     ...(typeof data['pull_request_review_id'] !== 'number' ? {} : { reviewId: String(number(data['pull_request_review_id'])) }),
+    ...(typeof data['created_at'] !== 'string' ? {} : { createdAt: data['created_at'] }),
   }
 }
 export function file(value: unknown): RemoteFile {
@@ -85,12 +96,14 @@ export function commit(value: unknown): RemoteCommit {
   if (!/^[0-9a-f]{40,64}$/.test(sha)) return invalidResponse()
   const inner = object(data['commit'])
   const authored = inner['author'] == null ? undefined : object(inner['author'])['date']
+  const committed = inner['committer'] == null ? undefined : object(inner['committer'])['date']
   const url = browserUrl(data['html_url'])
   return {
     sha,
     subject: string(inner['message']).split('\n', 1)[0] ?? '',
     author: author(data['author']),
     ...(typeof authored !== 'string' ? {} : { date: authored }),
+    ...(typeof committed !== 'string' ? {} : { committedAt: committed }),
     ...(url === undefined ? {} : { url }),
   }
 }

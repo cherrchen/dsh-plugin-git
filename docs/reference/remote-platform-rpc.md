@@ -59,20 +59,20 @@ Device Flow 只允许 `https://github.com/login/device`。刷新先 CAS 提交 r
 | --- | --- |
 | `remote-repository` | viewer、原始已知权限位、五项动作三态；存储可写不能推导远端权限 |
 | `remote-list-prs` / `remote-list-issues` | `state?:open|closed|all, cursor?, pages?`；Issue 列表排除 PR |
-| `remote-pr` / `remote-issue` | `number`；PR 显式保存 head/base 仓库、ref、SHA；state 为 open/closed/merged，保留 rawState |
-| `remote-comments` | `number,inline?:boolean, cursor?, pages?`；inline 保存 replyTo、commitSha、原始行/side 与 `reviewId`（归属的 review id，供按 review 分组展示），outdated 不冒充当前坐标 |
-| `remote-commits` | `number, cursor?, pages?`；返回 `{items,truncated,next?}`，commit 为 `{sha,subject,author,date?,url?}` |
+| `remote-pr` / `remote-issue` | `number`；PR 显式保存 head/base 仓库、ref、SHA；state 为 open/closed/merged，保留 rawState；`createdAt` 保留上游 `created_at` |
+| `remote-comments` | `number,inline?:boolean, cursor?, pages?`；inline 保存 replyTo、commitSha、原始行/side 与 `reviewId`（归属的 review id，供按 review 分组展示），outdated 不冒充当前坐标；`createdAt` 保留上游 `created_at` |
+| `remote-commits` | `number, cursor?, pages?`；返回 `{items,truncated,next?}`，commit 为 `{sha,subject,author,date?,committedAt?,url?}`，`committedAt` 取自 `commit.committer.date` |
 | `remote-reviews` | `number, cursor?, pages?`；返回 `{items,truncated,next?}`，review 为 `{id,author,state,rawState,body,url?,submittedAt?,commitSha?}`，`state` 归一为 `approved|changes-requested|commented|dismissed|pending` |
 | `remote-files` | `number, cursor?, pages?, expectedBaseSha?, expectedHeadSha?`；返回 `{files:{items,truncated,next?},baseSha,headSha}`；首页读取前后核对 PR 快照，续页携带 expected SHA 并逐页核对 head/base 未动。PR 详情页不主动调用：文件改动经 `pr.url + '/files'` 跳转 GitHub Files 页查看，该能力保留给需要本地坐标的受守护写路径 |
 | `remote-notifications` | `automatic?:boolean`；review request、自己 PR merged/closed/changes-requested，稳定事件 id；最多展开 10 个通知线程，超限标 truncated |
 
-API token 仅发往 `https://api.github.com`，带 `X-GitHub-Api-Version:2022-11-28`；Link 与 GET 重定向也校验该 origin。浏览器 URL 独立只允许 `https://github.com`。响应显式投影成中立模型，不透传 raw 对象。认证 ETag 正文按 origin/viewer/generation/完整路径与查询隔离；身份变化清空。匿名不自动轮询，认证轮询最短 60 秒且遵守更长的 X-Poll-Interval；429、primary/secondary 403 遵守 Retry-After/reset 与有界指数退避，不自动重试写请求。
+API token 仅发往 `https://api.github.com`，带 `X-GitHub-Api-Version:2022-11-28`；Link 与 GET 重定向也校验该 origin。浏览器 URL 独立只允许 `https://github.com`；头像 URL（viewer 与各 `author.avatarUrl`）进一步只允许 `https://avatars.githubusercontent.com` 且不带凭据，其余来源一律省略。响应显式投影成中立模型，不透传 raw 对象。认证 ETag 正文按 origin/viewer/generation/完整路径与查询隔离；身份变化清空。匿名不自动轮询，认证轮询最短 60 秒且遵守更长的 X-Poll-Interval；429、primary/secondary 403 遵守 Retry-After/reset 与有界指数退避，不自动重试写请求。
 
 ### Client 加载反馈（Current）
 
 Remote 列表、详情与认证弹窗通过顶部状态条区分查找远端、连接 GitHub、读取列表/讨论、认证连接、等待用户授权及提交操作。网络等待超过 8 秒显示慢响应提示；等待 Device Flow 用户授权不标为慢网。首次列表加载使用骨架占位，不提前显示“没有远端”或筛选结果为空。列表及详情关联集合首批仅请求一页，其余由现有游标机制后台补齐，并显示补页状态。刷新或切换筛选时保留已有条目及其原始 PR/Issue 类型，可继续打开详情；写入仍受 busy/unknown 门禁保护。请求失败后移除加载反馈、显示错误，并恢复显式刷新入口。所有文案提供中英文，动画遵守 reduced-motion 偏好。
 
-认证弹窗在状态与账号之外显示本次生效的“认证渠道”，直接使用 `remote-capability.auth.source` 的枚举：`gh` → GitHub CLI（gh），`grant` → GitHub OAuth（设备码登录），`ref` → 凭据引用（GH_TOKEN / GITHUB_TOKEN），`git-credential` → Git 凭据助手。来源表示当前使用的认证路径，不推断令牌的创建方式或实际权限；`ref` 不透传 provider 的原始来源描述。匿名显示“匿名访问”；未认证、登出或失效时显示“未使用凭据”，不沿用旧渠道；已认证但缺少或无法识别来源时显示“未提供来源”。所有渠道文案有中英版本，不展示令牌、fingerprint 或 device code。认证操作完成后立即刷新 capability；旧 capability 读取在途时追加一次读取，避免渠道显示延迟到下一轮定时探测。隔离浏览器回归的边界和运行方法见[浏览器 E2E](../development/browser-e2e.md)。
+认证弹窗顶部为状态卡：按 `auth.state` 显示已连接（含 viewer 头像与 `@login`）、未连接、已断开连接、凭据已失效四种标题；非已连接状态附对应提示。已连接且来源为 `ref`、`git-credential` 或未知时，附一行本地化的来源说明（枚举 `gh` → GitHub CLI（gh），`grant` → GitHub OAuth（设备码登录），`ref` → 凭据引用（GH_TOKEN / GITHUB_TOKEN），`git-credential` → Git 凭据助手；缺失或无法识别时显示“未提供来源”，永不原样渲染未知来源）。卡右侧的“断开连接”仅在已认证或失效时显示，发送 `remote-sign-out`（持久 signed-out 抑制全部发现，不撤销 GitHub 服务端令牌）。下方“连接方式”为 radio 选择：GitHub CLI（`remote-retry-auth`，未认证时附 `remote.ghLoginHint`）与 GitHub OAuth（仅 `loginAvailable`，触发设备登录），选中态只由 capability 派生，切换失败自动回退；当存在会覆盖所选方式的 grant/marker 记录（signed-out、invalid 或 source 为 grant）时先发送 `remote-clear-grant`。Client 的 `authAction` 在单个 busy 周期内按序执行多个端点、首个失败即停。所有文案有中英版本，不展示令牌、fingerprint 或 device code。认证操作完成后立即刷新 capability；旧 capability 读取在途时追加一次读取，避免渠道显示延迟到下一轮定时探测。隔离浏览器回归的边界和运行方法见[浏览器 E2E](../development/browser-e2e.md)。
 
 ### Client 缓存与增量校验（Current）
 

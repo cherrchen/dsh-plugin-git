@@ -29,6 +29,12 @@
   gap: 4px;
 }
 
+/* Detail tab keeps the same row but aligns it with the wider content inset. */
+.modeBarDetail {
+  padding-right: 20px;
+  padding-left: 20px;
+}
+
 /* Repository identity text in a detail tab's toolbar. */
 .toolbarContext {
   min-width: 0;
@@ -50,6 +56,11 @@
 
 .pad {
   padding: 0 12px 18px;
+}
+
+/* Wider, GitHub-like inset on the PR/issue detail tab only. */
+.detailPad {
+  padding: 8px 20px 24px;
 }
 
 .notice {
@@ -119,11 +130,27 @@
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
-.authRow {
+.authStatus {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.authIdentity {
   display: flex;
   min-width: 0;
+  flex: 1;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+
+.authIdentityText {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
   color: var(--dsw-alias-label-primary);
   font-size: 12px;
   line-height: 18px;
@@ -134,32 +161,6 @@
   color: var(--dsw-alias-label-tertiary);
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.authChannel {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-  margin: 0;
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.authChannel dt {
-  color: var(--dsw-alias-label-secondary);
-}
-
-.authChannel dd {
-  min-width: 0;
-  margin: 0;
-  overflow-wrap: anywhere;
-  color: var(--dsw-alias-label-primary);
-}
-
-.authActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
 }
 
 /* Device-flow prompt while a login attempt is pending. */
@@ -383,10 +384,6 @@
   overflow-wrap: anywhere;
 }
 
-.detailBody {
-  margin-bottom: 8px;
-}
-
 /* Outlined link styled like the neighboring outline buttons. */
 .linkButton {
   display: inline-flex;
@@ -483,27 +480,249 @@
   gap: 6px;
 }
 
-/* Markdown comment cards for top-level and inline threads. */
-.commentCard {
-  display: grid;
-  gap: 2px;
-  margin-bottom: 8px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
-.commentAuthor {
-  color: var(--dsw-alias-label-secondary);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 16px;
-}
-
+/* Monospace secondary references inside timeline cards (path:line, author · date). */
 .commentRef {
   color: var(--dsw-alias-label-tertiary);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-weight: 400;
+}
+
+
+/* Chronological activity timeline: gutter line, markers and GitHub-style cards. */
+.timeline {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.tlItem {
+  position: relative;
+  padding-bottom: 10px;
+  padding-left: 26px;
+}
+
+.tlItem::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 9px;
+  border-left: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.tlItem:last-child::before {
+  bottom: auto;
+  height: 12px;
+}
+
+.tlAvatar {
+  position: absolute;
+  z-index: 1;
+  top: 2px;
+  left: 0;
+}
+
+/* Opaque avatar circle: the gutter line must never show through it. */
+.avatar {
+  display: grid;
+  box-sizing: border-box;
+  place-items: center;
+  overflow: hidden;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 50%;
+  color: var(--dsw-alias-label-secondary);
+  background: linear-gradient(var(--dsw-alias-interactive-bg-hover), var(--dsw-alias-interactive-bg-hover)), var(--dsw-alias-bg-base);
+  font-weight: 600;
+}
+
+.avatarImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tlDot {
+  position: absolute;
+  z-index: 1;
+  top: 6px;
+  left: 4px;
+  width: 11px;
+  height: 11px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--dsw-alias-border-l2);
+  border-radius: 50%;
+  background: var(--dsw-alias-bg-base);
+}
+
+.tlCard {
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+}
+
+.tlItem > .tlCard,
+.tlItem > .tlReviewHead + .tlCard {
+  margin-bottom: 6px;
+}
+
+.tlCardHead {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px 8px 0 0;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.tlCardHead .iconLink {
+  width: 18px;
+  height: 18px;
+  margin-left: auto;
+}
+
+.tlCardBody {
+  padding: 8px 10px;
+}
+
+.tlCardBody > :global(*:first-child) {
+  margin-top: 0;
+}
+
+.tlCardBody > :global(*:last-child) {
+  margin-bottom: 0;
+}
+
+.tlMeta {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+}
+
+.tlReviewHead {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.tlReply {
+  padding: 8px 10px;
+}
+
+.tlReplyNext {
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.tlReplyHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.tlEmpty {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* Native <details> rendered from GitHub bodies. */
+.mdDetails {
+  margin: 8px 0;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+}
+
+.mdSummary {
+  padding: 5px 10px;
+  border-radius: 6px;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.mdSummary:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.mdDetails[open] > .mdSummary {
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 6px 6px 0 0;
+}
+
+/* Markdown inside the summary renders inline beside the disclosure chevron. */
+.mdSummary > :global(*) {
+  display: inline;
+}
+
+.mdSummary :global(p) {
+  display: inline;
+  margin: 0;
+}
+
+.mdDetailsBody {
+  padding: 8px 10px;
+}
+
+/* Authentication dialog: status card and per-method reconnect rows. */
+.authCard {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-base);
+}
+
+.authMethods {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.authChoices {
+  display: grid;
+  gap: 6px;
+}
+
+.radioRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.radioHint {
+  padding-left: 24px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.methodHint {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+/* Wider auth dialog than the primitive's default. */
+.authDialog.authDialog {
+  width: min(440px, 100%);
 }
 
 /* Comment composer and its write actions. */
@@ -617,6 +836,11 @@
 .loadingArea {
   flex: none;
   padding: 0 12px;
+}
+
+.loadingAreaDetail {
+  padding-right: 20px;
+  padding-left: 20px;
 }
 
 .loadingStatus {

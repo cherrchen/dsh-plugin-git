@@ -25,7 +25,7 @@ Linux CI 安装浏览器时使用 `pnpm exec playwright install --with-deps chro
 当前 7 个浏览器用例覆盖：
 
 - gh、OAuth 和凭据引用的中英文渠道展示；
-- 使用 Git 凭据助手、重新发现、登出与清除本地授权后的渠道更新；
+- 通过“连接方式”单选项断开连接并重连 GitHub CLI（signed-out marker 时自动先清除本地 grant/marker）、对话框宽度断言与截图；
 - 设备码登录从匿名到 OAuth 的完整内部流程，以及取消授权；
 - 浏览器 RPC 响应与页面不出现令牌正文；
 - 独立浏览器上下文和凭据存储之间的身份隔离。

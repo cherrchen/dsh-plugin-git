@@ -32,6 +32,7 @@ export function RemoteAuthControl({ capability, viewer, busy, controller, t }: {
         onClose={() => { setOpen(false) }}
         title={t('remote.auth')}
         closeLabel={t('branch.cancel')}
+        className={`${css.authDialog}`}
       >
         <RemoteLoading pending={state.pending} t={t} />
         {state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
@@ -40,7 +41,7 @@ export function RemoteAuthControl({ capability, viewer, busy, controller, t }: {
           viewer={viewer}
           busy={busy}
           login={login}
-          onAuth={endpoint => { void controller.authAction(endpoint) }}
+          onAuth={(...endpoints) => { void controller.authAction(...endpoints) }}
           onLogin={() => { void controller.login(setLogin).finally(() => { setLogin(undefined) }) }}
           onCancelLogin={attemptId => { void controller.cancelLogin(attemptId).finally(() => { setLogin(undefined) }) }}
           t={t}

@@ -60,6 +60,20 @@ describe('remote client lifecycle', () => {
     expect(controller.getSnapshot()).toMatchObject({ repository: '/new', target: repo })
     controller.dispose(); feature.dispose()
   })
+  it('runs an auth endpoint sequence in order and stops at the first failure', async () => {
+    const order: string[] = []
+    const transport = rpc(async endpoint => {
+      if (endpoint === 'remote-clear-grant' || endpoint === 'remote-retry-auth' || endpoint === 'remote-use-git-credential') order.push(endpoint)
+      if (endpoint === 'remote-retry-auth') return { ok: false, error: { code: 'git/remote-unavailable', message: 'x' } }
+      return undefined
+    })
+    const feature = new GitRemoteFeature(transport); feature.refresh(); await tick()
+    const controller = new GitRemoteController(feature)
+    controller.setRepository('/repo'); await tick()
+    await controller.authAction('remote-clear-grant', 'remote-retry-auth', 'remote-use-git-credential')
+    expect(order).toEqual(['remote-clear-grant', 'remote-retry-auth'])
+    controller.dispose(); feature.dispose()
+  })
   it('clears data and cancels on off or changed generation; teardown stops polling', async () => {
     vi.useFakeTimers()
     try {

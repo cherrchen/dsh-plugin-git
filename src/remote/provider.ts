@@ -7,7 +7,7 @@ export interface RemoteRepository {
   readonly owner: string
   readonly repo: string
 }
-export interface RemoteAuthor { readonly userId: string; readonly login: string }
+export interface RemoteAuthor { readonly userId: string; readonly login: string; readonly avatarUrl?: string }
 export interface RemoteBranch { readonly repository: RemoteRepository | null; readonly ref: string; readonly sha: string }
 export interface RemoteIssue {
   readonly number: number
@@ -17,6 +17,7 @@ export interface RemoteIssue {
   readonly rawState: string
   readonly author: RemoteAuthor | null
   readonly url?: string
+  readonly createdAt?: string
 }
 export interface RemotePull extends Omit<RemoteIssue, 'state'> {
   readonly state: 'open' | 'closed' | 'merged'
@@ -39,6 +40,7 @@ export interface RemoteComment {
   /** Owning review id for inline review comments; absent on conversation comments. */
   readonly reviewId?: string
   readonly outdated: boolean
+  readonly createdAt?: string
 }
 /** One commit belonging to a pull request's head history. */
 export interface RemoteCommit {
@@ -46,6 +48,7 @@ export interface RemoteCommit {
   readonly subject: string
   readonly author: RemoteAuthor | null
   readonly date?: string
+  readonly committedAt?: string
   readonly url?: string
 }
 export type RemoteReviewState = 'approved' | 'changes-requested' | 'commented' | 'dismissed' | 'pending'

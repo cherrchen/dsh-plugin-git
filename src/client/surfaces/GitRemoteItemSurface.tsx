@@ -14,9 +14,9 @@ import { GitIconButton } from '../details/GitIconButton.tsx'
 import { parseGitRemoteItemAddress, type GitRemoteItemPayload } from '../contract.ts'
 import { RemoteAuthControl } from '../remote/RemoteAuthControl.tsx'
 import { RemoteLoading } from '../remote/RemoteLoading.tsx'
-import { RemoteCommentCard, RemoteDetailSection, remoteMarkdownLabels } from '../remote/RemoteDetailSection.tsx'
+import { RemoteDetailSection, remoteMarkdownLabels } from '../remote/RemoteDetailSection.tsx'
 import { RemotePullActions, type RemoteConfirmKind } from '../remote/RemotePullActions.tsx'
-import { RemotePullHistory } from '../remote/RemotePullHistory.tsx'
+import { RemoteTimeline } from '../remote/RemoteTimeline.tsx'
 import { RemoteComposer, type RemoteReviewEvent } from '../remote/RemoteComposer.tsx'
 import css from '../GitRemoteSurface.module.css'
 
@@ -76,7 +76,7 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
   }, [controller, handled, payload, identity, state.repository, state.busy, capability, targetMatches, detailMatches, revision])
   if (capability.state === 'off' || payload === undefined) return <p className={css.empty}>{t('remote.unavailable')}</p>
   return <div className={css.root}>
-    <div className={css.modeBar} data-git-remote-toolbar="">
+    <div className={`${css.modeBar} ${css.modeBarDetail}`} data-git-remote-toolbar="">
       <span className={css.toolbarContext}>{payload.owner}/{payload.repo}</span>
       <RemoteAuthControl
         capability={capability}
@@ -93,11 +93,11 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
         <IconRefreshOutline16 size={14} />
       </GitIconButton>
     </div>
-    <div className={css.loadingArea}>
+    <div className={`${css.loadingArea} ${css.loadingAreaDetail}`}>
       <RemoteLoading pending={state.pending} streaming={state.streaming} t={t} />
     </div>
     <div className={css.body}>
-      <div className={css.pad}>
+      <div className={css.detailPad}>
         {state.repository === undefined ? <p className={css.empty}>{t('details.noWorkspace')}</p> : <>
           {detail !== undefined && (
             <RemoteDetailSection detail={detail} labels={labels} t={t}>
@@ -133,28 +133,14 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
                   )}
                 </>
               )}
-              {state.comments.length > 0 && (
-                <section className={css.section} aria-label={t('remote.comments')}>
-                  <h3 className={css.sectionHead}>
-                    <span className={css.sectionTitle}>
-                      {t('remote.comments')}
-                      <span className={css.sectionCount}>{state.comments.length}</span>
-                    </span>
-                  </h3>
-                  {state.comments.map(comment => (
-                    <RemoteCommentCard key={comment.id} comment={comment} labels={labels} />
-                  ))}
-                </section>
-              )}
-              {pr !== undefined && (
-                <RemotePullHistory
-                  commits={state.commits}
-                  reviews={state.reviews}
-                  inline={state.inline}
-                  labels={labels}
-                  t={t}
-                />
-              )}
+              <RemoteTimeline
+                comments={state.comments}
+                inline={pr === undefined ? [] : state.inline}
+                commits={pr === undefined ? [] : state.commits}
+                reviews={pr === undefined ? [] : state.reviews}
+                labels={labels}
+                t={t}
+              />
             </RemoteDetailSection>
           )}
           {pr !== undefined && (

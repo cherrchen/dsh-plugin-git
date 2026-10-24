@@ -338,9 +338,12 @@ export class GitRemoteController {
     const epoch = this.epoch
     try { const result = await this.call<RemoteResult<RemotePage<RemoteNotice>>>('remote-notifications', { ...target, automatic: true }); if (epoch === this.epoch && equal(generation, result.generation)) this.feature.ingest(result.value.items) } catch { /* Shared Host budgets decide when polling can resume. */ }
   }
-  async authAction(endpoint: string): Promise<void> {
-    if (endpoint === 'remote-sign-out' && this.state.busy) { this.clear(this.state.repository); this.patch({}) }
-    await this.run(async epoch => { await this.call(endpoint); if (epoch === this.epoch) { this.clear(this.state.repository); this.patch({}); this.feature.refresh() } }, 'auth')
+  async authAction(...endpoints: string[]): Promise<void> {
+    if (endpoints[0] === 'remote-sign-out' && this.state.busy) { this.clear(this.state.repository); this.patch({}) }
+    await this.run(async epoch => {
+      for (const endpoint of endpoints) await this.call(endpoint)
+      if (epoch === this.epoch) { this.clear(this.state.repository); this.patch({}); this.feature.refresh() }
+    }, 'auth')
   }
   async login(show: (value: { userCode: string; verificationUri: string; attemptId: string }) => void): Promise<void> {
     await this.run(async epoch => {

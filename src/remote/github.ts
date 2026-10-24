@@ -3,7 +3,7 @@ import { remoteDiff, validRange } from './diff.ts'
 import type { GitRemoteAuth, GitRemoteSnapshot } from './auth.ts'
 import { GitRemoteError } from './errors.ts'
 import { GitRemoteHttp, GitRemoteHttpError, GIT_REMOTE_API_ORIGIN, GIT_REMOTE_WEB_ORIGIN, type GitRemoteHttpResponse } from './http.ts'
-import { apiPath, browserUrl, comment, commit, file, invalidResponse, issue, number, object, objectNumber, pull, repositoryPath, review, string } from './github-model.ts'
+import { apiPath, avatarUrl, browserUrl, comment, commit, file, invalidResponse, issue, number, object, objectNumber, pull, repositoryPath, review, string } from './github-model.ts'
 import type { RemotePage, RemotePageRequest, RemoteProvider, RemoteReadContext, RemoteRepository, RemoteRepositoryFacts, RemoteResult, RemoteWrite, RemoteWriteReceipt, RemoteNotice } from './provider.ts'
 import type { GitRemoteGeneration, GitRemoteViewer, GitRemoteWriteContext } from './types.ts'
 
@@ -122,8 +122,8 @@ export class GitHubProvider implements RemoteProvider {
 
   private async loadViewer(op: Operation): Promise<GitRemoteViewer> {
     const data = object((await this.get('/user', op)).body)
-    const avatarUrl = browserUrl(data['avatar_url'])
-    return { host: 'github.com', userId: String(number(data['id'])), login: string(data['login']), ...(typeof data['name'] !== 'string' ? {} : { name: data['name'] }), ...(avatarUrl === undefined ? {} : { avatarUrl }) }
+    const avatar = avatarUrl(data['avatar_url'])
+    return { host: 'github.com', userId: String(number(data['id'])), login: string(data['login']), ...(typeof data['name'] !== 'string' ? {} : { name: data['name'] }), ...(avatar === undefined ? {} : { avatarUrl: avatar }) }
   }
 
   private async pages<T>(path: string, op: Operation, project: (value: unknown) => T, request: { include?: (value: unknown) => boolean; perPage?: number; cursor?: string; pages?: number } = {}): Promise<RemotePage<T>> {
