@@ -56,6 +56,15 @@ describe('githubBlocks', () => {
     expect(text('<code>a &lt; b</code>')).toBe('`a < b`')
     expect(text('<code>has `tick`</code>')).toBe('`` has `tick` ``')
   })
+  it.each(['&#1114112;', '&#x110000;', '&#X110000;', '&#9007199254740992;'])('preserves out-of-range numeric entity %s in HTML content and attributes', entity => {
+    expect(text(`<code>${entity}</code>`)).toBe('`' + entity + '`')
+    expect(text(`<pre><code>${entity}</code></pre>`)).toBe('```\n' + entity + '\n```')
+    expect(text(`<img src="/relative.png" alt="${entity}">`)).toBe(entity)
+  })
+  it('decodes numeric entities at Unicode boundaries and supplementary characters', () => {
+    expect(text('<code>&#0;&#65;&#128512;&#1114111;</code>')).toBe('`\u0000A😀\u{10FFFF}`')
+    expect(text('<code>&#x0;&#x41;&#X1F600;&#x10FFFF;</code>')).toBe('`\u0000A😀\u{10FFFF}`')
+  })
   it('leaves unknown tags such as Vec<String> literal', () => {
     expect(text('use Vec<String> and <T>')).toBe('use Vec<String> and <T>')
   })
@@ -93,6 +102,12 @@ describe('githubBlocks', () => {
 
 describe('RemoteMarkdown', () => {
   const labels = { code: { copyLabel: 'Copy', copiedLabel: 'Copied' }, footnotes: 'Footnotes' }
+  it('renders remote bodies with out-of-range numeric entities', () => {
+    const { container } = render(<RemoteMarkdown text={'before <code>&#1114112; &#x110000;</code> after'} labels={labels} detailsLabel="Details" />)
+    expect(container.querySelector('code')?.textContent).toBe('&#1114112; &#x110000;')
+    expect(container.textContent).toContain('before')
+    expect(container.textContent).toContain('after')
+  })
   it('renders details as a disclosure element without literal HTML text', () => {
     const { container } = render(
       <RemoteMarkdown text={'intro\n<details>\n<summary>More</summary>\nhidden <!--x--> body\n</details>'} labels={labels} detailsLabel="Details" />,

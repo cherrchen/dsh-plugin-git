@@ -52,7 +52,10 @@ export class GitHubProvider implements RemoteProvider {
       }
       const op: Operation = { snapshot, signal }
       if (snapshot.state === 'authenticated') {
-        this.viewer ??= this.loadViewer(op)
+        this.viewer ??= this.loadViewer(op).catch(error => {
+          this.viewer = undefined
+          throw error
+        })
         op.viewer = await this.viewer
       }
       const value = await work(op)

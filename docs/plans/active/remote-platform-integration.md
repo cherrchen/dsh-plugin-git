@@ -89,7 +89,7 @@
 
 - [x] 提供中立 PR/Issue/viewer/permission/error 模型：PR 状态 open/closed/merged 并保留 raw-state，fork head/base 显式区分；支持 PR 列表/详情/文件比较/评论/线程与 Issue 列表/详情/评论读取。
 - [x] GitHub REST 使用版本头、AbortSignal、单请求分页页数上限 + origin 校验游标续取（列表无总量天花板，Client 渐进流式补页）；API 与 web origins 独立。认证请求、重定向及分页 `Link` 只准入 API allowlist；浏览器 `html_url`、openExternal 与 device verification URL 只准入 HTTPS web allowlist且不带 token；`gh` 不作 REST 传输。
-- [x] 每 generation 至多一次 `GET /user`，以稳定 user.id 核验身份；分别呈现 storage、auth、viewer、仓库 permissions。动作检查为 true/false/unknown（unknown 允许尝试、服务端裁决）；`canMerge` 用 push，`canClose` 用作者本人或 push，不从存储可写推导权限。
+- [x] 每 generation 复用成功的 `GET /user`，以稳定 user.id 核验身份；失败恢复规则见 [RPC 读取契约](../../reference/remote-platform-rpc.md#仓库与读取)。分别呈现 storage、auth、viewer、仓库 permissions。动作检查为 true/false/unknown（unknown 允许尝试、服务端裁决）；`canMerge` 用 push，`canClose` 用作者本人或 push，不从存储可写推导权限。
 - [x] 认证 ETag 缓存按 host+viewer+repo+完整查询串隔离；账户变化全部失效。匿名只手动刷新；认证轮询 ≥60s 或遵守响应头的更严限制，处理 X-Poll-Interval/Retry-After/reset、primary/secondary rate limit 和指数退避；SSO/scope/认证错误分类可修复。
 - [x] mock transport 验证恶意 redirect/Link/URL、分页截断、取消、限流、SSO、权限 unknown、跨账户缓存与 generation 失效；不访问真实 GitHub。
 

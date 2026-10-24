@@ -13,12 +13,12 @@ const issue = { number: 1, title: 'Example', body: null, state: 'open', user: { 
 const branch = { ref: 'main', sha, repo: { owner: { login: 'owner' }, name: 'repo' } }
 const pull = { ...issue, head: branch, base: branch, draft: false }
 function response(body: unknown, status = 200, headers: Record<string, string> = {}) { return new Response(status === 304 ? null : JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...headers } }) }
-function setup(handler: (path: string, init: { headers: Record<string, string> | undefined; signal: AbortSignal; method: string; body: string | undefined }) => Promise<Response> = async () => response([]), pageLimit = 10) {
+function setup(handler: (path: string, init: { headers: Record<string, string> | undefined; signal: AbortSignal; method: string; body: string | undefined }) => Promise<Response> = async () => response([]), pageLimit = 10, viewerHandler?: () => Promise<Response>) {
   let token: string | undefined = 'token-a'
   let t = 1000
   const calls: { path: string; headers: Record<string, string> | undefined }[] = []
   const service: GitRemoteCredentialService = { readRecord: async () => undefined, modifyRecord: async () => undefined, deleteRecord: async () => {}, resolve: async ref => String(ref) === 'GH_TOKEN' && token !== undefined ? { value: token, source: 'env' } : undefined, describe: async () => ({ configured: true, writable: true }), describeRecord: async () => ({ configured: false, writable: true }) }
-  const http = new GitRemoteHttp({ fetch: async (url, init) => { const path = new URL(url).pathname + new URL(url).search; calls.push({ path, headers: init.headers }); return path === '/user' ? response({ id: token === 'token-a' ? 1 : 2, login: 'same-login' }) : handler(path, init) } })
+  const http = new GitRemoteHttp({ fetch: async (url, init) => { const path = new URL(url).pathname + new URL(url).search; calls.push({ path, headers: init.headers }); return path === '/user' ? viewerHandler?.() ?? response({ id: token === 'token-a' ? 1 : 2, login: 'same-login' }) : handler(path, init) } })
   const auth = new GitRemoteAuth({ credentials: service, http, settings: resolveRemoteSettings(undefined) })
   const provider = new GitHubProvider(auth, http, { now: () => t, pageLimit })
   return { provider, calls, auth, token: (value: string | undefined) => { token = value }, advance: (ms: number) => { t += ms } }
@@ -43,6 +43,38 @@ describe('GitHub provider reads', () => {
     await s.provider.pulls(REPO, 'open', {}, { signal: SIG })
     expect(conditional).toBe(false)
     expect(s.calls.filter(c => c.path === '/user')).toHaveLength(2)
+  })
+  it.each(['transport', 'provider', 'cancelled', 'timeout'])('recovers from a %s viewer failure in the same generation and caches success', async failure => {
+    if (failure === 'timeout') vi.useFakeTimers()
+    try {
+      const controller = new AbortController()
+      let entered!: () => void
+      const ready = new Promise<void>(resolve => { entered = resolve })
+      let attempts = 0
+      const s = setup(async () => response([pull]), 10, async () => {
+        attempts += 1
+        if (attempts > 1) return response({ id: 1, login: 'same-login' })
+        entered()
+        if (failure === 'transport') throw new Error('temporary transport failure')
+        if (failure === 'provider') return response({}, 503)
+        return new Promise<Response>(() => {})
+      })
+      const generation = (await s.auth.snapshot(SIG)).generation
+      const failed = expect(s.provider.pulls(REPO, 'open', {}, { signal: controller.signal })).rejects.toMatchObject({ code: 'git/remote-unavailable' })
+      await ready
+      if (failure === 'cancelled') controller.abort()
+      if (failure === 'timeout') await vi.advanceTimersByTimeAsync(15_000)
+      await failed
+      expect(s.calls.map(c => c.path)).toEqual(['/user'])
+
+      const recovered = await s.provider.pulls({ ...REPO, repo: 'other' }, 'open', {}, { signal: SIG })
+      expect(recovered.generation).toEqual(generation)
+      expect(recovered.value.items).toHaveLength(1)
+      await s.provider.pulls(REPO, 'open', {}, { signal: SIG })
+      expect(s.calls.filter(c => c.path === '/user')).toHaveLength(2)
+    } finally {
+      if (failure === 'timeout') vi.useRealTimers()
+    }
   })
   it('bounds pages per request, resumes from the next cursor, excludes PRs from issues and rejects malicious Link before sending credentials', async () => {
     const s = setup(async path => response([issue, { ...issue, pull_request: {} }], 200, { link: `<https://api.github.com${path.includes('page=2') ? '/third' : '/repos/owner/repo/issues?page=2'}>; rel="next"` }), 2)

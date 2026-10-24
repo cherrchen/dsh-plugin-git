@@ -27,7 +27,7 @@ function entities(text: string): string {
     if (name === 'quot') return '"'
     if (name === 'apos' || name === '#39') return '\''
     const value = name.startsWith('#x') || name.startsWith('#X') ? parseInt(name.slice(2), 16) : parseInt(name.slice(1), 10)
-    return Number.isSafeInteger(value) ? String.fromCodePoint(value) : all
+    return Number.isSafeInteger(value) && value >= 0 && value <= 0x10FFFF ? String.fromCodePoint(value) : all
   })
 }
 
