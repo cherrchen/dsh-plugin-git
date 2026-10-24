@@ -1,0 +1,924 @@
+/*
+ * Git Remote surface: mode pills, context row, sections, and banner styles.
+ * Self-contained like GitGraphSurface.module.css — shared class names are
+ * redeclared here rather than imported across modules.
+ */
+
+.root {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  flex-direction: column;
+}
+
+/* Pulls/issues switch plus the compact refresh control. */
+.modeBar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px 8px;
+}
+
+.modePills {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Detail tab keeps the same row but aligns it with the wider content inset. */
+.modeBarDetail {
+  padding-right: 20px;
+  padding-left: 20px;
+}
+
+/* Repository identity text in a detail tab's toolbar. */
+.toolbarContext {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pad {
+  padding: 0 12px 18px;
+}
+
+/* Wider, GitHub-like inset on the PR/issue detail tab only. */
+.detailPad {
+  padding: 8px 20px 24px;
+}
+
+.notice {
+  margin: 0;
+  padding: 6px 12px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.section {
+  margin-bottom: 12px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 4px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.sectionTitle {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.sectionCount {
+  display: inline-grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.sectionActions {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+}
+
+.note {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+/* Platform authentication: status line, transport hint, and action row. */
+.authSection {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.authStatus {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.authIdentity {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+}
+
+.authIdentityText {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.authLogin {
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Device-flow prompt while a login attempt is pending. */
+.loginCard {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+}
+
+.loginCode {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--dsw-alias-label-primary);
+}
+
+.loginActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loginLink {
+  color: var(--dsw-alias-brand-primary);
+  font-size: 12px;
+}
+
+/* Remote target selector plus the open/closed/all filter. */
+.contextBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.repoChip {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 4px 0 8px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  cursor: pointer;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  text-align: left;
+}
+
+.repoChip:hover:not([aria-disabled='true']) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.repoChip:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.repoChip[aria-disabled='true'] {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+.repoChipText {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repoChevron {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.statePills {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+/* PR/issue rows: the hover band bleeds to the pane edges, past the pad inset. */
+.itemList {
+  display: grid;
+  gap: 2px;
+  margin: 0 -12px;
+  padding: 0;
+  list-style: none;
+}
+
+.itemRow {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.itemRow:hover:not([aria-disabled='true']) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.itemRow:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: -2px;
+}
+
+.itemRow[aria-disabled='true'] {
+  cursor: default;
+}
+
+.itemMain {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.itemTitle {
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemMeta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.itemNumber {
+  flex: none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.itemAuthor {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Detail head: number, title, state tags, and the browser shortcut. */
+.detailHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.detailTitle {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.detailTags {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.iconLink {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.iconLink:hover {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.iconLink:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.detailMeta {
+  margin: 0 0 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+/* Outlined link styled like the neighboring outline buttons. */
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+  text-decoration: none;
+}
+
+.linkButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.linkButton:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+/* One pull-request commit row: sha chip, subject, author/date, browser link. */
+.commitRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.commitRow:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.commitSha {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+
+.commitSubject {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Write actions and the two-step confirmation card. */
+.actionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.checkoutRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.checkoutRow > :first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.confirmCard {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 8px;
+  border: 0.5px solid var(--dsw-alias-state-error-primary);
+  border-radius: 8px;
+}
+
+.confirmText {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 6px;
+}
+
+/* Monospace secondary references inside timeline cards (path:line, author · date). */
+.commentRef {
+  color: var(--dsw-alias-label-tertiary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 400;
+}
+
+
+/* Chronological activity timeline: gutter line, markers and GitHub-style cards. */
+.timeline {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.tlItem {
+  position: relative;
+  padding-bottom: 10px;
+  padding-left: 26px;
+}
+
+.tlItem::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 9px;
+  border-left: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.tlItem:last-child::before {
+  bottom: auto;
+  height: 12px;
+}
+
+.tlAvatar {
+  position: absolute;
+  z-index: 1;
+  top: 2px;
+  left: 0;
+}
+
+/* Opaque avatar circle: the gutter line must never show through it. */
+.avatar {
+  display: grid;
+  box-sizing: border-box;
+  place-items: center;
+  overflow: hidden;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 50%;
+  color: var(--dsw-alias-label-secondary);
+  background: linear-gradient(var(--dsw-alias-interactive-bg-hover), var(--dsw-alias-interactive-bg-hover)), var(--dsw-alias-bg-base);
+  font-weight: 600;
+}
+
+.avatarImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tlDot {
+  position: absolute;
+  z-index: 1;
+  top: 6px;
+  left: 4px;
+  width: 11px;
+  height: 11px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--dsw-alias-border-l2);
+  border-radius: 50%;
+  background: var(--dsw-alias-bg-base);
+}
+
+.tlCard {
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+}
+
+.tlItem > .tlCard,
+.tlItem > .tlReviewHead + .tlCard {
+  margin-bottom: 6px;
+}
+
+.tlCardHead {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px 8px 0 0;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.tlCardHead .iconLink {
+  width: 18px;
+  height: 18px;
+  margin-left: auto;
+}
+
+.tlCardBody {
+  padding: 8px 10px;
+}
+
+.tlCardBody > :global(*:first-child) {
+  margin-top: 0;
+}
+
+.tlCardBody > :global(*:last-child) {
+  margin-bottom: 0;
+}
+
+.tlMeta {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+}
+
+.tlReviewHead {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.tlReply {
+  padding: 8px 10px;
+}
+
+.tlReplyNext {
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.tlReplyHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.tlEmpty {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* Native <details> rendered from GitHub bodies. */
+.mdDetails {
+  margin: 8px 0;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+}
+
+.mdSummary {
+  padding: 5px 10px;
+  border-radius: 6px;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.mdSummary:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.mdDetails[open] > .mdSummary {
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 6px 6px 0 0;
+}
+
+/* Markdown inside the summary renders inline beside the disclosure chevron. */
+.mdSummary > :global(*) {
+  display: inline;
+}
+
+.mdSummary :global(p) {
+  display: inline;
+  margin: 0;
+}
+
+.mdDetailsBody {
+  padding: 8px 10px;
+}
+
+/* Authentication dialog: status card and per-method reconnect rows. */
+.authCard {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-base);
+}
+
+.authMethods {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.authChoices {
+  display: grid;
+  gap: 6px;
+}
+
+.radioRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.radioHint {
+  padding-left: 24px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.methodHint {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+/* Wider auth dialog than the primitive's default. */
+.authDialog.authDialog {
+  width: min(440px, 100%);
+}
+
+/* Comment composer and its write actions. */
+.composer {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.field {
+  position: relative;
+  display: grid;
+  align-items: start;
+  gap: 5px;
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+}
+
+.field textarea {
+  width: 100%;
+  min-height: 36px;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  outline: none;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  overflow: hidden;
+  resize: vertical;
+}
+
+.field textarea:focus {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.composerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Create-PR modal fields. */
+.createBody {
+  display: grid;
+  gap: 10px;
+}
+
+.createField {
+  display: grid;
+  gap: 5px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+}
+
+.createField textarea {
+  width: 100%;
+  min-height: 60px;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  outline: none;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  resize: vertical;
+}
+
+.createField textarea:focus {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+/* Checkout receipt and write banners. */
+.receipt {
+  margin: 0 0 8px;
+  padding: 6px 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.receipt strong {
+  color: var(--dsw-alias-label-primary);
+  font-weight: 600;
+}
+
+.error {
+  margin: 0;
+  padding: 0 0 8px;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+  white-space: pre-line;
+}
+
+.empty {
+  padding: 24px 8px;
+  color: var(--dsw-alias-label-tertiary);
+  text-align: center;
+  font-size: 12px;
+}
+
+.loadingArea {
+  flex: none;
+  padding: 0 12px;
+}
+
+.loadingAreaDetail {
+  padding-right: 20px;
+  padding-left: 20px;
+}
+
+.loadingStatus {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 4px 0 12px;
+  padding: 10px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.loadingText {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.loadingSlow {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+}
+
+.spinner {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-top: 2px;
+  border: 1.5px solid var(--dsw-alias-border-l2);
+  border-top-color: var(--dsw-alias-brand-primary);
+  border-radius: 50%;
+  animation: remote-spin 0.8s linear infinite;
+}
+
+.skeletonList {
+  display: grid;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.skeletonRow {
+  display: grid;
+  gap: 7px;
+}
+
+.skeletonTitle,
+.skeletonMeta {
+  height: 12px;
+  width: 82%;
+  border-radius: 4px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  animation: remote-pulse 1.5s ease-in-out infinite alternate;
+}
+
+.skeletonMeta {
+  width: 38%;
+  height: 9px;
+}
+
+.skeletonRow:nth-child(even) .skeletonTitle {
+  width: 64%;
+}
+
+@keyframes remote-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes remote-pulse {
+  to { opacity: 0.4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner,
+  .skeletonTitle,
+  .skeletonMeta {
+    animation: none;
+  }
+}

@@ -34,6 +34,8 @@
 
 `dsh-client-ui-primitives` 的发布 bundle 导入 `diff`，但上游没有将其声明为运行时依赖。本插件将 `diff`（`>=9 <10`）声明为 peer。alpha.2 的 bundle 还导入 `simple-icons@16.31.0`，同样未声明运行时依赖；本插件将 `simple-icons`（`>=16.31.0 <17`）声明为 peer，并以 `16.31.0` 做开发依赖 pin。这样严格依赖解析器也能满足上游 bundle 的导入。
 
+`@deepseek-ai/dsh-credentials` 是唯一不随全量清单取范围的 peer：本功能完整 `ctx.credentials` seam 的已验证子集自 `0.2.0-rc.2` 起，其 peer OR 只覆盖 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts) 中 `CREDENTIALS_SEAM_DSH_RELEASES` 声明的 canonical 子集（`0.2.0-rc.2` 至 `0.2.1-rc.2`），并标记 `peerDependenciesMeta.optional`；`pnpm compat:check` 按该子集校验。更早开发车道通过安装 hook 省略根包的 optional peer 开发依赖，构建/测试安装树没有该包：宿主仍能安装、加载本插件并运行本地 Git，远程平台边界把缺失 seam 结构性探测为 `credentials-missing` 的 `off`（见[远程平台 RPC](remote-platform-rpc.md)），不会要求安装不存在的版本。
+
 ## 0.1.5-rc.3 接口差异评估
 
 晋级 `0.1.5-rc.3` 前，对比了本插件直接使用的十七个上游包在 `0.1.5-rc.2` 与 `0.1.5-rc.3` 的发布 manifest、`lib/` 运行时 bundle 与类型声明。这是一次仅含 manifest 修订的重发：
@@ -202,3 +204,9 @@ Git Client 从 primitives 的公开入口复用 `DiffBlock`，不导入官方 `u
 ## 相关决策
 
 - [ADR-0003：以精确版本清单承诺 DSH 兼容性](../decisions/ADR-0003-dsh-compatibility-contract.md)
+
+## 远程平台续作验收
+
+Remote 的可选 seam 使用本地结构契约（`src/remote/credentials-types.ts`），生产源码/发布声明不要求旧宿主解析不存在的 credentials 包。新车道通过 optional peer/dev pin 与已发布构造器差分测试核对 key/ref 语法；旧车道不要求此 peer 拥有开发 pin，矩阵需检查真实安装树中该包缺失。主车道与完整矩阵的本次结果记录在[远程集成计划](../plans/active/remote-platform-integration.md)，不以开发 pin 的通过替代逐车道证据。
+
+远程正文与评论通过 `src/compat/dsh-markdown.tsx` 使用宿主的 `MarkdownText`。适配层只要求所有车道共有的 `text` / `labels` 类型，并单独传递可选的 `variant: 'compact'` 展示提示：支持该参数的宿主保留紧凑排版，较早实现忽略提示、使用默认排版，不影响内容和本地化代码控件。`tests/dsh-markdown.client.spec.tsx` 在每个车道渲染实际安装的官方组件；远程页面不再内嵌 diff，相关遗留样式也不应进入产物，原有“使用宿主 DiffBlock、不打包私有 renderer”的 artifact 断言保持有效。

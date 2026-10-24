@@ -3,7 +3,7 @@
  * staged/unstaged/untracked sections. One of three Git tab types rendered in
  * the upstream right sidebar.
  */
-import { useEffect, useSyncExternalStore } from 'react'
+import { useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { GitClientController } from '../controller.ts'
@@ -27,10 +27,6 @@ export function GitChangesSurface({
   const controller = resolveGitController({ controller: controllerProp, gitSessions, sessionId })
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
   const workspacePath = useSessions(list => effectiveWorkspacePath(list.byId[sessionId]))
-
-  useEffect(() => {
-    void controller.refresh()
-  }, [controller])
 
   useGitWorkspace(controller, workspacePath)
 

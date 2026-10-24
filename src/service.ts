@@ -413,6 +413,11 @@ export class GitService {
     }))
   }
 
+  /** Execute an internal remote integration command through the same bounded portable subprocess policy. Never exposed as an arbitrary RPC. */
+  async remoteCommand(cwd: string, args: readonly string[], signal: AbortSignal): Promise<string> {
+    return this.run(cwd, args, signal, { GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: '', SSH_ASKPASS_REQUIRE: 'never', GCM_INTERACTIVE: 'never' })
+  }
+
   private async run(cwd: string, args: readonly string[], signal?: AbortSignal, env?: NodeJS.ProcessEnv): Promise<string> {
     return (await this.runOutcome(cwd, args, signal, [0], env)).stdout
   }

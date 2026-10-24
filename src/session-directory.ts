@@ -56,6 +56,14 @@ export interface SessionDirectory {
 }
 
 const WRITE_ENDPOINTS = new Set([
+  'remote-comment',
+  'remote-inline-comment',
+  'remote-review',
+  'remote-create-pr',
+  'remote-close-pr',
+  'remote-merge-pr',
+  'remote-checkout-pr',
+  'remote-issue-branch',
   'stage',
   'unstage',
   'discard',

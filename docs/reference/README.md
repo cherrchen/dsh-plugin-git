@@ -12,3 +12,4 @@
 
 - [dsh-compatibility.md](dsh-compatibility.md) —— DSH 精确支持版本、静态一致性门禁与升级候选晋级流程。
 - [git-graph-layout.md](git-graph-layout.md) —— Git Graph Layout Engine：DAG → Layout → Renderer 数据流、lane 语义、分页 continuation、renderer 契约与拓扑不变量。
+- [remote-platform-rpc.md](remote-platform-rpc.md) —— `/git` 通道 `remote-*` 端点的线契约：结构化 capability 应答、fail-closed 拒绝与错误码集。

@@ -63,9 +63,16 @@ const schemasteryVersion = caretFloor(
 const laneOnlyPackages = [
   '@deepseek-ai/dsh-util-code-language',
   '@deepseek-ai/dsh-client-shortcuts',
+  '@deepseek-ai/dsh-credentials',
 ]
 
+const compatibilitySource = readFileSync(join(root, 'src/compat/dsh-version.ts'), 'utf8')
+const supportedReleases = [...compatibilitySource.match(/export const SUPPORTED_DSH_RELEASES = \[([^\]]*)\]/u)[1].matchAll(/'([^']+)'/gu)].map(item => item[1])
+const credentialReleases = [...compatibilitySource.match(/export const CREDENTIALS_SEAM_DSH_RELEASES = \[([^\]]*)\]/u)[1].matchAll(/'([^']+)'/gu)].map(item => item[1])
+
 function publishedAt(name) {
+  // Supported pre-seam lanes intentionally prove a complete install/build/load with no optional package.
+  if (name === '@deepseek-ai/dsh-credentials' && supportedReleases.includes(version) && !credentialReleases.includes(version)) return false
   try {
     execFileSync('npm', ['view', `${name}@${version}`, 'version'], {
       encoding: 'utf8',
@@ -112,7 +119,7 @@ const overrideLine = /^(\s*'@deepseek-ai\/schemastery': )\S+$/m
 if (!overrideLine.test(workspace)) {
   throw new Error('[upgrade] pnpm-workspace.yaml has no @deepseek-ai/schemastery override to repoint')
 }
-writeFileSync(workspacePath, workspace.replace(overrideLine, `$1${schemasteryVersion}`))
+writeFileSync(workspacePath, workspace.replace(overrideLine, `$1${schemasteryVersion}`).replace(/^autoInstallPeers:.*\n?/m, ''))
 console.log(`[upgrade] DSH packages set to ${version} (${changed} manifest entries changed)`)
 console.log(`[upgrade] cordis pin: ${cordisVersion}`)
 console.log(`[upgrade] schemastery pin: ${schemasteryVersion}`)

@@ -1,5 +1,7 @@
 /** Browser-safe Git domain records shared by the Host and Client halves. */
 
+export type * from './remote/types.ts'
+
 /** One normalized path change reported by Git. */
 export interface GitFileChange {
   /** Repository-relative current path. */
@@ -139,3 +141,7 @@ export interface GitCommitMessageCapability {
   /** Why generation is unavailable; absent when available. */
   readonly reason?: GitGenerationUnavailableReason
 }
+
+export type * from './remote/provider.ts'
+export type { BoundRemote, RemoteRepositorySet, RemoteCheckoutReceipt } from './remote/git.ts'
+export type { RemoteDiffAnchor, RemoteDiffLine, RemoteDiff } from './remote/diff.ts'

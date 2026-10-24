@@ -19,6 +19,11 @@ import {
   type CommitMessageSettings,
 } from './commit-message-settings.ts'
 import { markVolatile, readVolatile } from './compat/dsh-schema.ts'
+import { GitRemoteUnavailableError, remoteCapability } from './remote/feature.ts'
+import { asCredentialService } from './remote/credentials.ts'
+import { GitRemoteRuntime } from './remote/runtime.ts'
+import { GitRemoteError } from './remote/errors.ts'
+import type { RemoteSettings } from './remote/settings.ts'
 import {
   assertSessionRepository,
   bindSessionDirectory,
@@ -42,6 +47,7 @@ export { CommitMessageUnavailableError, LlmCommitMessageProvider, UnavailableCom
 export type { CommitMessageInput, CommitMessageProvider, CommitMessageSelection, LlmCommitMessageOptions } from './commit-message.ts'
 export { GIT_COMMIT_MESSAGE_SETTINGS_NAMESPACE, GIT_COMMIT_MESSAGE_SETTINGS_SCHEMA, validateCommitMessageSettings } from './commit-message-settings.ts'
 export type { CommitMessageSettings } from './commit-message-settings.ts'
+export { GitRemoteUnavailableError, remoteCapability } from './remote/feature.ts'
 export { GitCommandError, GitService, gitService } from './service.ts'
 export type { GitCreateWorktreeRequest, WorktreePoolFs } from './service.ts'
 export { parseGitLog, parseDecorations } from './log.ts'
@@ -74,6 +80,8 @@ export interface Config {
   commitMessage?: CommitMessageSettings
   /** Optional Worktrees feature: force-enable without the upstream runtime, and the local checkout pool. */
   worktrees?: WorktreeSettings
+  /** Optional remote-platform settings; `refreshStoreExclusive` attests the store's cross-process modifyRecord exclusion. */
+  remote?: RemoteSettings
 }
 
 export const Config = z.object({
@@ -91,6 +99,15 @@ export const Config = z.object({
     enabled: markVolatile(z.boolean()),
     directory: markVolatile(z.string()),
   }),
+  remote: z.object({
+    clientId: markVolatile(z.string()),
+    requestTimeoutMs: markVolatile(z.natural().min(1)),
+    probeTimeoutMs: markVolatile(z.natural().min(1).max(5000)),
+    refreshTtlMs: markVolatile(z.natural().min(1)),
+    refreshPollMs: markVolatile(z.natural().min(1)),
+    refreshStoreExclusive: markVolatile(z.boolean()),
+    maxResponseBytes: markVolatile(z.natural().min(1024)),
+  }),
 })
 
 /** Install the portable service and the transport adapter when Connection is present. */
@@ -103,6 +120,16 @@ export function apply(ctx: Context, config: Config): void {
   ctx.provide('git', service)
   const generation = assembleGeneration(ctx, config.commitMessage)
   const worktree = assembleWorktreeRuntime(ctx, config.worktrees)
+  const remote: RemoteRuntime = { credentials: () => optionalService(ctx, 'credentials') }
+  injectOptional(ctx, ['credentials'], bound => {
+    const credentials = asCredentialService(optionalService(bound, 'credentials'))
+    if (credentials === undefined) return
+    const runtime = new GitRemoteRuntime(credentials, ctx.subprocess, service, config.remote)
+    remote.current = runtime
+    bound.on('credentials/record-updated', () => runtime.invalidate())
+    bound.on('credentials/reference-updated', () => runtime.invalidate())
+    return async () => { if (remote.current === runtime) remote.current = undefined; await runtime.dispose() }
+  })
   let directory: SessionDirectory | undefined
   // Optional on hosts that predate working-directory. The fiber stays pending
   // until both services exist, and unload clears the binder without touching Git.
@@ -133,14 +160,19 @@ export function apply(ctx: Context, config: Config): void {
     }
     return connection.rpc.handle('/git', async (endpoint, payload, signal) => {
       try {
-        return { ok: true, value: await invoke(service, generation, worktree, directory, endpoint, payload, signal) }
+        return { ok: true, value: await invoke(service, generation, worktree, directory, remote, endpoint, payload, signal) }
       } catch (error) {
         return {
           ok: false,
           error: {
-            code: error instanceof CommitMessageUnavailableError ? 'git/generation-unavailable' : 'git/internal',
-            message: error instanceof Error ? error.message : String(error),
-            details: {},
+            code:
+              (error instanceof GitRemoteUnavailableError || error instanceof GitRemoteError)
+                ? error.code
+                : error instanceof CommitMessageUnavailableError
+                  ? 'git/generation-unavailable'
+                  : 'git/internal',
+            message: endpoint.startsWith('remote-') && !(error instanceof GitRemoteUnavailableError || error instanceof GitRemoteError) ? 'git-remote: operation failed' : error instanceof Error ? error.message : String(error),
+            details: error instanceof GitRemoteUnavailableError || error instanceof GitRemoteError ? error.details ?? {} : {},
           },
         }
       }
@@ -325,6 +357,11 @@ function plainWorktreeSettings(source: WorktreeSettings | undefined): WorktreeSe
   }
 }
 
+interface RemoteRuntime {
+  current?: GitRemoteRuntime | undefined
+  credentials: () => unknown
+}
+
 /** Current capability answer for the generation backend, including why it is unavailable. */
 function capability(generation: GenerationAssembly): GitCommitMessageCapability {
   const provider = generation.provider
@@ -342,10 +379,21 @@ async function invoke(
   generation: GenerationAssembly,
   worktree: WorktreeRuntime,
   directory: SessionDirectory | undefined,
+  remote: RemoteRuntime,
   endpoint: string,
   payload: unknown,
   signal: AbortSignal,
 ): Promise<unknown> {
+  if (endpoint === 'remote-capability') {
+    const boundary = remoteCapability(remote.credentials())
+    return boundary.state === 'off' && boundary.reason !== 'implementation-pending' ? boundary : remote.current?.capability() ?? boundary
+  }
+  if (endpoint.startsWith('remote-')) {
+    const boundary = remoteCapability(remote.credentials())
+    if (boundary.state === 'off' && boundary.reason !== 'implementation-pending') throw new GitRemoteUnavailableError(boundary)
+    if (remote.current !== undefined) return remote.current.handle(endpoint, payload, signal, (request, inner) => assertSessionRepository(service, directory, request, inner))
+    throw new GitRemoteUnavailableError(remoteCapability(remote.credentials()))
+  }
   const request = record(payload)
   if (isRepositoryWrite(endpoint)) await assertSessionRepository(service, directory, request, signal)
   switch (endpoint) {
@@ -426,9 +474,9 @@ async function invoke(
  * @param names - Service names that must all be present.
  * @param callback - Runs once, and may return a disposer.
  */
-function injectOptional(ctx: Context, names: readonly string[], callback: (bound: Context) => void | (() => void)): void {
+function injectOptional(ctx: Context, names: readonly string[], callback: (bound: Context) => void | (() => void | Promise<void>)): void {
   const inject = (ctx as unknown as {
-    inject(services: readonly string[], apply: (bound: Context) => void | (() => void)): unknown
+    inject(services: readonly string[], apply: (bound: Context) => void | (() => void | Promise<void>)): unknown
   }).inject.bind(ctx)
   inject(names, callback)
 }

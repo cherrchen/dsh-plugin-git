@@ -152,10 +152,10 @@ describe('GitChangesSurface', () => {
       useTabInfo: tabInfoOf('sidebar://git.changes'),
     }) as unknown as GitChangesSurfaceProps
 
-  it('refreshes on mount, binds the workspace, and renders context plus sections', () => {
+  it('reuses the snapshot on mount, binds the workspace, and renders context plus sections', () => {
     const controller = controllerOf(baseState())
     const { container } = render(<GitChangesSurface {...props(controller)} />)
-    expect(controller.refresh).toHaveBeenCalled()
+    expect(controller.refresh).not.toHaveBeenCalled()
     expect(controller.setWorkspace).toHaveBeenCalledWith('/workspace')
     expect(screen.getByText('main')).toBeTruthy()
     expect(container.querySelector('[data-git-changes-surface]')).toBeTruthy()
@@ -251,7 +251,7 @@ describe('GitDiffSurface', () => {
   it('loads the payload and delegates file changes to the official DiffBlock', async () => {
     const controller = controllerOf(baseState())
     render(<GitDiffSurface {...props(controller)} />)
-    expect(controller.fetchDiff).toHaveBeenCalledWith('src/a.ts', false)
+    expect(controller.fetchDiff).toHaveBeenCalledWith('src/a.ts', false, 1)
     expect(screen.getByText('a.ts')).toBeTruthy()
     expect(screen.getByText(en['details.workingTree'])).toBeTruthy()
     await waitFor(() => { expect(screen.getByText('added')).toBeTruthy() })
@@ -317,7 +317,7 @@ describe('GitDiffSurface', () => {
       useTabInfo={tabInfoOf(gitDiffAddress('src/b.ts', true))}
     />)
     // Session restore replays the address without the opener's params.
-    expect(controller.fetchDiff).toHaveBeenCalledWith('src/b.ts', true)
+    expect(controller.fetchDiff).toHaveBeenCalledWith('src/b.ts', true, 1)
     await waitFor(() => { expect(screen.getByText('b.ts')).toBeTruthy() })
   })
 
@@ -471,7 +471,7 @@ describe('GitWorktreesSurface', () => {
       repository: twoCheckouts(),
     }))
     render(<GitWorktreesSurface {...props(controller)} />)
-    expect(controller.refresh).toHaveBeenCalled()
+    expect(controller.refresh).not.toHaveBeenCalled()
     expect(document.querySelectorAll('[data-git-worktree]')).toHaveLength(2)
     expect(screen.getByText('feature')).toBeTruthy()
     expect(screen.getByText(en['worktree.current'])).toBeTruthy()

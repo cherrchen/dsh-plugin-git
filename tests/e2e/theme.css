@@ -1,0 +1,31 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #202124;
+  --dsw-alias-label-primary: #202124;
+  --dsw-alias-label-secondary: #626970;
+  --dsw-alias-label-tertiary: #858b91;
+  --dsw-alias-interactive-bg-hover: #f3f4f5;
+  --dsw-alias-interactive-bg: #fff;
+  --dsw-alias-background-primary: #fff;
+  --dsw-alias-background-secondary: #f3f4f5;
+  --dsw-alias-border-l2: #d5d9dd;
+  --dsw-alias-border-l1: #d5d9dd;
+  --dsw-alias-state-success-primary: #22a75a;
+  --dsw-alias-state-warn-primary: #b37c19;
+  --dsw-alias-state-error-primary: #c53e3e;
+  --dsw-alias-state-idle-primary: #858b91;
+  --dsw-alias-border-l3: #d5d9dd;
+  --dsw-alias-bg-mask-1: rgb(0 0 0 / 18%);
+  --dsw-alias-bg-layer-2: #fff;
+  --dsw-radius-panel: 24px;
+  --dsw-radius-sm: 8px;
+  --dsw-radius-md: 10px;
+  --dsw-elevation-prominent: 0 12px 40px rgb(0 0 0 / 12%);
+  --ds-transition-duration: 120ms;
+  --ds-ease-in-out: ease-in-out;
+  --dsw-mask-blur: blur(1px);
+}
+body { margin: 0; padding: 40px; background: #fafafa; }
+main { max-width: 760px; margin: auto; }
+output { display: block; color: #626970; margin-bottom: 24px; }
+button { font: inherit; }

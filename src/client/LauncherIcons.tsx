@@ -12,14 +12,29 @@ export function BranchGlyph() {
   )
 }
 
-/** History glyph for the Git Graph launcher card. */
+/** Commit lanes and a curved merge distinguish history from the branch control. */
 export function GraphGlyph() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx="5" cy="3" r="1.6" fill="currentColor" />
-      <circle cx="11" cy="8" r="1.6" fill="currentColor" />
-      <circle cx="5" cy="13" r="1.6" fill="currentColor" />
-      <path d="M5 4.6v6.8M5 8h4.4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <g stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4v2.5M4 9.5V12M11.5 6v2.5c0 2.8-3.2 5-6 5" />
+        <circle cx="4" cy="2.5" r="1.5" />
+        <circle cx="4" cy="8" r="1.5" />
+        <circle cx="4" cy="13.5" r="1.5" />
+        <circle cx="11.5" cy="4.5" r="1.5" />
+      </g>
+    </svg>
+  )
+}
+
+/** Cloud plus upload/download arrows for the remote platform launcher. */
+export function RemoteGlyph() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <g stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 10h-.5a2.5 2.5 0 0 1-.2-5A4.2 4.2 0 0 1 10.9 4a3 3 0 0 1 2.1 6h-.5" />
+        <path d="M6 14V8m-1.5 1.5L6 8l1.5 1.5M10 8v6m-1.5-1.5L10 14l1.5-1.5" />
+      </g>
     </svg>
   )
 }

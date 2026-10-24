@@ -140,6 +140,8 @@ export class GitClientController {
   private directoryEntries = 0
   /** Workspace binding identity; refreshing the same path does not replace it. */
   private boundWorkspace: { path: string | undefined } | undefined
+  private workspaceCheckedAt = Number.NEGATIVE_INFINITY
+  private readonly diffs = new Map<string, { snapshot: GitRepositorySnapshot; revision: number | undefined; at: number; pending: boolean; promise: Promise<GitDiff> }>()
   private diffNavigator: ((path: string, staged: boolean) => void) | undefined
   /** Monotonic request identity for graph pages; stale responses are discarded. */
   private graphRequestGeneration = 0
@@ -228,13 +230,18 @@ export class GitClientController {
     const binding = this.boundWorkspace
     if (binding !== undefined
       && this.state.workspacePath === workspacePath
-      && binding.path === workspacePath) return
+      && binding.path === workspacePath) {
+      if (workspacePath !== undefined && !this.state.loading && Date.now() - this.workspaceCheckedAt >= 5000) await this.refresh()
+      return
+    }
     // Stop reads and writes that still name the previous checkout.
     this.operations.abort()
     this.operations = new AbortController()
     const signal = this.operations.signal
     const generation = ++this.operationGeneration
     this.boundWorkspace = { path: workspacePath }
+    this.workspaceCheckedAt = Date.now()
+    this.diffs.clear()
     this.patch({
       workspacePath,
       repository: undefined,
@@ -270,6 +277,7 @@ export class GitClientController {
    * Drop in-flight Git RPC. Called when the owning session controller is released.
    */
   dispose(): void {
+    this.diffs.clear()
     this.unsubscribeWorktreeFeature?.()
     this.operations.abort()
     this.worktreeCreation?.abort()
@@ -290,6 +298,7 @@ export class GitClientController {
    * @returns Completion after the burst's last Host discovery and status calls settle.
    */
   async refresh(workspacePath = this.state.workspacePath): Promise<void> {
+    this.workspaceCheckedAt = Date.now()
     const signal = this.operations.signal
     if (workspacePath === undefined) {
       this.patch({ workspacePath, repository: undefined, loading: false, error: undefined })
@@ -349,16 +358,25 @@ export class GitClientController {
   }
 
   /**
-   * Read the diff for one changed path without retaining it: each Diff surface
-   * owns its result, so multiple tabs never overwrite one another.
+   * Cache independent path/side diffs for five seconds, sharing in-flight reads.
+   * Repository snapshot changes and explicit tab navigation bypass the cache.
    * @param path - Repository-relative changed path.
    * @param staged - Whether to read the staged diff.
    * @returns The decoded diff.
    */
-  async fetchDiff(path: string, staged: boolean): Promise<GitDiff> {
+  async fetchDiff(path: string, staged: boolean, revision?: number): Promise<GitDiff> {
     const signal = this.operations.signal
     const repository = this.requireRepository()
-    return decodeDiff(await this.call('diff', { repository: repository.root, path, staged }, signal))
+    const key = JSON.stringify([path, staged])
+    const cached = this.diffs.get(key)
+    if (cached?.snapshot === repository && cached.revision === revision && (cached.pending || Date.now() - cached.at < 5000)) return cached.promise
+    const promise = this.call('diff', { repository: repository.root, path, staged }, signal).then(decodeDiff)
+    const entry = { snapshot: repository, revision, at: Date.now(), pending: true, promise }
+    if (this.diffs.size >= 32) this.diffs.delete(this.diffs.keys().next().value ?? '')
+    this.diffs.set(key, entry)
+    try { return await promise }
+    catch (error) { if (this.diffs.get(key) === entry) this.diffs.delete(key); throw error }
+    finally { entry.pending = false }
   }
 
   /**
@@ -724,6 +742,9 @@ export class GitClientController {
    * @param fields - Endpoint fields other than `repository`.
    * @returns `true` when this binding still owns the published snapshot.
    */
+  private pushObserver: ((repository: string, head: string) => void) | undefined
+  setPushObserver(observer: ((repository: string, head: string) => void) | undefined): void { this.pushObserver = observer }
+
   private async mutate(endpoint: string, fields: Record<string, unknown>): Promise<boolean> {
     const signal = this.operations.signal
     const generation = this.operationGeneration
@@ -738,6 +759,7 @@ export class GitClientController {
         // the loaded graph so the Graph surface reloads instead of rendering the
         // pre-mutation log.
         this.patch({ repository: next, loading: false, graphLoaded: false })
+        if (endpoint === 'push' || endpoint === 'sync') this.pushObserver?.(repositoryRoot, next.head ?? next.branch ?? '')
         return true
       } catch (error) {
         if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) return false

@@ -4,6 +4,20 @@
 
 本文件记录本 package 的所有重要变更。格式参照 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)，版本遵循 [Semantic Versioning](https://semver.org/spec/v2.0.0.html) —— 本包处于 pre-1.0，minor 版本之间仍可能改变 API。每个已发布版本同时有对应的 [GitHub Release](https://github.com/cherrchen/dsh-plugin-git/releases)，附该版本的 tarball。
 
+## [Unreleased]
+
+### Changed
+
+- GitHub Remote 的 PR/Issue 列表、详情评论与比较文件不再受固定分页预算截断。`RemotePage` 携带不透明 `next` 续页游标（经 origin 校验的 `Link rel="next"`），`remote-list-prs`、`remote-list-issues`、`remote-comments`、`remote-files` 接受 `cursor`/`pages` 请求字段。Client controller 以串行后台流追加条目——首请求多页、之后每次续取一页——按 number/评论 id/文件路径去重，逐页校验 generation，并在限流后按 `resetAt` 有界恢复一次。truncated 警示条移除，改为流式提示。
+- `remote-files` 续页钉住比较快照：每次续取校验 `expectedBaseSha`/`expectedHeadSha`，行内评论坐标不会跨页漂移。行内评论提交在文件全部加载完成前保持禁用；通知线程展开与写路径坐标校验的有界收集保持不变。
+- PR 详情页不再渲染本地文件 diff。新增 `remote-commits`/`remote-reviews` 端点，投影 `RemoteCommit`/`RemoteReview` 模型（review `state` 归一为 approved/changes-requested/commented/dismissed/pending）并沿用同一游标流式加载；文件改动经 `pr.url + '/files'` 链接跳转 GitHub Files 页查看。行内评论只读、按 `reviewId` 嵌套在对应 review 下展示；因无锚点选择器，行内评论提交按钮移除。`remote-files` 与 `remote-inline-comment` 保留为受守护 RPC 能力。详情页同时修复了 load/open 失败后紧密循环重试的问题——每个目标与 revision 只尝试一次。
+
+- PR/Issue 详情页改为 GitHub 风格的时间线。`RemoteIssue`/`RemoteComment` 携带 `createdAt`，`RemoteCommit` 携带 `committedAt`；新增 `RemoteTimeline` 按时间交错排列评论、提交、review 与行内 thread——空的 per-reply review 隐藏、孤儿 thread 独立成项。正文作为开场卡与后续项同槽对齐，详情页改用 20px 横向内边距。
+- GitHub 正文不再泄漏原始标签：纯模块 `github-markdown` 先把 GitHub 允许的 HTML 子集（details/summary、注释、图片、链接、强调、code、pre、列表、表格、alert 引用）投影为 Markdown 再交给 `MarkdownText`，`RemoteMarkdown` 用原生 `<details>` 渲染折叠块，全程不接触 `innerHTML`。
+- 平台认证弹窗重做为状态卡 + “连接方式”方法行（GitHub 账号登录、本机已有的凭据、Git 凭据助手），每种方式附说明并对当前生效的方法标“当前使用”。`authAction` 接受端点序列、在同一 busy 周期内按序执行、首个失败即停；当已有 grant 或 signed-out/invalid marker 会覆盖所选方式时，Local/Git credential 重连自动前置 `remote-clear-grant`，用流程表达“断开连接（持久 signed-out）”与“清除本地授权”的区别，取代原先五个含义不清的按钮。
+
+- 同一批界面的后续打磨：时间线与认证弹窗标记改为真实 GitHub 头像——`author.avatarUrl` 与 viewer `avatarUrl` 仅经专用 `avatarUrl()` 准入 `https://avatars.githubusercontent.com`——失败或缺失时回退为首字母圆点，并保持不透明以遮住时间线竖线。认证弹窗加宽至 440px，并简化为状态卡加 GitHub CLI / GitHub OAuth 单选组，选中态只由 capability 派生；Git 凭据端点仍保留在 `remote-use-git-credential` 之后。
+
 ## [0.2.7] — 2026-10-17
 
 ### Changed

@@ -6,7 +6,7 @@ The Host core depends only on standard DSH services and launches `git` through `
 
 The Client main fiber contains every portable contribution. Native enhancement belongs in a child `ctx.inject(['desktop'], ...)` fiber and declares only the structural methods it consumes. Provider unload must remove the enhancement without removing the core UI.
 
-Use machine-readable Git output and temporary repositories in tests. Keep GitHub and remote credential workflows outside this package until a separate decision adds them.
+Use machine-readable Git output and temporary repositories in tests. GitHub and remote credential workflows are admitted by [ADR-0004](docs/decisions/ADR-0004-remote-platform-integration.md) (status Proposed) and land stage by stage per `docs/plans/active/remote-platform-integration.md`; anything not yet landed stays fail-closed behind `git/remote-unavailable`, and all portability constraints above still apply.
 
 # 文档系统总纲
 

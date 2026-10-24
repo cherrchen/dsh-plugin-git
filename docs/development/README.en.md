@@ -16,7 +16,8 @@ The `prepare` script is `pnpm run build` (tsc declarations plus both bundle face
 | Purpose | Command |
 | --- | --- |
 | Install (strict lockfile) | `pnpm install --frozen-lockfile` |
-| Full test run | `pnpm test` |
+| Unit and Client specifications | `pnpm test` |
+| Isolated browser E2E | `pnpm test:e2e` ([instructions](browser-e2e.en.md)) |
 | Build-artifact bundle/manifest assertions | `pnpm test:artifact` |
 | Build (types + bundle) | `pnpm build` |
 | DSH compatibility contract check | `pnpm compat:check` |

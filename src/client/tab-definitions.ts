@@ -18,10 +18,17 @@ import {
   GIT_WORKTREES_ID,
   GIT_WORKTREES_KIND,
   GIT_DIFF_RESOURCE_PROTOCOL,
+  GIT_REMOTE_ITEM_ID,
+  GIT_REMOTE_ITEM_KIND,
+  GIT_REMOTE_ITEM_RESOURCE_PROTOCOL,
   parseGitDiffAddress,
+  parseGitRemoteItemAddress,
 } from './contract.ts'
 import { splitRepoPath } from './path-display.ts'
-import { BranchGlyph, GraphGlyph, WorktreeGlyph } from './LauncherIcons.tsx'
+import { BranchGlyph, GraphGlyph, RemoteGlyph, WorktreeGlyph } from './LauncherIcons.tsx'
+
+// The host places workspace files at 10 and the new-terminal entry at 20.
+const GUIDE_ORDER = { changes: 11, graph: 12, worktrees: 13, remote: 14 } as const
 
 /**
  * The Changes page type, plus its guide entry.
@@ -31,7 +38,7 @@ import { BranchGlyph, GraphGlyph, WorktreeGlyph } from './LauncherIcons.tsx'
 export function changesDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
   const guideEntry = {
     id: 'git-changes',
-    order: 10,
+    order: GUIDE_ORDER.changes,
     title: () => t('launcher.changes.title'),
     description: () => t('launcher.changes.description'),
     icon: BranchGlyph,
@@ -69,7 +76,7 @@ export function diffDefinition(): SidebarRightTabDefinition {
 export function graphDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
   const guideEntry = {
     id: 'git-graph',
-    order: 11,
+    order: GUIDE_ORDER.graph,
     title: () => t('launcher.graph.title'),
     description: () => t('launcher.graph.description'),
     icon: GraphGlyph,
@@ -92,7 +99,7 @@ export function graphDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinitio
 export function worktreesDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
   const guideEntry = {
     id: 'git-worktrees',
-    order: 12,
+    order: GUIDE_ORDER.worktrees,
     title: () => t('launcher.worktrees.title'),
     description: () => t('launcher.worktrees.description'),
     icon: WorktreeGlyph,
@@ -102,5 +109,30 @@ export function worktreesDefinition(t: TranslateNS<'git'>): SidebarRightTabDefin
     kind: GIT_WORKTREES_KIND,
     title: () => t('tab.worktrees'),
     guide: [guideEntry],
+  }
+}
+
+
+/** Remote page; keep guide metadata in a structural local value for older sidebar schemas. */
+export function remoteDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
+  const entry = { id: 'git-remote', order: GUIDE_ORDER.remote, title: () => t('remote.title'), description: () => t('remote.description'), icon: RemoteGlyph }
+  return { id: 'git.remote', kind: 'git.remote', title: () => t('remote.title'), guide: [entry] }
+}
+
+/**
+ * Remote pull/issue detail resource type: one shared body renders either item
+ * kind, and the address's owner/repo/kind/number is the tab identity.
+ */
+export function remoteItemDefinition(t: TranslateNS<'git'>): SidebarRightTabDefinition {
+  return {
+    id: GIT_REMOTE_ITEM_ID,
+    kind: GIT_REMOTE_ITEM_KIND,
+    patterns: [`dsh-resource://${GIT_REMOTE_ITEM_RESOURCE_PROTOCOL}/**`],
+    canOpen: address => parseGitRemoteItemAddress(address) !== undefined,
+    title: address => {
+      const payload = parseGitRemoteItemAddress(address)
+      if (payload === undefined) return t('remote.title')
+      return t(payload.kind === 'pulls' ? 'remote.tabPull' : 'remote.tabIssue', { number: payload.number })
+    },
   }
 }

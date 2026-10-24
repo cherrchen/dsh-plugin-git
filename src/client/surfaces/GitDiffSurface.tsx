@@ -62,7 +62,7 @@ export function GitDiffSurface({
     const root = state.repository.root
     let active = true
     setResult({ key: keyOf(root, address), diff: undefined, error: undefined })
-    void controller.fetchDiff(payload.path, payload.staged).then(
+    void controller.fetchDiff(payload.path, payload.staged, revision).then(
       diff => { if (active) setResult({ key: keyOf(root, address), diff, error: undefined }) },
       error => {
         if (!active || (error instanceof Error && error.name === 'AbortError')) return

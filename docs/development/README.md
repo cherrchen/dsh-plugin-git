@@ -16,7 +16,8 @@
 | 目的 | 命令 |
 | --- | --- |
 | 安装（锁文件严格模式） | `pnpm install --frozen-lockfile` |
-| 全量测试 | `pnpm test` |
+| 单元与客户端规格 | `pnpm test` |
+| 隔离浏览器 E2E | `pnpm test:e2e`（见[运行说明](browser-e2e.md)） |
 | 构建产物 bundle/manifest 断言 | `pnpm test:artifact` |
 | 构建（类型 + bundle） | `pnpm build` |
 | DSH 版本契约检查 | `pnpm compat:check` |

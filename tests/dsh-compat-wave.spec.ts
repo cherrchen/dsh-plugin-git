@@ -74,3 +74,22 @@ snapshots:
     ])
   })
 })
+
+describe('optional credentials installation lanes', () => {
+  it('omits only the old root development peer edge while preserving the published manifest', () => {
+    const { hooks } = require('../.pnpmfile.cjs')
+    const before = process.env['DSH_COMPAT_VERSION']
+    try {
+      process.env['DSH_COMPAT_VERSION'] = '0.1.5-rc.2'
+      const pkg = { name: '@dsh-electron/dsh-plugin-git', peerDependencies: { '@deepseek-ai/dsh-credentials': '0.2.0-rc.2 || 0.2.1-rc.2', '@deepseek-ai/dsh-settings': '0.1.5-rc.2 || 0.2.0-rc.2' } }
+      hooks.readPackage(pkg)
+      expect(pkg.peerDependencies).not.toHaveProperty('@deepseek-ai/dsh-credentials')
+      expect(pkg.peerDependencies['@deepseek-ai/dsh-settings']).toBe('0.1.5-rc.2 || 0.2.0-rc.2')
+      expect(require('../package.json').peerDependencies).toHaveProperty('@deepseek-ai/dsh-credentials')
+      process.env['DSH_COMPAT_VERSION'] = '0.2.0-rc.2'
+      const supported = { name: '@dsh-electron/dsh-plugin-git', peerDependencies: { '@deepseek-ai/dsh-credentials': '0.2.0-rc.2 || 0.2.1-rc.2' } }
+      hooks.readPackage(supported)
+      expect(supported.peerDependencies['@deepseek-ai/dsh-credentials']).toBe('0.2.0-rc.2 || 0.2.1-rc.2')
+    } finally { if (before === undefined) delete process.env['DSH_COMPAT_VERSION']; else process.env['DSH_COMPAT_VERSION'] = before }
+  })
+})
