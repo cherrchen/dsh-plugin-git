@@ -55,6 +55,52 @@ function mountItem(unknown = false) {
   return { call }
 }
 describe('portable remote surface', () => {
+  it('keeps lists, selected filters and completed pages across tab unmount/remount without reads', async () => {
+    const { base, call } = fixture(false, endpoint => endpoint === 'remote-list-issues'
+      ? { ok: true, value: { generation, value: { items: [{ number: 2, title: 'Example issue', body: '', state: 'open', rawState: 'open', author: null }], truncated: false } } } : undefined)
+    const props = { ...base, openRemoteItem: vi.fn() } as unknown as ComponentProps<typeof GitRemoteSurface>
+    const first = render(<GitRemoteSurface {...props} />)
+    await screen.findByRole('button', { name: /Example PR/ })
+    fireEvent.click(screen.getByRole('button', { name: en['remote.issues'], exact: true }))
+    await screen.findByRole('button', { name: /Example issue/ })
+    await waitFor(() => expect(screen.queryByRole('status')).toBeNull())
+    first.unmount()
+    const before = call.mock.calls.length
+    const next = render(<GitRemoteSurface {...props} />)
+    expect(screen.getByRole('button', { name: /Example issue/ })).not.toBeNull()
+    await act(async () => {})
+    expect(call.mock.calls).toHaveLength(before)
+    fireEvent.click(screen.getByRole('button', { name: en['remote.pulls'], exact: true }))
+    expect(screen.getByRole('button', { name: /Example PR/ })).not.toBeNull()
+    await act(async () => {})
+    expect(call.mock.calls).toHaveLength(before)
+    next.unmount()
+  })
+  it('reuses detail on tab return, validates it when stale and honors explicit navigation refresh', async () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1000)
+    try {
+      const { base, call } = fixture()
+      const navigation = { address: 'dsh-resource://git-remote/owner/repo/pulls/1', params: { owner: 'owner', repo: 'repo', kind: 'pulls', number: 1 }, revision: 0 }
+      const props = { ...base, useTabInfo: () => ({ tab: { navigation } }) } as unknown as ComponentProps<typeof GitRemoteItemSurface>
+      const first = render(<GitRemoteItemSurface {...props} />)
+      await screen.findByText('Description')
+      await waitFor(() => expect(screen.queryByRole('status')).toBeNull())
+      first.unmount()
+      const reads = () => call.mock.calls.filter(args => args[1] === 'remote-pr').length
+      const before = reads()
+      const second = render(<GitRemoteItemSurface {...props} />)
+      expect(screen.getByText('Description')).not.toBeNull()
+      await act(async () => {})
+      expect(reads()).toBe(before)
+      navigation.revision += 1; second.rerender(<GitRemoteItemSurface {...props} />)
+      await waitFor(() => expect(reads()).toBe(before + 1))
+      await waitFor(() => expect(screen.queryByRole('status')).toBeNull())
+      second.unmount(); now.mockReturnValue(61_001)
+      render(<GitRemoteItemSurface {...props} />)
+      expect(screen.getByText('Description')).not.toBeNull()
+      await waitFor(() => expect(reads()).toBe(before + 2))
+    } finally { now.mockRestore() }
+  })
   it('shows connection feedback and skeletons without an empty-remote warning, then recovers from failure', async () => {
     let release!: (reply: Reply) => void
     const { base } = fixture(false, endpoint => endpoint === 'remote-repository' ? new Promise(resolve => { release = resolve }) : undefined)

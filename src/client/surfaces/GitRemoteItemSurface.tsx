@@ -1,9 +1,9 @@
 /** Remote pull/issue detail tab: one shared body renders either kind from the tab address. */
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { GitRemoteController, type GitRemoteFeature } from '../remote.ts'
+import { type GitRemoteFeature } from '../remote.ts'
 import { resolveGitController, type GitSessionControllers } from '../session-controllers.ts'
 import { effectiveWorkspacePath } from '../workspace-path.ts'
 import { useGitWorkspace } from '../use-git-workspace.ts'
@@ -36,9 +36,8 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
   }, [address, params])
   const identity = useMemo((): RemoteRepository | undefined =>
     payload === undefined ? undefined : { provider: 'github', host: 'github.com', owner: payload.owner, repo: payload.repo }, [payload])
-  const controller = useMemo(() => new GitRemoteController(remoteFeature, sessionId), [remoteFeature, sessionId])
-  useEffect(() => () => controller.dispose(), [controller])
-  useEffect(() => { controller.setRepository(localState.repository?.root) }, [controller, localState.repository?.root])
+  const controller = remoteFeature.controllerFor(sessionId, JSON.stringify(['item', identity?.owner.toLowerCase(), identity?.repo.toLowerCase(), payload?.kind, payload?.number]))
+  useEffect(() => { controller.setRepository(localState.repository?.root, false) }, [controller, localState.repository?.root])
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
   const [checkoutName, setCheckoutName] = useState('')
   const [body, setBody] = useState('')
@@ -62,19 +61,19 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
   const detailMatches = payload !== undefined && detail !== undefined && detail.number === payload.number
     && (payload.kind === 'issues' ? !('head' in detail) : 'head' in detail)
   // Each load/open is attempted once per key; a failure leaves the error visible instead of retrying in a hot loop.
-  const handled = useRef('')
+  const handled = useMemo(() => ({ current: '' }), [controller])
   useEffect(() => {
-    if (payload === undefined || identity === undefined || state.repository === undefined || state.busy) return
-    const generation = state.generation
+    if (payload === undefined || identity === undefined || state.repository === undefined || state.busy || capability.state !== 'on') return
+    const generation = capability.generation
     const genKey = generation === undefined ? '-' : `${generation.instanceId}:${generation.revision}`
     if (!targetMatches) {
       const key = `load:${identity.host}/${identity.owner}/${identity.repo}@${state.repository}:${genKey}`
-      if (handled.current !== key) { handled.current = key; void controller.load(payload.kind, identity) }
+      if (handled.current !== key) { handled.current = key; void controller.ensureList(payload.kind, identity) }
       return
     }
-    const key = `open:${genKey}:${revision}:${payload.kind}/${payload.number}`
-    if (handled.current !== key) { handled.current = key; void controller.open(payload.number, payload.kind) }
-  }, [controller, payload, identity, state.repository, state.busy, state.generation, targetMatches, detailMatches, revision])
+    const key = `open:${state.repository}:${genKey}:${revision}:${payload.kind}/${payload.number}`
+    if (handled.current !== key) { handled.current = key; void controller.ensureOpen(payload.number, payload.kind, revision) }
+  }, [controller, handled, payload, identity, state.repository, state.busy, capability, targetMatches, detailMatches, revision])
   if (capability.state === 'off' || payload === undefined) return <p className={css.empty}>{t('remote.unavailable')}</p>
   return <div className={css.root}>
     <div className={css.modeBar} data-git-remote-toolbar="">

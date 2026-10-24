@@ -31,6 +31,36 @@ describe('changedPathCount', () => {
 })
 
 describe('GitClientController', () => {
+  it('reuses recent workspace and diff reads, while expiry, navigation and repository refresh invalidate them', async () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1000)
+    const rpc = { call: vi.fn(async (_channel: string, endpoint: string) => {
+      if (endpoint === 'discover') return { ok: true as const, value: '/repo' }
+      if (endpoint === 'status') return { ok: true as const, value: snapshot() }
+      if (endpoint === 'diff') return { ok: true as const, value: { repository: '/repo', path: 'a.ts', staged: false, text: 'diff' } }
+      if (endpoint === 'log') return { ok: true as const, value: [] }
+      return { ok: true as const, value: { available: false } }
+    }) }
+    const controller = new GitClientController(rpc)
+    const calls = (endpoint: string) => rpc.call.mock.calls.filter(call => call[1] === endpoint).length
+    try {
+      await controller.setWorkspace('/workspace')
+      const first = await controller.fetchDiff('a.ts', false, 0)
+      expect(await controller.fetchDiff('a.ts', false, 0)).toBe(first)
+      await controller.setWorkspace('/workspace')
+      expect(calls('status')).toBe(1); expect(calls('diff')).toBe(1)
+      await controller.fetchDiff('a.ts', false, 1)
+      expect(calls('diff')).toBe(2)
+      now.mockReturnValue(6001)
+      await controller.fetchDiff('a.ts', false, 1)
+      expect(calls('diff')).toBe(3)
+      await controller.setWorkspace('/workspace')
+      expect(calls('status')).toBe(2)
+      await controller.fetchDiff('a.ts', false, 1)
+      expect(calls('diff')).toBe(4)
+      await controller.fetchDiff('a.ts', true, 1)
+      expect(calls('diff')).toBe(5)
+    } finally { controller.dispose(); now.mockRestore() }
+  })
   it('keeps a shared workspace bound when a surface mounts during its refresh', async () => {
     const signals: AbortSignal[] = []
     const rpc = {

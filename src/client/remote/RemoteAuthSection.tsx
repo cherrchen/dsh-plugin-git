@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Button, StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { GitRemoteCapabilityOn, GitRemoteAuthState } from '../../remote/types.ts'
+import type { GitRemoteCapabilityOn, GitRemoteAuthSource, GitRemoteAuthState } from '../../remote/types.ts'
 import type { GitRemoteViewer } from '../../remote/types.ts'
 import type { GitLocaleKey } from '../locales.ts'
 import css from '../GitRemoteSurface.module.css'
@@ -17,6 +17,19 @@ function authDot(state: GitRemoteAuthState): 'done' | 'warning' | 'error' | 'idl
   if (state === 'invalid') return 'error'
   if (state === 'unauthenticated') return 'warning'
   return 'idle'
+}
+
+const sourceLabels: Record<GitRemoteAuthSource, GitLocaleKey> = {
+  grant: 'remote.authSourceOAuth',
+  ref: 'remote.authSourceRef',
+  gh: 'remote.authSourceGh',
+  'git-credential': 'remote.authSourceGitCredential',
+}
+
+function authSourceLabel({ auth }: GitRemoteCapabilityOn): GitLocaleKey {
+  if (auth.state === 'anonymous') return 'remote.authSourceAnonymous'
+  if (auth.state !== 'authenticated') return 'remote.authSourceNone'
+  return (auth.source === undefined ? undefined : sourceLabels[auth.source]) ?? 'remote.authSourceUnknown'
 }
 
 /** Authentication status, transport hint, credential actions, and device login. */
@@ -37,6 +50,10 @@ export function RemoteAuthSection({ capability, viewer, busy, login, onAuth, onL
         <span>{t('remote.auth')}: {capability.auth.state}</span>
         {viewer === undefined ? null : <span className={css.authLogin}>· {viewer.login}</span>}
       </div>
+      <dl className={css.authChannel}>
+        <dt>{t('remote.authChannel')}</dt>
+        <dd>{t(authSourceLabel(capability))}</dd>
+      </dl>
       <p className={css.note}>{t('remote.transportHint')}</p>
       <div className={css.authActions}>
         <Button variant="outline" size="sm" disabled={busy} onClick={() => { onAuth('remote-retry-auth') }}>

@@ -37,7 +37,6 @@ export function GitWorktreesSurface({
   const [createError, setCreateError] = useState<string>()
 
   useEffect(() => {
-    void controller.refresh()
     worktreeFeature?.refresh()
   }, [controller, worktreeFeature])
 

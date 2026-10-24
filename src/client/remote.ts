@@ -8,12 +8,34 @@ const OFF: GitRemoteCapability = { state: 'off', reason: 'implementation-pending
 const equal = (a: GitRemoteGeneration | undefined, b: GitRemoteGeneration | undefined) => a !== undefined && b !== undefined && a.instanceId === b.instanceId && a.revision === b.revision
 /** Upstream pages fetched by the first request of a progressive list; continuations take one page each. */
 const FIRST_PAGES = 1
+/** Re-entering a view within this window needs no network validation. */
+const CACHE_TTL_MS = 60_000
 /** Longest reset wait for one automatic stream resume after `git/rate-limited`. */
 const STREAM_RESUME_MAX_MS = 600_000
 export class RemoteRpcError extends Error {
   constructor(readonly code: string, message: string, readonly details: unknown) { super(message) }
 }
 export class GitRemoteFeature {
+  private readonly controllers = new Map<string, GitRemoteController>()
+  /** Controllers belong to the feature, so tab unmounts retain data and in-flight pages. */
+  controllerFor(sessionId: string, view = 'list'): GitRemoteController {
+    const key = JSON.stringify([sessionId, view])
+    const existing = this.controllers.get(key)
+    if (existing !== undefined) { this.controllers.delete(key); this.controllers.set(key, existing); return existing }
+    // Bound retained idle views without evicting mounted or working controllers.
+    for (const [oldKey, controller] of this.controllers) {
+      if (this.controllers.size < 64) break
+      if (controller.idle) { controller.dispose(); this.controllers.delete(oldKey) }
+    }
+    const controller = new GitRemoteController(this, sessionId)
+    this.controllers.set(key, controller)
+    return controller
+  }
+  invalidate(repository: string | undefined): void {
+    for (const controller of this.controllers.values()) {
+      if (controller.getSnapshot().repository === repository) controller.invalidate()
+    }
+  }
   private state = OFF
   private notices: readonly RemoteNotice[] = []
   private readonly seen = new Set<string>()
@@ -33,13 +55,15 @@ export class GitRemoteFeature {
   private readonly listeners = new Set<() => void>()
   private readonly owner = new AbortController()
   private pending: Promise<void> | undefined
+  private refreshAgain = false
   private timer: ReturnType<typeof setInterval> | undefined
   constructor(readonly rpc: GitRpcClient) {}
   readonly getSnapshot = () => this.state
   readonly subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
   start(): void { this.refresh(); this.timer ??= setInterval(() => this.refresh(), 5000) }
   refresh(): void {
-    if (this.owner.signal.aborted || this.pending !== undefined) return
+    if (this.owner.signal.aborted) return
+    if (this.pending !== undefined) { this.refreshAgain = true; return }
     this.pending = (async () => {
       try {
         const reply = await this.rpc.call('/git', 'remote-capability', {}, this.owner.signal)
@@ -49,9 +73,12 @@ export class GitRemoteFeature {
         this.state = cap?.state === 'on' || cap?.state === 'off' ? cap : OFF
       } catch { this.state = OFF }
       if (!this.owner.signal.aborted) for (const listener of this.listeners) listener()
-    })().finally(() => { this.pending = undefined })
+    })().finally(() => {
+      this.pending = undefined
+      if (this.refreshAgain) { this.refreshAgain = false; this.refresh() }
+    })
   }
-  dispose(): void { this.owner.abort(); clearInterval(this.timer); this.listeners.clear() }
+  dispose(): void { this.owner.abort(); clearInterval(this.timer); for (const controller of this.controllers.values()) controller.dispose(); this.controllers.clear(); this.listeners.clear() }
 }
 export type RemotePending = 'repositories' | 'repository' | 'items' | 'detail' | 'auth' | 'authorization' | 'write'
 export interface RemoteClientState {
@@ -63,6 +90,7 @@ export interface RemoteClientState {
   readonly generation?: GitRemoteGeneration | undefined
   readonly items: readonly (RemotePull | RemoteIssue)[]
   readonly listKind?: 'pulls' | 'issues' | undefined
+  readonly listState?: 'open' | 'closed' | 'all' | undefined
   /** Opaque list continuation cursor; absent once the list is fully loaded. */
   readonly itemsNext?: string | undefined
   readonly detail?: RemotePull | RemoteIssue | undefined
@@ -90,10 +118,15 @@ export class GitRemoteController {
   private epoch = 0
   private active = new AbortController()
   private disposed = false
-  private streamRunning = false
+  private streamEpoch: number | undefined
   private streamResume: ReturnType<typeof setTimeout> | undefined
   private listKind: 'pulls' | 'issues' = 'pulls'
   private listState: 'open' | 'closed' | 'all' = 'open'
+  private listAttempt: { key: string; at: number } | undefined
+  private detailAttempt: { key: string; at: number } | undefined
+  private listValidatedAt = 0
+  private readonly lists = new Map<string, { state: RemoteClientState; at: number; collected: readonly unknown[] | undefined }>()
+  private readonly collections = new Map<string, readonly unknown[]>()
   private readonly unsubscribe: () => void
   constructor(private readonly feature: GitRemoteFeature, private readonly sessionId?: string) {
     this.state = { capability: feature.getSnapshot(), remotes: [], items: [], comments: [], inline: [], commits: [], reviews: [], busy: false, streaming: false, unknown: false }
@@ -104,14 +137,66 @@ export class GitRemoteController {
     })
   }
   readonly getSnapshot = () => this.state
+  get idle(): boolean { return this.listeners.size === 0 && !this.state.busy && !this.state.streaming && !this.state.unknown && this.streamResume === undefined }
+  invalidate(): void { this.listAttempt = undefined; this.detailAttempt = undefined; this.lists.clear() }
   readonly subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
   private patch(value: Partial<RemoteClientState>): void { if (this.disposed) return; this.state = { ...this.state, ...value }; for (const listener of this.listeners) listener() }
   private clear(repository?: string): void {
+    this.invalidate(); this.collections.clear()
+    this.listValidatedAt = 0
     this.epoch += 1; this.active.abort(); this.active = new AbortController()
     if (this.streamResume !== undefined) { clearTimeout(this.streamResume); this.streamResume = undefined }
     this.state = { capability: this.feature.getSnapshot(), ...(repository === undefined ? {} : { repository }), remotes: [], items: [], comments: [], inline: [], commits: [], reviews: [], busy: false, streaming: false, unknown: false }
   }
-  setRepository(repository: string | undefined): void { if (repository === this.state.repository) return; this.clear(repository); this.patch({}); if (repository !== undefined) void this.load() }
+  setRepository(repository: string | undefined, autoload = true): void { if (repository === this.state.repository) return; this.clear(repository); this.patch({}); if (repository !== undefined && autoload) void this.load() }
+  /** Restore a filter immediately, validating stale data while it remains visible. */
+  async ensureList(kind = this.listKind, selected = this.state.target, state = this.listState): Promise<void> {
+    if (this.state.busy || this.state.unknown || this.state.repository === undefined || this.state.capability.state !== 'on') return
+    const key = this.listKey(kind, selected, state)
+    if (this.listAttempt?.key === key && (this.state.streaming || Date.now() - this.listAttempt.at < CACHE_TTL_MS)) return
+    const cached = this.lists.get(key)
+    if (cached !== undefined) {
+      this.stopStream()
+      this.listKind = kind; this.listState = state
+      this.listValidatedAt = cached.at
+      if (cached.state.itemsNext !== undefined) this.collections.set('items', cached.collected ?? cached.state.items)
+      this.patch({ ...cached.state, capability: this.feature.getSnapshot(), busy: false, pending: undefined, streaming: false })
+      this.listAttempt = { key, at: cached.at }
+      if (Date.now() - cached.at < CACHE_TTL_MS) { this.stream(this.epoch); return }
+    }
+    await this.load(kind, selected, state)
+  }
+  async ensureOpen(n: number, kind: 'pulls' | 'issues', revision: number): Promise<void> {
+    if (this.state.unknown) return
+    const key = `${kind}/${n}:${revision}`
+    if (this.detailAttempt?.key === key && Date.now() - this.detailAttempt.at < CACHE_TTL_MS) return
+    if (this.state.busy) return
+    this.detailAttempt = { key, at: Date.now() }
+    await this.open(n, kind)
+  }
+  private listKey(kind: string, target: RemoteRepository | undefined, state: string): string {
+    return JSON.stringify([target?.host, target?.owner.toLowerCase(), target?.repo.toLowerCase(), kind, state])
+  }
+  private rememberList(): void {
+    if (this.state.listKind === undefined || this.state.detail !== undefined || this.listAttempt === undefined) return
+    const key = this.listKey(this.listKind, this.state.target, this.listState)
+    if (this.lists.size >= 12) this.lists.delete(this.lists.keys().next().value ?? '')
+    this.lists.set(key, { state: this.state, at: this.listValidatedAt, collected: this.collections.get('items') })
+  }
+  private stopStream(): void {
+    this.epoch += 1; this.active.abort(); this.active = new AbortController()
+    if (this.streamResume !== undefined) { clearTimeout(this.streamResume); this.streamResume = undefined }
+    this.collections.clear()
+    this.patch({ streaming: false })
+  }
+  /** Keep old rows during validation; remove missing rows only after the final page. */
+  private page<T>(name: string, current: readonly T[], page: RemotePage<T>, key: (item: T) => string | number, first = false): readonly T[] {
+    const accumulated = appendUnique(first ? [] : (this.collections.get(name) ?? []) as readonly T[], page.items, key)
+    if (page.next === undefined) this.collections.delete(name)
+    else this.collections.set(name, accumulated)
+    const ids = new Set(accumulated.map(key))
+    return reconcile(current, page.next === undefined ? accumulated : [...accumulated, ...current.filter(item => !ids.has(key(item)))], key)
+  }
   private async call<T>(endpoint: string, payload: Record<string, unknown> = {}, signal = this.active.signal): Promise<T> {
     const reply = await this.feature.rpc.call('/git', endpoint, { ...payload, ...(this.state.repository === undefined ? {} : { repository: this.state.repository }), ...(this.sessionId === undefined ? {} : { sessionId: this.sessionId }) }, signal)
     if (!reply.ok) { const error = reply.error as { code?: string; message?: string; details?: unknown }; throw new RemoteRpcError(error.code ?? 'git/remote-unavailable', error.message ?? 'Git remote request failed', error.details) }
@@ -124,6 +209,10 @@ export class GitRemoteController {
     finally { if (epoch === this.epoch) { this.patch({ busy: false, pending: undefined }); this.feature.refresh() } }
   }
   async load(kind: 'pulls' | 'issues' = 'pulls', selected?: RemoteRepository, state: 'open' | 'closed' | 'all' = 'open'): Promise<void> {
+    if (this.disposed || this.state.busy) return
+    this.rememberList()
+    this.stopStream()
+    this.listAttempt = { key: this.listKey(kind, selected ?? this.state.target, state), at: Date.now() }
     await this.run(async epoch => {
       const repositories = await this.call<RemoteRepositorySet>('remote-repositories')
       const target = selected ?? this.state.target ?? repositories.remotes[0]?.identity
@@ -136,11 +225,17 @@ export class GitRemoteController {
       const list = await this.call<RemoteResult<RemotePage<RemotePull | RemoteIssue>>>(kind === 'pulls' ? 'remote-list-prs' : 'remote-list-issues', { ...target, state, pages: FIRST_PAGES })
       if (epoch !== this.epoch || !equal(facts.generation, list.generation)) return
       this.listKind = kind; this.listState = state
-      this.patch({ target, generation: facts.generation, facts: facts.value, listKind: kind, items: list.value.items, itemsNext: list.value.next, detail: undefined, comments: [], commentsNext: undefined, inline: [], inlineNext: undefined, commits: [], commitsNext: undefined, reviews: [], reviewsNext: undefined, streamError: undefined, unknown: false })
+      this.listAttempt = { key: this.listKey(kind, target, state), at: Date.now() }
+      this.listValidatedAt = Date.now()
+      const sameList = this.state.listKind === kind && this.state.listState === state && this.listKey(kind, this.state.target, state) === this.listKey(kind, target, state)
+      this.patch({ target, generation: facts.generation, facts: facts.value, listKind: kind, listState: state, items: this.page('items', sameList ? this.state.items : [], list.value, item => item.number, true), itemsNext: list.value.next, detail: undefined, comments: [], commentsNext: undefined, inline: [], inlineNext: undefined, commits: [], commitsNext: undefined, reviews: [], reviewsNext: undefined, streamError: undefined, unknown: false })
+      this.rememberList()
       this.stream(epoch)
     }, 'repositories')
   }
   async open(n: number, kind: 'pulls' | 'issues'): Promise<void> {
+    if (this.disposed || this.state.busy) return
+    this.stopStream()
     await this.run(async epoch => {
       const target = this.state.target; if (target === undefined) return
       const detail = await this.call<RemoteResult<RemotePull | RemoteIssue>>(kind === 'pulls' ? 'remote-pr' : 'remote-issue', { ...target, number: n })
@@ -149,16 +244,18 @@ export class GitRemoteController {
       const commits = kind === 'pulls' ? await this.call<RemoteResult<RemotePage<RemoteCommit>>>('remote-commits', { ...target, number: n, pages: FIRST_PAGES }) : undefined
       const reviews = kind === 'pulls' ? await this.call<RemoteResult<RemotePage<RemoteReview>>>('remote-reviews', { ...target, number: n, pages: FIRST_PAGES }) : undefined
       if (epoch !== this.epoch || !equal(detail.generation, comments.generation) || (inline !== undefined && !equal(detail.generation, inline.generation)) || (commits !== undefined && !equal(detail.generation, commits.generation)) || (reviews !== undefined && !equal(detail.generation, reviews.generation))) return
-      this.patch({ facts: this.state.facts === undefined ? undefined : { ...this.state.facts, actions: { ...this.state.facts.actions, canClose: detail.value.author?.userId === this.state.facts.viewer?.userId || this.state.facts.permissions.push === true ? true : this.state.facts.permissions.push === false ? false : 'unknown' } }, itemsNext: undefined, detail: detail.value, generation: detail.generation, comments: comments.value.items, commentsNext: comments.value.next, inline: inline?.value.items ?? [], inlineNext: inline?.value.next, commits: commits?.value.items ?? [], commitsNext: commits?.value.next, reviews: reviews?.value.items ?? [], reviewsNext: reviews?.value.next, streamError: undefined, unknown: false })
+      const sameDetail = this.state.detail?.number === n && ('head' in this.state.detail) === (kind === 'pulls')
+      this.patch({ facts: this.state.facts === undefined ? undefined : { ...this.state.facts, actions: { ...this.state.facts.actions, canClose: detail.value.author?.userId === this.state.facts.viewer?.userId || this.state.facts.permissions.push === true ? true : this.state.facts.permissions.push === false ? false : 'unknown' } }, itemsNext: undefined, detail: detail.value, generation: detail.generation, comments: this.page('comments', sameDetail ? this.state.comments : [], comments.value, entry => entry.id, true), commentsNext: comments.value.next, inline: inline === undefined ? [] : this.page('inline', sameDetail ? this.state.inline : [], inline.value, entry => entry.id, true), inlineNext: inline?.value.next, commits: commits === undefined ? [] : this.page('commits', sameDetail ? this.state.commits : [], commits.value, entry => entry.sha, true), commitsNext: commits?.value.next, reviews: reviews === undefined ? [] : this.page('reviews', sameDetail ? this.state.reviews : [], reviews.value, entry => entry.id, true), reviewsNext: reviews?.value.next, streamError: undefined, unknown: false })
       this.stream(epoch)
     }, 'detail')
   }
   /** Continue any pending page cursor in the background, one upstream page per call. */
   private stream(epoch: number): void {
-    if (this.disposed || this.streamRunning || this.active.signal.aborted) return
-    this.streamRunning = true
+    if (this.disposed || this.streamEpoch === epoch || this.active.signal.aborted) return
+    this.streamEpoch = epoch
     void this.streamLoop(epoch).then(drained => {
-      this.streamRunning = false
+      if (this.streamEpoch !== epoch) return
+      this.streamEpoch = undefined
       // A kick landing between the loop's last cursor check and this teardown is honored now.
       if (drained && epoch === this.epoch && this.hasPendingCursor()) this.stream(epoch)
     })
@@ -182,7 +279,7 @@ export class GitRemoteController {
           const page = await this.call<RemoteResult<RemotePage<RemotePull | RemoteIssue>>>(this.listKind === 'issues' ? 'remote-list-issues' : 'remote-list-prs', { ...target, state: this.listState, cursor })
           if (epoch !== this.epoch || !equal(generation, page.generation)) return false
           if (this.state.itemsNext !== cursor) continue
-          this.patch({ items: appendUnique(this.state.items, page.value.items, item => item.number), itemsNext: page.value.next })
+          this.patch({ items: this.page('items', this.state.items, page.value, item => item.number), itemsNext: page.value.next }); this.rememberList()
           continue
         }
         const number = s.detail?.number
@@ -191,7 +288,7 @@ export class GitRemoteController {
           const page = await this.call<RemoteResult<RemotePage<RemoteComment>>>('remote-comments', { ...target, number, cursor })
           if (epoch !== this.epoch || !equal(generation, page.generation)) return false
           if (this.state.commentsNext !== cursor) continue
-          this.patch({ comments: appendUnique(this.state.comments, page.value.items, comment => comment.id), commentsNext: page.value.next })
+          this.patch({ comments: this.page('comments', this.state.comments, page.value, item => item.id), commentsNext: page.value.next })
           continue
         }
         if (s.inlineNext !== undefined && number !== undefined) {
@@ -199,7 +296,7 @@ export class GitRemoteController {
           const page = await this.call<RemoteResult<RemotePage<RemoteComment>>>('remote-comments', { ...target, number, inline: true, cursor })
           if (epoch !== this.epoch || !equal(generation, page.generation)) return false
           if (this.state.inlineNext !== cursor) continue
-          this.patch({ inline: appendUnique(this.state.inline, page.value.items, comment => comment.id), inlineNext: page.value.next })
+          this.patch({ inline: this.page('inline', this.state.inline, page.value, item => item.id), inlineNext: page.value.next })
           continue
         }
         if (s.commitsNext !== undefined && number !== undefined) {
@@ -207,7 +304,7 @@ export class GitRemoteController {
           const page = await this.call<RemoteResult<RemotePage<RemoteCommit>>>('remote-commits', { ...target, number, cursor })
           if (epoch !== this.epoch || !equal(generation, page.generation)) return false
           if (this.state.commitsNext !== cursor) continue
-          this.patch({ commits: appendUnique(this.state.commits, page.value.items, entry => entry.sha), commitsNext: page.value.next })
+          this.patch({ commits: this.page('commits', this.state.commits, page.value, item => item.sha), commitsNext: page.value.next })
           continue
         }
         if (s.reviewsNext !== undefined && number !== undefined) {
@@ -215,7 +312,7 @@ export class GitRemoteController {
           const page = await this.call<RemoteResult<RemotePage<RemoteReview>>>('remote-reviews', { ...target, number, cursor })
           if (epoch !== this.epoch || !equal(generation, page.generation)) return false
           if (this.state.reviewsNext !== cursor) continue
-          this.patch({ reviews: appendUnique(this.state.reviews, page.value.items, entry => entry.id), reviewsNext: page.value.next })
+          this.patch({ reviews: this.page('reviews', this.state.reviews, page.value, item => item.id), reviewsNext: page.value.next })
           continue
         }
         return true
@@ -243,7 +340,7 @@ export class GitRemoteController {
   }
   async authAction(endpoint: string): Promise<void> {
     if (endpoint === 'remote-sign-out' && this.state.busy) { this.clear(this.state.repository); this.patch({}) }
-    await this.run(async epoch => { await this.call(endpoint); if (epoch === this.epoch) { this.clear(this.state.repository); this.patch({}) } }, 'auth')
+    await this.run(async epoch => { await this.call(endpoint); if (epoch === this.epoch) { this.clear(this.state.repository); this.patch({}); this.feature.refresh() } }, 'auth')
   }
   async login(show: (value: { userCode: string; verificationUri: string; attemptId: string }) => void): Promise<void> {
     await this.run(async epoch => {
@@ -258,10 +355,12 @@ export class GitRemoteController {
   async write(endpoint: string, values: Record<string, unknown>): Promise<void> {
     if (this.state.unknown) return
     await this.run(async epoch => {
-      const { target, generation, facts } = this.state
+      const { target, generation, facts, repository } = this.state
       if (target === undefined || generation === undefined || facts?.viewer === undefined) return
       const context: GitRemoteWriteContext = { ...target, expectedGeneration: generation, expectedViewer: facts.viewer }
-      const result = await this.call(endpoint, { ...context, ...values, requestId: crypto.randomUUID() })
+      let result: unknown
+      try { result = await this.call(endpoint, { ...context, ...values, requestId: crypto.randomUUID() }) }
+      finally { this.invalidate(); this.feature.invalidate(repository) }
       if (epoch !== this.epoch) return
       if (endpoint === 'remote-checkout-pr' && typeof result === 'object' && result !== null) this.patch({ checkout: result as RemoteCheckoutReceipt, ...('error' in result ? { error: 'Git checkout needs attention' } : {}) })
     })
@@ -270,15 +369,19 @@ export class GitRemoteController {
 }
 
 function appendUnique<T>(items: readonly T[], page: readonly T[], key: (item: T) => string | number): readonly T[] {
-  if (page.length === 0) return items
-  const seen = new Set(items.map(key))
-  const fresh: T[] = []
-  for (const item of page) {
-    const id = key(item)
-    if (seen.has(id)) continue
-    seen.add(id); fresh.push(item)
-  }
-  return fresh.length === 0 ? items : [...items, ...fresh]
+  const merged = new Map(items.map(item => [key(item), item]))
+  for (const item of page) merged.set(key(item), item)
+  return [...merged.values()]
+}
+
+/** Preserve object/array identity for unchanged rows after conditional validation. */
+function reconcile<T>(previous: readonly T[], next: readonly T[], key: (item: T) => string | number): readonly T[] {
+  const old = new Map(previous.map(item => [key(item), item]))
+  const rows = next.map(item => {
+    const retained = old.get(key(item))
+    return retained !== undefined && JSON.stringify(retained) === JSON.stringify(item) ? retained : item
+  })
+  return rows.length === previous.length && rows.every((item, index) => item === previous[index]) ? previous : rows
 }
 
 export const remoteNoticeKeys = { 'review-requested': 'remote.noticeReview', merged: 'remote.noticeMerged', closed: 'remote.noticeClosed', 'changes-requested': 'remote.noticeChanges', 'create-pr': 'remote.noticeCreate' } as const

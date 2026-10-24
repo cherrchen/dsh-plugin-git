@@ -20,6 +20,31 @@ function rpc(handler?: (endpoint: string, payload: unknown, signal?: AbortSignal
 const tick = () => new Promise(resolve => setImmediate(resolve))
 const item = (number: number) => ({ number, title: `Item ${number}`, body: '', state: 'open' as const, rawState: 'open', author: null })
 describe('remote client lifecycle', () => {
+  it('refreshes authentication immediately and follows an older in-flight capability read with a new one', async () => {
+    let release: ((value: unknown) => void) | undefined
+    let hold = false
+    let cap = { ...on, auth: { state: 'authenticated', source: 'gh' as string | undefined } }
+    const transport = rpc(async endpoint => {
+      if (endpoint === 'remote-sign-out') {
+        cap = { ...cap, generation: { ...generation, revision: 2 }, auth: { state: 'signed-out', source: undefined } }
+        return { ok: true }
+      }
+      if (endpoint === 'remote-capability') {
+        if (hold) { hold = false; return new Promise(resolve => { release = resolve }) }
+        return { ok: true, value: cap }
+      }
+      return undefined
+    })
+    const feature = new GitRemoteFeature(transport); feature.refresh(); await tick()
+    const controller = new GitRemoteController(feature)
+    controller.setRepository('/repo'); await tick()
+    hold = true; feature.refresh(); await tick()
+    await controller.authAction('remote-sign-out')
+    release?.({ ok: true, value: on }); await tick()
+    expect(feature.getSnapshot()).toMatchObject({ generation: { revision: 2 }, auth: { state: 'signed-out' } })
+    expect(controller.getSnapshot().capability).toBe(feature.getSnapshot())
+    controller.dispose(); feature.dispose()
+  })
   it('aborts an old workspace and ignores a reply delivered after rebinding', async () => {
     let release: ((value: unknown) => void) | undefined
     let signal: AbortSignal | undefined
@@ -173,6 +198,117 @@ describe('remote progressive lists', () => {
     } finally { vi.useRealTimers() }
   })
 })
+describe('remote view cache', () => {
+  it('reuses session views and filter snapshots, including empty lists, without RPCs', async () => {
+    const transport = rpc(async endpoint => endpoint === 'remote-list-prs' ? { ok: true, value: { generation, value: { items: [item(1)], truncated: false } } } : undefined)
+    const feature = new GitRemoteFeature(transport); feature.refresh(); await tick()
+    const controller = feature.controllerFor('s')
+    controller.setRepository('/repo', false)
+    await controller.ensureList()
+    const pulls = controller.getSnapshot().items
+    await controller.ensureList('issues')
+    expect(controller.getSnapshot().items).toEqual([])
+    const count = transport.call.mock.calls.length
+    await controller.ensureList('pulls'); await controller.ensureList('issues')
+    expect(transport.call.mock.calls).toHaveLength(count)
+    expect(feature.controllerFor('s')).toBe(controller)
+    expect(feature.controllerFor('other')).not.toBe(controller)
+    expect(feature.controllerFor('s', 'item:1')).not.toBe(controller)
+    await controller.ensureList('pulls')
+    expect(controller.getSnapshot().items).toBe(pulls)
+    feature.dispose()
+  })
+  it('validates expired data without dropping cached pages, reconciles updates and removes missing rows', async () => {
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1000)
+    let refresh = false
+    let release: ((value: unknown) => void) | undefined
+    const transport = rpc(async (endpoint, payload) => {
+      if (endpoint !== 'remote-list-prs') return undefined
+      if (!refresh) return { ok: true, value: { generation, value: { items: [item(1), item(2), item(3)], truncated: false } } }
+      if ((payload as { cursor?: string }).cursor === undefined) return { ok: true, value: { generation, value: { items: [{ ...item(1), title: 'Updated' }], next: '/p2', truncated: true } } }
+      return new Promise(resolve => { release = resolve })
+    })
+    const feature = new GitRemoteFeature(transport)
+    try {
+      feature.refresh(); await tick()
+      const controller = feature.controllerFor('s'); controller.setRepository('/repo', false)
+      await controller.ensureList()
+      const retained = controller.getSnapshot().items[1]
+      now.mockReturnValue(61_001); refresh = true
+      await controller.ensureList(); await tick()
+      expect(controller.getSnapshot().items.map(entry => entry.number)).toEqual([1, 2, 3])
+      expect(controller.getSnapshot().items[0]?.title).toBe('Updated')
+      expect(controller.getSnapshot().items[1]).toBe(retained)
+      release?.({ ok: true, value: { generation, value: { items: [item(2), item(4)], truncated: false } } }); await tick()
+      expect(controller.getSnapshot().items.map(entry => entry.number)).toEqual([1, 2, 4])
+      expect(controller.getSnapshot().items[1]).toBe(retained)
+      const rows = controller.getSnapshot().items
+      refresh = false
+      // An unchanged validation retains row identity as well as its array.
+      await controller.load()
+      expect(controller.getSnapshot().items[1]).toBe(rows[1])
+    } finally { feature.dispose(); now.mockRestore() }
+  })
+  it('retains data after validation failure and allows explicit retry during the freshness window', async () => {
+    let failed = false
+    const transport = rpc(async endpoint => endpoint === 'remote-list-prs' ? failed
+      ? { ok: false, error: { code: 'git/remote-unavailable', message: 'Offline' } }
+      : { ok: true, value: { generation, value: { items: [item(1)], truncated: false } } } : undefined)
+    const feature = new GitRemoteFeature(transport); feature.refresh(); await tick()
+    const controller = feature.controllerFor('s'); controller.setRepository('/repo', false)
+    await controller.ensureList(); const rows = controller.getSnapshot().items
+    failed = true; await controller.load()
+    expect(controller.getSnapshot()).toMatchObject({ error: 'Offline', busy: false, streaming: false })
+    expect(controller.getSnapshot().items).toBe(rows)
+    failed = false; await controller.load()
+    expect(controller.getSnapshot().error).toBeUndefined()
+    expect(controller.getSnapshot().items).toBe(rows)
+    feature.dispose()
+  })
+  it('invalidates sibling views after writes and preserves unknown-result gates across reuse', async () => {
+    const transport = rpc(async endpoint => endpoint === 'remote-comment' ? { ok: false, error: { code: 'git/write-result-unknown', message: 'Unknown' } } : undefined)
+    const feature = new GitRemoteFeature(transport); feature.refresh(); await tick()
+    const list = feature.controllerFor('s'); list.setRepository('/repo', false); await list.ensureList()
+    const detail = feature.controllerFor('s', 'item'); detail.setRepository('/repo', false); await detail.ensureList()
+    await detail.write('remote-comment', { number: 1, body: 'hi' })
+    const before = transport.call.mock.calls.filter(call => call[1] === 'remote-list-prs').length
+    await list.ensureList()
+    expect(transport.call.mock.calls.filter(call => call[1] === 'remote-list-prs')).toHaveLength(before + 1)
+    const reused = feature.controllerFor('s', 'item')
+    await reused.ensureList(); await reused.ensureOpen(1, 'pulls', 0); await reused.write('remote-comment', { number: 1, body: 'hi' })
+    expect(reused.getSnapshot().unknown).toBe(true)
+    expect(transport.call.mock.calls.filter(call => call[1] === 'remote-comment')).toHaveLength(1)
+    feature.dispose()
+  })
+  it('discards cached filters on generation or workspace changes', async () => {
+    let cap = on
+    const transport = rpc(async endpoint => endpoint === 'remote-capability' ? { ok: true, value: cap } : undefined)
+    const feature = new GitRemoteFeature(transport); feature.refresh(); await tick()
+    const controller = feature.controllerFor('s'); controller.setRepository('/repo', false); await controller.ensureList()
+    cap = { ...on, generation: { ...generation, revision: 2 } }
+    feature.refresh(); await tick()
+    expect(controller.getSnapshot().items).toEqual([])
+    expect(controller.getSnapshot().facts).toBeUndefined()
+    expect(controller.getSnapshot().target).toBeUndefined()
+    controller.setRepository('/other', false)
+    expect(controller.getSnapshot().facts).toBeUndefined()
+    feature.dispose()
+  })
+  it('shares in-flight work across view reuse and aborts it when the feature unloads', async () => {
+    let signal: AbortSignal | undefined
+    const transport = rpc(async (endpoint, _payload, sig) => {
+      if (endpoint === 'remote-list-prs') { signal = sig; return new Promise(() => {}) }
+    })
+    const feature = new GitRemoteFeature(transport); feature.refresh(); await tick()
+    const controller = feature.controllerFor('s'); controller.setRepository('/repo', false)
+    void controller.ensureList(); await tick()
+    await feature.controllerFor('s').ensureList()
+    expect(transport.call.mock.calls.filter(call => call[1] === 'remote-list-prs')).toHaveLength(1)
+    expect(signal?.aborted).toBe(false)
+    feature.dispose(); expect(signal?.aborted).toBe(true)
+  })
+})
+
 describe('safe diff anchors', () => {
   it('keeps original old/new lines and prevents ranges across hunks or sides', () => {
     const diff = remoteDiff({ path: 'file', status: 'modified', additions: 1, deletions: 1, patch: '@@ -2,2 +2,2 @@\n-old\n+new\n same\n@@ -20,1 +20,1 @@\n tail' }, 'base', 'head')
