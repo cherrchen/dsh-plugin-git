@@ -6,18 +6,27 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.2.8] — 2026-10-25
+
+### Added
+
+- Portable GitHub Remote workflows in the right sidebar: PR/Issue browsing, independent detail tabs, PR comments and reviews, verified PR checkout, Issue branches, and protected PR creation from already-pushed branches, closing, and merging. Remote requires the complete optional Host credentials seam; older hosts retain local Git with Remote disabled. Platform login does not configure Git fetch/push authentication. External-platform acceptance remains tracked in the [remote integration plan](docs/plans/active/remote-platform-integration.md).
+- A platform-authentication dialog showing the active credential source and account, with GitHub CLI and configured OAuth device-login choices, reconnect/disconnect flows, and isolated credential lifecycle handling. Credential references and Git credential helpers remain supported by the runtime.
+- Isolated browser E2E coverage for authentication sources in Chinese and English, disconnect/reconnect, device login/cancellation, token redaction, and independent browser contexts.
+
 ### Changed
 
-- Extend verified DSH support to `0.2.1-rc.3` in the canonical release list, `engines.dsh`, and exact peer ranges, including the optional credentials seam. Existing structural adapters remain compatible with the new navigation customization and model listing changes; the development pin stays at `0.2.0-rc.2`.
-- GitHub Remote PR/Issue lists, detail comments, and comparison files no longer stop at a fixed pagination budget. `RemotePage` carries an opaque `next` cursor (the origin-checked `Link rel="next"`), and `remote-list-prs`, `remote-list-issues`, `remote-comments`, and `remote-files` accept `cursor`/`pages` request fields. The Client controller appends items in a serial background stream — a multi-page first request, then one page per continuation — deduplicating by number/comment id/file path, honoring generation checks, and recovering once at `resetAt` after a rate limit. The truncated banner is removed in favor of a streaming hint.
-- `remote-files` continuations pin the comparison snapshot: `expectedBaseSha`/`expectedHeadSha` are verified on every continuation page, so inline-comment coordinates never drift between pages. Inline comment submission stays disabled until all files are loaded, and the bounded collections used for notification expansion and write-path coordinate validation are unchanged.
-- The PR detail page no longer renders local file diffs. New `remote-commits`/`remote-reviews` endpoints project `RemoteCommit`/`RemoteReview` (review `state` normalized to approved/changes-requested/commented/dismissed/pending) and stream through the same cursor mechanism, while file changes open the GitHub Files page via a `pr.url + '/files'` link. Inline comments are read-only and nested under their owning review through `reviewId`; the inline-comment composer button is removed since there is no anchor picker. `remote-files` and `remote-inline-comment` remain guarded RPC capabilities. The detail surface also stops retrying a failed load/open in a tight loop — each attempt is keyed once per target and revision.
+- Extend verified DSH support to `0.2.1-rc.3` in the canonical release list, `engines.dsh`, and exact peer ranges, including the optional credentials seam. Existing structural adapters remain compatible with navigation customization and model discovery; the development pin stays at `0.2.0-rc.2`.
+- GitHub PR/Issue lists, comments, commits, reviews, and comparison files load progressively with cursor continuation, deduplication, cancellation, generation checks, and rate-limit recovery. `RemotePage.next` and the `cursor`/`pages` RPC fields replace the fixed pagination budget; file continuations verify `expectedBaseSha`/`expectedHeadSha` to retain a stable comparison snapshot.
+- PR/Issue details use a chronological timeline with comments, commits, reviews, and read-only inline threads grouped under their reviews. File changes open GitHub's Files page. GitHub Markdown and supported HTML render through the Host's Markdown component, with native details disclosures and validated GitHub avatars.
+- Remote surfaces use upstream primitives and resource tabs. Git guide entries are grouped together, graph/remote icons are clearer, local Git views retain cached data between visits, and remote loading progress stays visible and responsive.
+- Document the upstream Session-log downgrade boundary when newer mandatory events are present.
 
-- The PR/Issue detail tab is now a GitHub-style chronological timeline. `RemoteIssue`/`RemoteComment` carry `createdAt` and `RemoteCommit` carries `committedAt`, and a new `RemoteTimeline` interleaves comments, commits, reviews and inline threads by time — empty per-reply reviews are hidden and orphan threads stand alone. The opening post renders as the first card in the same gutter alignment, and the detail tab moved to 20px horizontal padding.
-- GitHub bodies render readably instead of leaking raw markup: a pure `github-markdown` transform projects the HTML subset GitHub allows (details/summary, comments, images, links, emphasis, code, pre, lists, tables, blockquote alerts) into Markdown before `MarkdownText`, and `RemoteMarkdown` renders `<details>` folds as native disclosures without ever touching `innerHTML`.
-- The platform-authentication dialog was redesigned around a status card plus "Ways to connect" method rows (GitHub account, credentials already on this computer, Git credential helper), each explaining what it does and tagging the method in use. `authAction` accepts an endpoint sequence executed in order inside one busy run; Local/Git credential reconnects prepend `remote-clear-grant` whenever a stored grant or signed-out/invalid marker would override the choice, so Disconnect (persisted signed-out) vs clearing the local grant is expressed through the flow instead of five opaque buttons.
+### Fixed
 
-- Follow-up polish on the same surfaces: timeline and auth-dialog markers now render real GitHub avatars — `author.avatarUrl`/viewer `avatarUrl` are projected only from `https://avatars.githubusercontent.com` via a dedicated `avatarUrl()` gate — with an opaque initial-letter fallback that keeps the timeline gutter hidden behind them. The authentication dialog widened to 440px and simplified into a status card plus a GitHub CLI / GitHub OAuth radio group whose checked state derives purely from capability; the git-credential endpoint remains available behind `remote-use-git-credential`.
+- Stop detail-load and external-open failures from repeatedly retrying for the same target and revision.
+- Recover temporary viewer-lookup failures and reject out-of-range numeric GitHub entity identifiers.
+- Preserve legacy Host Markdown rendering and Client bundle compatibility.
 
 ## [0.2.7] — 2026-10-17
 
@@ -166,7 +175,8 @@ First tagged version: one portable Host service, one Client bundle, and an optio
 - Optional `ctx.inject(['desktop'], ...)` child fiber using `shell.showItemInFolder`, `shell.openPath`, and `notification.show`.
 - Documentation library under `docs/`, the `pnpm docs:check` machine check, the `version:set` script, a tag-triggered release workflow, the bilingual README pair, and its `README.i18n.yaml` hash record.
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.7...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.8...HEAD
+[0.2.8]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.4...v0.2.5
