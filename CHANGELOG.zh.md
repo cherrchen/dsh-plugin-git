@@ -8,6 +8,7 @@
 
 ### Changed
 
+- 将已验证 DSH 支持扩展至 `0.2.1-rc.3`，同步唯一版本清单、`engines.dsh` 与精确 peer 范围（含可选 credentials seam）。既有结构适配层兼容本次导航自定义与模型列表变更；开发 pin 保持 `0.2.0-rc.2`。
 - GitHub Remote 的 PR/Issue 列表、详情评论与比较文件不再受固定分页预算截断。`RemotePage` 携带不透明 `next` 续页游标（经 origin 校验的 `Link rel="next"`），`remote-list-prs`、`remote-list-issues`、`remote-comments`、`remote-files` 接受 `cursor`/`pages` 请求字段。Client controller 以串行后台流追加条目——首请求多页、之后每次续取一页——按 number/评论 id/文件路径去重，逐页校验 generation，并在限流后按 `resetAt` 有界恢复一次。truncated 警示条移除，改为流式提示。
 - `remote-files` 续页钉住比较快照：每次续取校验 `expectedBaseSha`/`expectedHeadSha`，行内评论坐标不会跨页漂移。行内评论提交在文件全部加载完成前保持禁用；通知线程展开与写路径坐标校验的有界收集保持不变。
 - PR 详情页不再渲染本地文件 diff。新增 `remote-commits`/`remote-reviews` 端点，投影 `RemoteCommit`/`RemoteReview` 模型（review `state` 归一为 approved/changes-requested/commented/dismissed/pending）并沿用同一游标流式加载；文件改动经 `pr.url + '/files'` 链接跳转 GitHub Files 页查看。行内评论只读、按 `reviewId` 嵌套在对应 review 下展示；因无锚点选择器，行内评论提交按钮移除。`remote-files` 与 `remote-inline-comment` 保留为受守护 RPC 能力。详情页同时修复了 load/open 失败后紧密循环重试的问题——每个目标与 revision 只尝试一次。
