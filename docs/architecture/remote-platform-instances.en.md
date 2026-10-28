@@ -161,6 +161,8 @@ The v2 instance-capability value requires authMethods.deviceFlow.supported as tr
 
 v2 write-response value is `{outcome:'succeeded'|'partial'|'unknown',steps:[{kind,state,id?,reason?}],receipt?}`; step states are succeeded/failed/unknown/not-sent. Sent-unknown still uses existing git/write-result-unknown plus redacted flat details and targeted reconciliation. Known partial success returns outcome=partial rather than success. Failed approval never resends an already successful comment; reconfirm only known failed/unsent actions. Receipts contain no raw HTTP bodies.
 
+The Client retains pending GitLab reconciliation per session across sidebar unmount/remount. Provider switching is guarded by the currently displayed provider's busy, login or reconciliation state; retained state in a hidden provider cannot prevent entering that provider to resolve it. Returning to the GitLab panel keeps provider departure and repeat writes blocked until the affected object is refreshed and the user acknowledges the inspected result. Successful approve, close and merge actions follow the same flow.
+
 Deduplication keys include session/root, scope, project, generation, viewer and requestId. Retain an in-process payload fingerprint without logging; reject same-id/different-content submissions. No cross-restart/server idempotency is promised; restart leaves uncertain outcomes requiring reconciliation.
 
 ### D7 Discussions, Markdown, notifications and Git (GL-R5, GL-R7, GL-R8)

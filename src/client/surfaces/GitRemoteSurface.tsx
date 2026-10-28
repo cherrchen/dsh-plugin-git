@@ -46,9 +46,11 @@ export function GitRemoteSurface({ gitSessions, remoteFeature, openRemoteItem, s
   const writable = state.facts?.viewer !== undefined && !state.busy && !state.unknown
   const loadingList = state.pending === 'repositories' || state.pending === 'repository' || state.pending === 'items'
   const displayedKind = state.listKind ?? kind
+  // Lock leaving the active provider, while allowing return to retained work after a remount.
+  const providerLocked = provider === 'github' ? state.busy || state.unknown : gitlabState.busy || gitlabState.blocked || gitlabState.login !== undefined
   const providerBar = <div className={css.modeBar} aria-label={t('gitlab.provider')}><div className={css.modePills}>
-    <Pill active={provider === 'github'} disabled={state.busy || state.unknown || gitlabState.busy || gitlabState.blocked || gitlabState.login !== undefined} onClick={() => { setProvider('github') }}>GitHub</Pill>
-    <Pill active={provider === 'gitlab'} disabled={state.busy || state.unknown || gitlabState.busy || gitlabState.blocked || gitlabState.login !== undefined} onClick={() => { setProvider('gitlab') }}>GitLab</Pill>
+    <Pill active={provider === 'github'} disabled={providerLocked} onClick={() => { setProvider('github') }}>GitHub</Pill>
+    <Pill active={provider === 'gitlab'} disabled={providerLocked} onClick={() => { setProvider('gitlab') }}>GitLab</Pill>
   </div></div>
   if (provider === 'gitlab') return <div className={css.root} data-git-remote-surface="">{providerBar}<GitLabRemotePanel controller={gitlab} repository={localState.repository?.root} t={t} /></div>
   if (capability.state === 'off') return <div className={css.root}>{providerBar}<p className={css.empty}>{t('remote.unavailable')}</p></div>

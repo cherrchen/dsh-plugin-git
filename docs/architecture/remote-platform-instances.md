@@ -161,6 +161,8 @@ v2 实例级 capability value 必须提供 `authMethods.deviceFlow.supported:tru
 
 v2 写响应 value 为 `{outcome:'succeeded'|'partial'|'unknown',steps:[{kind,state,id?,reason?}],receipt?}`，step state 为 succeeded/failed/unknown/not-sent。已发未知仍用 git/write-result-unknown 的现有错误码及脱敏 flat details，Client 刷新具体对象对账；已知部分成功回 value.outcome=partial，不伪装全成功。approval 失败时不得再次发送已成功 comment；重新确认只重试明确未发送/已知失败的动作。回执不包含原始 HTTP body。
 
+Client 按会话保留 GitLab 待对账状态，侧栏卸载/重挂载不清除。平台切换受当前显示平台的忙碌、登录或待对账状态约束；隐藏平台保留的状态不得阻止进入该平台完成处理。返回待对账 GitLab 面板后继续禁止离开平台与重复写，直到刷新相关对象并由用户确认核对结果；成功的 approve、close、merge 同样遵守此流程。
+
 去重键包含 session/root、scope、project、generation、viewer、requestId；同时保存提交内容指纹，仅进程内比较不记录日志，同 id 不同内容拒绝。去重不承诺 Host 重启或服务端跨请求幂等性；重启后待确认操作仍需对账。
 
 ### D7 讨论、Markdown、通知与 Git（GL-R5、GL-R7、GL-R8）
