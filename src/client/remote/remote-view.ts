@@ -1,5 +1,4 @@
 /** Provider-neutral view model for the shared remote UI, plus scoped-model projections. */
-import { sameRepository } from '../../remote/git.ts'
 import type { RemoteComment, RemoteCommit, RemoteIssue, RemotePage, RemotePull, RemoteRepository, ScopedGitLabRepository, ScopedRemoteCommit, ScopedRemoteDiscussion, ScopedRemoteIssue, ScopedRemoteNote, ScopedRemotePull } from '../../remote/provider.ts'
 import type { ScopedRemoteScope } from '../../remote/types.ts'
 import { ScopedProtocolError } from '../remote-protocol.ts'
@@ -53,7 +52,8 @@ export function remoteTargetScope(target: RemoteTarget): ScopedRemoteScope {
 export function sameRemoteTarget(a: RemoteTarget | undefined, b: RemoteTarget | undefined): boolean {
   if (a === undefined || b === undefined || a.provider !== b.provider) return false
   if (a.provider === 'gitlab' && b.provider === 'gitlab') return a.instance === b.instance && a.path === b.path
-  return sameRepository(a as RemoteRepository, b as RemoteRepository)
+  const githubA = a as RemoteRepository, githubB = b as RemoteRepository
+  return githubA.host === githubB.host && githubA.owner.toLowerCase() === githubB.owner.toLowerCase() && githubA.repo.toLowerCase() === githubB.repo.toLowerCase()
 }
 
 /** Human label without a remote-name prefix: `owner/repo` or `host/path`. */

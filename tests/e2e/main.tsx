@@ -24,7 +24,16 @@ const rpc = { call: async (_channel: string, endpoint: string, payload: unknown,
   }).then(response => response.json())
 } }
 const feature = new GitRemoteFeature(rpc)
-const gitSessions = new GitSessionControllers(rpc)
+// The isolated /rpc endpoint only serves remote-* endpoints, so the local
+// session controller is stubbed to report the fixture checkout directly.
+const localSnapshot = Object.freeze({ repository: { root: repository }, loading: false })
+const localController = {
+  subscribe() { return () => {} },
+  getSnapshot() { return localSnapshot },
+  async setWorkspace() {}, async refresh() {},
+  setPushObserver() {}, setDesktop() {}, setDiffNavigator() {}, dispose() {},
+}
+const gitSessions = { controllerFor: () => localController, dispose() {} } as unknown as GitSessionControllers
 const list = feature.controllerFor(id)
 list.setRepository(repository, false)
 feature.start()

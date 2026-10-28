@@ -29,7 +29,7 @@ test('keeps an unknown approval blocked until the comment and current approval a
   await expect(page.getByText('评论已发送；核对审批时不要再次发送该评论。')).toBeVisible()
   await expect(page.getByRole('button', { name: '批准', exact: true })).toBeDisabled()
   const id = await page.getByRole('status', { name: 'Fixture ID' }).textContent()
-  await page.getByRole('button', { name: '刷新' }).click()
+  await page.getByRole('button', { name: '刷新', exact: true }).last().click()
   await expect(page.locator('article').filter({ hasText: '只发送一次' })).toBeVisible()
   await page.getByRole('button', { name: '我已核对刷新后的结果' }).click()
   await expect(page.getByRole('button', { name: '批准', exact: true })).toBeEnabled()
