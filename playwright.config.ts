@@ -7,7 +7,7 @@ export default defineConfig({
   workers: 1,
   timeout: 30_000,
   reporter: 'list',
-  outputDir: 'test-results/e2e',
+  outputDir: process.env['DSH_E2E_OUTPUT_DIR'] ?? 'test-results/e2e',
   use: {
     baseURL: 'http://127.0.0.1:4179',
     viewport: { width: 960, height: 760 },

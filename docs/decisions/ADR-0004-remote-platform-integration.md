@@ -104,6 +104,8 @@
 
 ## Related Documents
 
+- [ADR-0005：Remote多实例后续决策](ADR-0005-remote-provider-instances.md)——Accepted；仅以scoped v2 open+rawState+禁写替代历史GitLab locked→closed映射，本文其余决策/历史及Proposed状态不变
+
 - [范围与需求总览](../requirements/scope-and-requirements.md)——非目标反转与 FR-15+/NFR-6+ 修订落点
 - [当前架构总览](../architecture/overview.md)——RemoteService/tab 注册模式落点
 - [DSH 兼容契约](../reference/dsh-compatibility.md)——credentials seam 探测面

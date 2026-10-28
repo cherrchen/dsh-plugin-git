@@ -10,3 +10,4 @@ Holds **how the system works now and how it should evolve**: current architectur
 ## Entries
 
 - [overview.md](overview.md) — current architecture overview: Host service, RPC, Client composition, the three detail surfaces, and Desktop enhancement.
+- [remote-platform-instances.en.md](remote-platform-instances.en.md) — Target GL0 frozen instance/protocol design, configuration/RPC examples, capabilities and acceptance matrices; not implemented.

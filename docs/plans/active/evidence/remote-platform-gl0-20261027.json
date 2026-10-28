@@ -1,0 +1,476 @@
+{
+  "schema": 1,
+  "checkedAt": "2026-10-27",
+  "purpose": "GL0 evidence; no GL1 runtime implementation acceptance",
+  "b2": {
+    "results": [
+      {
+        "scope": "isolated real file-backed provider, synthetic payloads only",
+        "provider": "@deepseek-ai/dsh-credentials-local",
+        "version": "0.2.0-rc.2",
+        "providerEntrySha256": "1688f17801d5809abace4ef6228b771625a0153c043d7d4dba21b398ec4056eb",
+        "node": "v24.18.0",
+        "platform": "darwin",
+        "arch": "arm64",
+        "canonicalUrlBytes": 512,
+        "recordKeyCharacters": 838,
+        "checks": [
+          "canonical-url-512-bytes-and-key-838-characters",
+          "real-provider-write-read-equality",
+          "wire-safe-describe",
+          "owner-only-file-mode",
+          "undefined-mutation-preserves-record",
+          "fresh-provider-restart-persistence",
+          "retired-payload-removes-synthetic-secrets-preserves-sibling",
+          "four-process-eight-updates-without-lost-writes",
+          "unconditional-delete-persists-across-restart"
+        ],
+        "passed": true,
+        "limits": [
+          "No user credential files or GitLab accounts accessed.",
+          "Does not prove other providers, operating systems, or plugin OAuth behavior."
+        ]
+      },
+      {
+        "scope": "isolated real file-backed provider, synthetic payloads only",
+        "provider": "@deepseek-ai/dsh-credentials-local",
+        "version": "0.2.1-rc.3",
+        "providerEntrySha256": "6b4926ef62bfeb95bc3d7687b85303d739a41e813fe05ac06de50111361da069",
+        "node": "v24.18.0",
+        "platform": "darwin",
+        "arch": "arm64",
+        "canonicalUrlBytes": 512,
+        "recordKeyCharacters": 838,
+        "checks": [
+          "canonical-url-512-bytes-and-key-838-characters",
+          "real-provider-write-read-equality",
+          "wire-safe-describe",
+          "owner-only-file-mode",
+          "undefined-mutation-preserves-record",
+          "fresh-provider-restart-persistence",
+          "retired-payload-removes-synthetic-secrets-preserves-sibling",
+          "four-process-eight-updates-without-lost-writes",
+          "unconditional-delete-persists-across-restart"
+        ],
+        "passed": true,
+        "limits": [
+          "No user credential files or GitLab accounts accessed.",
+          "Does not prove other providers, operating systems, or plugin OAuth behavior."
+        ]
+      }
+    ],
+    "provenance": [
+      {
+        "name": "@deepseek-ai/dsh-credentials-local",
+        "version": "0.2.0-rc.2",
+        "integrity": "sha512-az83NVgu0COpjrPRAbXs0+evmSznQN1c8tFv/JKVvgcyPeFw5nLK5+0kA2QRBQ2g1p0+1x5H/4XBtr3Lwq/Piw==",
+        "tarball": "https://registry.npmjs.org/@deepseek-ai/dsh-credentials-local/-/dsh-credentials-local-0.2.0-rc.2.tgz",
+        "entrySha256": "1688f17801d5809abace4ef6228b771625a0153c043d7d4dba21b398ec4056eb"
+      },
+      {
+        "lane": "0.2.0-rc.2",
+        "linkedDependency": "@deepseek-ai/cordis",
+        "version": "4.0.4"
+      },
+      {
+        "lane": "0.2.0-rc.2",
+        "linkedDependency": "@deepseek-ai/schemastery",
+        "version": "3.18.4"
+      },
+      {
+        "lane": "0.2.0-rc.2",
+        "linkedDependency": "@deepseek-ai/dsh-credentials",
+        "version": "0.2.0-rc.2"
+      },
+      {
+        "lane": "0.2.0-rc.2",
+        "linkedDependency": "@deepseek-ai/dsh-home-paths",
+        "version": "0.2.0-rc.2"
+      },
+      {
+        "lane": "0.2.0-rc.2",
+        "linkedDependency": "@deepseek-ai/dsh-atomic-write",
+        "version": "0.2.0-rc.2"
+      },
+      {
+        "lane": "0.2.0-rc.2",
+        "linkedDependency": "@deepseek-ai/dsh-launch-environment",
+        "version": "0.2.0-rc.2"
+      },
+      {
+        "lane": "0.2.0-rc.2",
+        "linkedDependency": "yaml",
+        "version": "2.9.1"
+      },
+      {
+        "name": "chokidar",
+        "version": "4.0.3",
+        "integrity": "sha512-Qgzu8kfBvo+cA4962jnP1KkS6Dop5NS6g7R5LFYJr4b8Ub94PPQXUksCw9PvXoeXPRRddRNC5C1JQUR2SMGtnA==",
+        "tarball": "https://registry.npmjs.org/chokidar/-/chokidar-4.0.3.tgz",
+        "entrySha256": "049555dfb534996d9013eb4e235ffc2a45fd313b22723dd83247176b4603667c"
+      },
+      {
+        "name": "readdirp",
+        "version": "4.1.2",
+        "integrity": "sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg==",
+        "tarball": "https://registry.npmjs.org/readdirp/-/readdirp-4.1.2.tgz",
+        "entrySha256": "9b7c2bb84e39b1c9fe839e564a1bbdbb94e4129547a4de83a42bd31a8831d905"
+      },
+      {
+        "name": "@deepseek-ai/dsh-credentials-local",
+        "version": "0.2.1-rc.3",
+        "integrity": "sha512-B39Mj5IvUm/RRyVZUEtnuh4tqMRnfL9P1XPozo4/nnwoIayen/PR1MHHdyX9ywc+OkOGCkyddgeQH4PKc3kxdw==",
+        "tarball": "https://registry.npmjs.org/@deepseek-ai/dsh-credentials-local/-/dsh-credentials-local-0.2.1-rc.3.tgz",
+        "entrySha256": "6b4926ef62bfeb95bc3d7687b85303d739a41e813fe05ac06de50111361da069"
+      },
+      {
+        "lane": "0.2.1-rc.3",
+        "linkedDependency": "@deepseek-ai/cordis",
+        "version": "4.0.5"
+      },
+      {
+        "lane": "0.2.1-rc.3",
+        "linkedDependency": "@deepseek-ai/schemastery",
+        "version": "3.18.5"
+      },
+      {
+        "lane": "0.2.1-rc.3",
+        "linkedDependency": "@deepseek-ai/dsh-credentials",
+        "version": "0.2.1-rc.3"
+      },
+      {
+        "lane": "0.2.1-rc.3",
+        "linkedDependency": "@deepseek-ai/dsh-home-paths",
+        "version": "0.2.1-rc.3"
+      },
+      {
+        "lane": "0.2.1-rc.3",
+        "linkedDependency": "@deepseek-ai/dsh-atomic-write",
+        "version": "0.2.1-rc.3"
+      },
+      {
+        "lane": "0.2.1-rc.3",
+        "linkedDependency": "@deepseek-ai/dsh-launch-environment",
+        "version": "0.2.1-rc.3"
+      },
+      {
+        "lane": "0.2.1-rc.3",
+        "linkedDependency": "yaml",
+        "version": "2.9.0"
+      },
+      {
+        "name": "chokidar",
+        "version": "5.0.0",
+        "integrity": "sha512-TQMmc3w+5AxjpL8iIiwebF73dRDF4fBIieAqGn9RGCWaEVwQ6Fb2cGe31Yns0RRIzii5goJ1Y7xbMwo1TxMplw==",
+        "tarball": "https://registry.npmjs.org/chokidar/-/chokidar-5.0.0.tgz",
+        "entrySha256": "4d1669ff207e874eb6185b8a4f04c1e694120b9eaf6723ddea1be7ce5583b164"
+      },
+      {
+        "name": "readdirp",
+        "version": "5.0.0",
+        "integrity": "sha512-9u/XQ1pvrQtYyMpZe7DXKv2p5CNvyVwzUB6uhLAnQwHMSgKMBR62lc7AHljaeteeHXn11XTAaLLUVZYVZyuRBQ==",
+        "tarball": "https://registry.npmjs.org/readdirp/-/readdirp-5.0.0.tgz",
+        "entrySha256": "5d63e994b19e0a5cf9a67c46ea79ebc0cee6e97d9d3a27126491af4c6d2595a0"
+      }
+    ],
+    "status": "verified-with-bounded-provider-runtime-scope"
+  },
+  "b3": {
+    "tag": "v19.5.1-ee",
+    "sources": [
+      {
+        "file": "doc/api/oauth2.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/oauth2.md",
+        "status": 200,
+        "bytes": 20783,
+        "sha256": "842076e714e4726e9e121e1f3d5738eb7e08e5fbcf5c4becee0ca24afc7e22d0"
+      },
+      {
+        "file": "doc/api/rest/authentication.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/rest/authentication.md",
+        "status": 200,
+        "bytes": 8431,
+        "sha256": "7c931ed82b0c36f3dbfa3e7a3216bc13118ab9f3d5670767903c9fe1aaac066e"
+      },
+      {
+        "file": "doc/api/rest/_index.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/rest/_index.md",
+        "status": 200,
+        "bytes": 22094,
+        "sha256": "1c61ee5e041065850227f5e466489435a7f8760b2d7b5081f72228535dcd478e"
+      },
+      {
+        "file": "doc/api/users.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/users.md",
+        "status": 200,
+        "bytes": 51407,
+        "sha256": "8a3e9178f21ff80ba3c02f15fddc9d94c982b3c4307b64833af8687ec70021a6"
+      },
+      {
+        "file": "doc/api/projects.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/projects.md",
+        "status": 200,
+        "bytes": 220719,
+        "sha256": "f2c1b28846405eeed9108777718a0f1628a86ad067c4608268112f02e126804d"
+      },
+      {
+        "file": "doc/api/merge_requests.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/merge_requests.md",
+        "status": 200,
+        "bytes": 233783,
+        "sha256": "a886cd64ddbb7aac31cad6692ba22989ac161d4d43e262855a997e1a9f19ee42"
+      },
+      {
+        "file": "doc/api/merge_request_approvals.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/merge_request_approvals.md",
+        "status": 200,
+        "bytes": 64684,
+        "sha256": "2da4a5d81e2981b6c3ee13c82d104e2db45e2e68df6213df1d579c9ceb05468f"
+      },
+      {
+        "file": "doc/api/issues.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/issues.md",
+        "status": 200,
+        "bytes": 117442,
+        "sha256": "dde80b3336f5dac75e2dfd2c81d1c67b608e62b569f5e6002e3bb5947fc39983"
+      },
+      {
+        "file": "doc/api/notes.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/notes.md",
+        "status": 200,
+        "bytes": 34854,
+        "sha256": "469c21232afa72616dbe9b38473e6b2fbce57e372cd2606e7b240e38532625c6"
+      },
+      {
+        "file": "doc/api/discussions.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/discussions.md",
+        "status": 200,
+        "bytes": 63920,
+        "sha256": "d8a505d8680a25260c79234ebdd6f98411346224c3de869d3fc16c0ccf87205d"
+      },
+      {
+        "file": "doc/api/todos.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/todos.md",
+        "status": 200,
+        "bytes": 12130,
+        "sha256": "24ec29c53a481e5e584c320883b64703a7e215dc116267f1d1fc0b07d36e19ee"
+      },
+      {
+        "file": "doc/api/metadata.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/metadata.md",
+        "status": 200,
+        "bytes": 3005,
+        "sha256": "01e0bc63a4a393b2792a0f5d4bab7792b0524ce538b131b8e719eecef9edf03a"
+      },
+      {
+        "file": "doc/api/branches.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/branches.md",
+        "status": 200,
+        "bytes": 16536,
+        "sha256": "088352302133f1ec31bff941d3cdfe127de807a0e62e9f2e0ffe8b1ecb14a51f"
+      },
+      {
+        "file": "doc/api/resource_state_events.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/resource_state_events.md",
+        "status": 200,
+        "bytes": 11691,
+        "sha256": "5892f9e3af3f0dd1d03164aa35bdc154ae8d9c8c00921e9ced3b498524b28209"
+      },
+      {
+        "file": "doc/api/protected_branches.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/api/protected_branches.md",
+        "status": 200,
+        "bytes": 38856,
+        "sha256": "d801520d14a6b47bdddd31aa02fddfe52df541ba717d56adc98cdcb08411a6e3"
+      },
+      {
+        "file": "doc/integration/oauth_provider.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/integration/oauth_provider.md",
+        "status": 200,
+        "bytes": 9042,
+        "sha256": "b0d50cdb2f8f2990679c1fb2c93dc8a4fa0928e3ec8f0ac8bbc3d4c12d1b6bf6"
+      },
+      {
+        "file": "doc/user/project/repository/branches/protected.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/user/project/repository/branches/protected.md",
+        "status": 200,
+        "bytes": 24240,
+        "sha256": "123e1fe324fa2cbe2ede671852d10eff42fc03637219ced6709a21b56187fd2f"
+      },
+      {
+        "file": "doc/user/project/merge_requests/merge_request_troubleshooting.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/user/project/merge_requests/merge_request_troubleshooting.md",
+        "status": 200,
+        "bytes": 11672,
+        "sha256": "7e1f8e08f698b9d2b937173d32e112fcf434444745ccea4a4da3245d3df0fa77"
+      },
+      {
+        "file": "doc/user/project/merge_requests/_index.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/user/project/merge_requests/_index.md",
+        "status": 200,
+        "bytes": 22197,
+        "sha256": "c53e755b9ee0c247b5df05ee933cb39809d6f62458b31443a94a3941ba9bd781"
+      },
+      {
+        "repository": "omnibus-gitlab",
+        "tag": "19.5.1+ee.0",
+        "file": "doc/settings/configuration.md",
+        "url": "https://gitlab.com/gitlab-org/omnibus-gitlab/-/raw/19.5.1%2Bee.0/doc/settings/configuration.md",
+        "status": 200,
+        "bytes": 39972,
+        "sha256": "563b5c849e3ba059053dc4f217b6317abb8216a94c43387895451ed90e69962f"
+      },
+      {
+        "repository": "gitlab",
+        "tag": "v19.5.1-ee",
+        "file": "doc/user/project/merge_requests/reviews/_index.md",
+        "url": "https://gitlab.com/gitlab-org/gitlab/-/raw/v19.5.1-ee/doc/user/project/merge_requests/reviews/_index.md",
+        "status": 200,
+        "bytes": 17876,
+        "sha256": "6d44ccd22765951ce1c727a67e1a5bed90202a86932be8388d8436516f5ebee0"
+      }
+    ],
+    "status": "pinned-contract-sources-reviewed; relative-URL SSH evidence in B4"
+  },
+  "b4": {
+    "status": "isolated-baseline-verified; full GL5 acceptance remains unverified",
+    "image": "gitlab/gitlab-ee:19.5.1-ee.0",
+    "platform": "linux/arm64",
+    "digest": "sha256:a1a04d4f28e219d88428d9d514e9305a05c63945c7fb09f11b4e0305e455dfae",
+    "dockerServer": "29.3.1",
+    "dockerVm": {
+      "memoryBytes": 4108828672,
+      "cpus": 8
+    },
+    "deployment": {
+      "edition": "EE",
+      "importedLicenseRows": 0,
+      "httpsPort": 18443,
+      "sshPort": 18222,
+      "listen": "loopback only",
+      "pumaWorkers": 0,
+      "sidekiqConcurrency": 5,
+      "monitoring": false,
+      "prefixes": [
+        "",
+        "/gitlab"
+      ]
+    },
+    "results": [
+      {
+        "scope": "real isolated server baseline; not plugin acceptance",
+        "version": "19.5.1-ee",
+        "revision": "48423440144",
+        "enterprise": true,
+        "metadataHasPlan": false,
+        "prefix": "",
+        "tls": "certificate validated with per-request trust; no global TLS bypass",
+        "checks": [
+          "authenticated-metadata",
+          "authenticated-user",
+          "public-app-device-initialization",
+          "device-token-pending-without-api-bearer",
+          "project-identity-and-clone-urls",
+          "https-prefix-separated-from-ssh-repository-path",
+          "mr-list",
+          "mr-detail",
+          "mr-commits",
+          "mr-diffs",
+          "mr-discussions",
+          "mr-current-approvals",
+          "issue-detail",
+          "todos-candidate-source",
+          "reviewer-comment",
+          "reviewer-sha-approval",
+          "merge-stale-sha-rejected",
+          "anonymous-private-project-denied"
+        ],
+        "gaps": [],
+        "passed": true,
+        "limits": [
+          "Not GL1/GL5 plugin implementation acceptance.",
+          "No licensed-tier, GitLab.com or Windows/Linux/Web/Desktop matrix acceptance.",
+          "Device authorization exchange/refresh after browser approval not tested."
+        ]
+      },
+      {
+        "scope": "real isolated server baseline; not plugin acceptance",
+        "version": "19.5.1-ee",
+        "revision": "48423440144",
+        "enterprise": true,
+        "metadataHasPlan": false,
+        "prefix": "/gitlab",
+        "tls": "certificate validated with per-request trust; no global TLS bypass",
+        "checks": [
+          "authenticated-metadata",
+          "authenticated-user",
+          "public-app-device-initialization",
+          "device-token-pending-without-api-bearer",
+          "project-identity-and-clone-urls",
+          "https-prefix-separated-from-ssh-repository-path",
+          "mr-list",
+          "mr-detail",
+          "mr-commits",
+          "mr-diffs",
+          "mr-discussions",
+          "mr-current-approvals",
+          "issue-detail",
+          "todos-candidate-source"
+        ],
+        "gaps": [],
+        "passed": true,
+        "limits": [
+          "Not GL1/GL5 plugin implementation acceptance.",
+          "No licensed-tier, GitLab.com or Windows/Linux/Web/Desktop matrix acceptance.",
+          "Device authorization exchange/refresh after browser approval not tested."
+        ]
+      },
+      {
+        "passed": true,
+        "prefix": "/gitlab",
+        "transport": "SSH",
+        "hostKey": "pinned from isolated container, strict checking",
+        "checks": [
+          "server-generated-ssh-path-excludes-web-prefix",
+          "non-default-ssh-port",
+          "actual-mr-head-ref-matches-api-sha"
+        ],
+        "command": "git ls-remote --refs <isolated-ssh-clone-url> refs/merge-requests/:iid/head"
+      }
+    ],
+    "observations": [
+      "Boot/seed observed cgroup oom_kill=1; unchanged after both final lanes. This is a memory-tuned custom fixture, not standard-deployment sizing validation.",
+      "Initial reviewer access returned 404; later identity/membership/read/write checks and the final baseline passed. No claim about the unproven cause.",
+      "Prefix reconfiguration initially returned 502 before Puma listened; final prefix probe passed after readiness.",
+      "Real browser-approved token issuance/refresh, full merge/close behavior, fork/dual-instance scenarios and the GL5 platform matrix are not verified."
+    ],
+    "cleanup": "isolated container, downloaded GitLab image, bind-mounted data, certificates, keys and synthetic credentials removed; existing postgres image retained",
+    "dockerDesktopRestoredToStopped": true
+  },
+  "tools": [
+    {
+      "path": "scripts/probe-remote-credential-store.mjs",
+      "sha256": "1977f6a564c0a81dac45ea4c3a721613adce208f127403e8c459ff60e4a4eaa3"
+    },
+    {
+      "path": "scripts/probe-gitlab-gl0.mjs",
+      "sha256": "f94302988801a29e434197c6666c80cf979d301a3b97dae6029f901b0eb5ca6e"
+    }
+  ],
+  "freeze": {
+    "status": "confirmed",
+    "date": "2026-10-27",
+    "authority": "user request to supplement B2-B4 and confirm final GL0 freeze, after passing B1 re-review",
+    "scope": "GL0 design baseline only, not implementation or GL5 acceptance",
+    "adr0005": "Accepted",
+    "adr0004": "Proposed, unchanged except a forward cross-reference",
+    "gl1": "not authorized; not started"
+  },
+  "validation": {
+    "documentation": "pnpm docs:check: exit 0; 64 Markdown files, 818 links, 261 names",
+    "whitespace": "git diff --check: exit 0",
+    "syntax": "node --check: both evidence probes exit 0",
+    "evidence": "all stored pass flags, tool SHA-256 and bilingual table row counts verified",
+    "runtimeImplementationChanged": false
+  }
+}

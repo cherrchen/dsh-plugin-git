@@ -88,6 +88,8 @@ export interface GitRepositorySnapshot {
   readonly checkout?: GitCheckout
   /** Other and current checkouts of the same repository. */
   readonly worktrees?: readonly GitWorktree[]
+  /** Sync-only hint when the configured push remote was stable and identifiable. */
+  readonly pushedRemote?: 'origin' | 'upstream'
 }
 
 /** History scope of a `git log` query. */

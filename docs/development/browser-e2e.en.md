@@ -16,19 +16,22 @@ Linux CI installs browsers with `pnpm exec playwright install --with-deps chromi
 
 Entry points are `playwright.config.ts` and `tests/e2e/auth.e2e.ts`. Playwright starts a dedicated Vite fixture server bound only to `127.0.0.1:4179`. An occupied port fails startup rather than reusing another service. Tests run serially, with an independent in-memory credential store and temporary Git repository for each scenario. Failure screenshots, traces and error context remain in `test-results/e2e/`; that directory and Playwright reports are ignored by Git.
 
+Set `DSH_E2E_OUTPUT_DIR` to an absolute path outside the repository to keep failure screenshots and traces without overwriting working-tree test artifacts.
+
 ## Isolation and validation boundaries
 
-The browser runs the repository's actual `RemoteAuthControl` / `RemoteAuthSection`, Client controller and capability store. A loopback HTTP adapter calls the real `GitRemoteRuntime`, authentication engine and GitHub provider. Repository reads execute real Git using temporary HOME / USERPROFILE / XDG_CONFIG_HOME / GH_CONFIG_DIR values and isolated global/system Git configuration. User helper settings and token environment variables are never read.
+The browser runs the repository's actual `RemoteAuthControl` / `RemoteAuthSection`, Client controller and capability store. A loopback HTTP adapter calls the real `GitRemoteRuntime`, authentication engine and GitHub/GitLab providers. Repository reads execute real Git using temporary HOME / USERPROFILE / XDG_CONFIG_HOME / GH_CONFIG_DIR values and isolated global/system Git configuration. User helper settings and token environment variables are never read.
 
-Deterministic fixtures replace external GitHub OAuth/REST services and gh/credential-helper probes, issuing only synthetic sentinel tokens. The backend intercepts outbound requests; the browser rejects non-loopback requests. Tests never contact real GitHub, alter existing user grants, open real authorization pages or send remote writes. Fixture control endpoints are registered only by the test Vite configuration and are excluded from the published package. Server shutdown cancels runtime work and removes temporary repositories.
+Deterministic fixtures replace external GitHub OAuth/REST and GitLab API services and gh/credential-helper probes, issuing only synthetic sentinel tokens. The backend intercepts outbound requests; the browser rejects non-loopback requests. Tests never contact real GitHub, alter existing user grants, open real authorization pages or send writes to real remotes. Fixture control endpoints are registered only by the test Vite configuration and are excluded from the published package. Server shutdown cancels runtime work and removes temporary repositories.
 
-The current seven browser cases cover:
+The browser cases cover:
 
 - Chinese/English labels for gh, OAuth and credential references;
 - Disconnecting and reconnecting GitHub CLI through the method radios (the signed-out marker is cleared first inside the same run), plus a dialog-width assertion and screenshots;
 - The complete internal anonymous-to-OAuth device-login flow and cancellation;
 - Absence of token bodies from browser RPC responses and page content;
-- Authentication isolation between separate browser contexts and credential stores.
+- Authentication isolation between separate browser contexts and credential stores;
+- GitLab instance prefixes, MR reads, comments, reconciliation after an unknown approval, limited notices and simulated local-push suggestions.
 
 Missing/unknown sources and invalid authentication states are covered separately by `tests/remote-auth-section.client.spec.tsx`. The regression for authentication changes overlapping an older capability read lives in `tests/remote-client.spec.ts`.
 

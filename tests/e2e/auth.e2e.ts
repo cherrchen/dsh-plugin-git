@@ -93,3 +93,19 @@ test('independent browser contexts and fixture stores do not share authenticatio
     await expect(dialogB.getByText('未连接', { exact: true })).toBeVisible()
   } finally { await a.close(); await b.close() }
 })
+
+
+test('retires an orphan GitLab grant only after reviewing its canonical URL', async ({ page }) => {
+  const dialog = await openAuth(page, 'orphan')
+  await dialog.getByLabel('已移除的实例 URL').fill('https://OLD.EXAMPLE:443/')
+  await dialog.getByRole('button', { name: '检查清除内容' }).click()
+  await expect(dialog.getByText('https://old.example', { exact: true })).toBeVisible()
+  const id = await page.getByRole('status', { name: 'Fixture ID' }).textContent()
+  const before = await page.request.post('/__test/inspect', { data: { id } }).then(response => response.json())
+  expect(before.orphanRetired).toBe(false)
+  await dialog.getByRole('button', { name: '确认清除' }).click()
+  await expect(dialog.getByText('本地秘密已清除，退出标记已保留。')).toBeVisible()
+  const after = await page.request.post('/__test/inspect', { data: { id } }).then(response => response.json())
+  expect(after.orphanRetired).toBe(true); expect(after.calls).toContain('remote-retire-grant')
+  expect(await page.locator('body').innerText()).not.toContain('e2e-sentinel-')
+})

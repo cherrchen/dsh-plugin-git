@@ -123,7 +123,7 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'git: dictionaries')
   const t = ctx.locale.bind(NS)
   const remoteFeature = new GitRemoteFeature(connection.rpc)
-  gitSessions.setPushObserver((repository, head) => remoteFeature.ingest([{ id: `push/${repository}/${head}`, kind: 'create-pr', title: t('remote.pushedSuggestion') }]))
+  gitSessions.setPushObserver((repository, head, sessionId, remoteName) => { void remoteFeature.pushed(repository, head, sessionId, t('remote.pushedSuggestion'), remoteName, () => gitSessions.controllerFor(sessionId).getSnapshot().repository?.root === repository) })
   let remoteTabDispose: (() => void) | undefined
   const remoteSurfaces: (() => void)[] = []
   ctx.effect(() => {
@@ -207,7 +207,10 @@ export function apply(ctx: ClientContext): void {
 
   ctx.inject(['desktop'], (desktopCtx) => {
     gitSessions.setDesktop(desktopCtx.desktop)
-    remoteFeature.setNotify(async notice => { await desktopCtx.desktop.notification.show({ title: t('remote.title'), body: `${t(remoteNoticeKeys[notice.kind])} · ${notice.title}` }) })
+    remoteFeature.setNotify(async notice => {
+      const label = notice.provider === 'gitlab' ? notice.kind === 'review-requested' ? 'gitlab.noticeReview' : notice.kind === 'merged' ? 'gitlab.noticeMerged' : notice.kind === 'closed' ? 'gitlab.noticeClosed' : 'gitlab.noticeCreate' : remoteNoticeKeys[notice.kind]
+      await desktopCtx.desktop.notification.show({ title: t('remote.title'), body: `${t(label)} · ${notice.title}` })
+    })
     return () => { gitSessions.setDesktop(undefined); remoteFeature.setNotify(undefined) }
   })
 

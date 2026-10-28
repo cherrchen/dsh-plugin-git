@@ -15,11 +15,35 @@ credentials 使用本地结构契约，无运行时或发布声明包导入，�
 
 ## `remote-capability`
 
-payload 忽略（含 `null`）。无 seam 返回 `{ state:'off', reason:'credentials-missing', auth:{state:'off'} }`；不完整 seam 返回 `credentials-incomplete` 与 `missing`。`implementation-pending` 保留为运行时未装配时的安全兜底。
+无 `remoteProtocol` 标记时 payload 仍被忽略（含 `null`）。无 seam 返回 `{ state:'off', reason:'credentials-missing', auth:{state:'off'} }`；不完整 seam 返回 `credentials-incomplete` 与 `missing`。`implementation-pending` 保留为运行时未装配时的安全兜底。
 
-完整 seam 的应答为 `{ state:'on', generation, credential, auth, actions, loginAvailable, automaticRefreshAvailable }`。capability 不启动子进程或网络，只读取存储描述与已知的内存认证状态。`credential.configured/writable` 不表示已认证或远端写权限；初始 `auth.state` 为 `unauthenticated`，动作是 `unknown`。仓库 viewer、permissions 与动作事实由 `remote-repository` 单独返回。
+完整 seam 的无作用域应答保留 `{ state:'on', generation, credential, auth, actions, loginAvailable, automaticRefreshAvailable }` 并附加 `remoteProtocol:2` 宣告。capability 不启动子进程或网络，只读取存储描述与已知的内存认证状态。`credential.configured/writable` 不表示已认证或远端写权限；初始 `auth.state` 为 `unauthenticated`，动作是 `unknown`。仓库 viewer、permissions 与动作事实由 `remote-repository` 单独返回。
 
 `generation = { instanceId:string, revision:number }` 对 Client 不透明；Host 重建时 instanceId 不复用。viewer 的稳定身份为 `{host,userId}`，login 仅展示。同一 generation 至多一次 `GET /user`；显式重试会创建新 generation，失败 token 不会因重试自动回退到其他账号。
+
+## Scoped v2 基础（Current）
+
+Host 在完整 seam 的无作用域 capability 中宣告 `remoteProtocol:2`；Client 只有看到该宣告才发送 v2。带标记请求必须为 `2`，除跨实例 `remote-repositories` 与孤儿清理外，都带 `{provider,instance}`。成功回 `{remoteProtocol:2,scope,generation,value}`；capability 的内外 generation 相同，无返回值为 `value:null`。seam off 和 RPC 错误是控制结果，不提供可信 generation。Client 校验标记、规范 scope 和 generation，丢弃乱序/过期应答；失败不回退为无作用域写入。GitHub 作用域为 `https://github.com`；v1 字段、grant 和无作用域调用保持原义。
+
+v2 `remote-repositories` 带 `repository/sessionId?`，返回 `{remoteProtocol:2,value:{state,remotes,unresolved?}}`，每个已识别 identity 含 scope。只读取本地 origin/upstream、显式登记实例和内建 GitLab.com；陌生域名不探测。HTTPS 前缀和 SSH endpoint 分别匹配，同一 SSH 映射无法唯一归属时返回脱敏 `ambiguous`。未知 URL 不回传；无 seam 仍为全局 off。
+
+GitLab 实例的 capability、`remote-login`、`remote-poll-login`、`remote-cancel-login`、`remote-sign-out`、`remote-clear-grant`、`remote-retry-auth`、仓库级 `remote-repository`、MR/Issue 列表与详情、commits、notes、discussions、审批事实、文件比较、MR checkout、Issue 分支及受守护的 MR 评论/审批/创建/关闭/直接合并 Host 端点已接线。`remote-repository` 接受本地仓库及完整 `path`、可选 `projectId` 和对象 `{kind,number}`，先匹配本地 origin/upstream 的实例和路径，再请求项目并核对 API 的 `path_with_namespace` 与 id；各页发送前及响应返回前再次核对本地 remote 与会话，并在返回前核对认证 generation。返回的 `actionScope` 标明仓库或对象，`operationSupport`、方法/事件集、动作与 `reviewPermissions` 分别表示实现/策略和权限事实；未知权限不表示拒绝，未确认项目功能或方法不开放。未实现的远端写入仍拒绝 `git/remote-unavailable`，不会伪造成功。项目身份读取不缓存；对象读取只在认证时按实例、viewer、generation、项目与完整请求路径隔离缓存，有 ETag 才发送条件请求。匿名只接受手动请求，认证自动请求至少间隔 60 秒并服从限流。实例 capability 动作仍为 false；`authMethods.deviceFlow` 初始为 unknown，显式尝试可更新为已支持/不支持。capability 只读存储描述与内存状态，不启动网络或子进程。`remote-retry-auth` 显式验证身份并可读取实例 metadata；成功读取的 `serverVersion` 标为 `support:'unknown',reason:'not-verified'`，不构成服务端兼容承诺。元数据不可用不会把已验证身份改成另一个账号；认证 401 仍标 invalid。
+
+每个 GitLab 实例独立 grant v2、App、viewer、随机 generation、请求和登录 attempt。发现顺序、ref 绑定/失败分类、URL 和 838 字符上限以[设计 D2/D4](../architecture/remote-platform-instances.md)为准。Device Flow 只发送 `api` scope 和实例 App；访问 token 只发往选定实例 `<prefix>/api/v4/`，OAuth 与验证页分别限定路径，不带 REST bearer。响应缺 `expires_in` 不提交 token；仅在部署方对**实际 store** 的跨进程互斥作 `refreshStoreExclusive` 正向保证且有 refresh token 时自动刷新。持久意图/CAS 和未知结果不重放；新响应缺 refresh token 时不复用旧 token。项目查询仅允许从已核验本地路径生成的精确编码路径，其他 API 路径仍拒绝百分号编码；逐跳重定向受到原请求约束。列表续页使用 Host 管理的随机 handle，绑定实例、项目、viewer、generation、查询及会话；单次最多 10 页，超出以 handle 继续，分页头缺失则报错而不宣称完整。MR/Issue 区分全局 id 和项目内 iid；MR 保留 source/target project、分支与实际提供的 SHA，`locked` 投影为 `open` 并保留原值，未知状态只读。配置完整校验后更新注册表：无效更新保留上一份有效快照；首次配置无效时保留内建 GitLab.com 与 GitHub 发现，退役在配置无效时拒绝；变更/移除的 context 取消并 drain。宿主 volatile 引用没有订阅接口，Host 以一秒周期对账，并在认证关键步骤及 scoped 响应前复核。
+
+GitLab 的 `remote-comments` 和 `remote-discussions` 需带 `objectKind:'pull'|'issue'` 与项目内 `number`；前者返回只读 notes，后者返回独立 discussion id、notes 及可得的 resolved/resolvable 和 diff position（含双侧路径/行号、base/start/head 与 line range），不以 review id 代替线程。`remote-approvals` 返回 API 实际提供的当前审批字段和批准者，不生成 review 历史。`remote-files` 首次和续页均复核 MR 比较快照；续页带 `expectedBaseSha`、`expectedStartSha`、`expectedHeadSha`，游标同时绑定三者。快照变化返回 `git/head-moved`；collapsed、too-large、空或缺失补丁分别显式标识。上游 diff 限制可能独立于分页截断文件，故 `serverCompleteness:'unknown'` 始终明确保留这一限制；`files.truncated:false` 只表示没有更多分页链接，不证明服务端提供全部变更。GitLab 的 `remote-reviews` 和 inline 评论提交仍不可用。
+
+GitLab 的 `remote-checkout-pr` 与 `remote-issue-branch` 要求规范 `expectedInstance`、`expectedGeneration`、稳定 `expectedViewer` 和 `requestId`，由 Host 重新解析项目与对象并在每个本地副作用前核对会话、remote 和凭据快照。checkout 只从匹配的 origin/upstream 读取目标项目 `refs/merge-requests/<iid>/head`，写入按实例和目标 project id 隔离的私有 ref，再与 API head SHA 核对；同库设置 source tracking，fork 默认 `mr-<iid>`，已有默认分支时要求改名。回执分别记录私有 ref、tracking、fetch mapping、切换、upstream 和实际 HEAD 的已知状态；观察到其他 worktree 占用分支时附 `worktreeConflict:true`。不自动回滚或删除分支。Issue 分支从已检查的本地 HEAD 创建并切换，失败时回报已创建或未知步骤。进程内 requestId 同内容去重、不同内容拒绝；Git 传输使用现有 Git 凭据，不注入平台 token。
+
+GitLab 远端 mutator 同样必须带上述身份/会话确认；评论、review、关闭和合并明确使用 `objectKind:'pull'`。`COMMENT` 发普通 note；`APPROVE` 携带期望 head SHA。已知审批需重新认证或无法确认该策略时不开放 APPROVE，也不收集密码；带正文审批先检查支持，再按 comment → approve 执行。第一步成功后第二步失败返回 partial；第二步发送后结果未知返回 `git/write-result-unknown`，details 标出已成功的 comment id，重复 requestId 不重发。合并只开放项目策略与对象当前 `squash_on_merge` 共同支持的 `merge` 或 `squash`；对象缺少该事实或两者冲突时禁用。Host 写前重新读取并显式发送所选 squash 值、期望 SHA 和 `should_remove_source_branch:false`；项目或分支策略仍可能在核验后变化，没有原子策略前置。回执确认已合并但 squash 结果缺失或不符、或报告源分支将被移除时，返回 partial 并保留已合并事实，要求用户核对而不重试。draft、locked、未知状态或已知阻断不得发送；关闭、创建、评论没有原子 SHA 前置，发送前核对仅为 best-effort。创建请求的 `head` 必须含同实例的 `provider`、`instance`、`path`、已验证 `projectId`，source/target 都须属于本地 origin/upstream，Host 验证两条远端分支存在，不 push 或创建 fork。分支编码只在绑定数字项目与精确分支的 GET 中允许。发送后超时/丢响应/5xx、写成功后会话或实例失效、以及 Client 无法验证写回执的作用域/generation 时，均作为 `git/write-result-unknown` 并要求刷新具体对象；已知未发送、权限拒绝与部分完成单独报告。GitLab inline 写、Issue 写、REQUEST_CHANGES、unapprove、rebase 和自动合并仍拒绝。
+
+Client 主 fiber 提供 GitHub/GitLab 切换、按本地 remote 的实例/仓库选择和逐实例认证修复，浏览 MR/Issue、当前审批、讨论、提交与比较，按对象 facts 启用受支持操作。旧 Host 未宣告 v2 时不发送 GitLab scoped 请求。关闭与合并先展示实例、仓库、对象、head SHA 和账号并要求再次确认；上下文变化使确认失效。部分或未知结果会阻止再次提交，要求刷新具体对象、加载相关分页并由用户确认已核对；本地 Git 的部分回执还要求检查分支和工作树。提交去重和对账状态仅在当前进程有效。GitLab 正文使用安全 Markdown 子集，未知 HTML 以文本展示，链接只允许已验证实例范围，图片显示替代文本而不自动加载，安全折叠可展开；行内写保持禁用。
+
+GitLab 的 `remote-notifications` 只读取已认证 viewer、已核验项目范围内 pending 且结构化 `action_name:review_requested` 的 MR todo；项目 id/path、target 项目/id/iid、状态与安全网页链接均单独校验。续页复用绑定实例、项目、viewer、generation、查询和会话的不透明游标；不会标记 todo 完成，也不从自然语言或审批快照伪造 changes-requested。Client 按实例、项目、账号、generation、对象与状态/时间去重，仅对已加载的本人 MR 逐个复查状态；本地 push 建议只针对已验证的本地 origin/upstream：显式 push 使用 origin；sync 前后读取的 Git push remote 与分支一致且属于允许集合时才投影可选 `pushedRemote`，无法证明时不猜测。通知停留在所属 GitLab 视图，原生通知是可卸载增强；范围和请求失败均不代表所有账号事件已覆盖。
+
+`remote-retire-grant` 只接受 `{remoteProtocol:2,provider:'gitlab',instance}`；完整规范化后由 Host 推导本插件 key。未登记 scope 可纯存储清理，已登记时拒绝；锁内验证 v2 绑定并用新 revision 替换为无秘密 retired signed-out 标记。回执 `{remoteProtocol:2,scope,generation:null,value:{disposition}}` 的 disposition 为 `retired`、`already-retired` 或 `absent`；不依赖枚举、不发网络、不解析外部 ref、不撤销服务端 token。普通 `remote-clear-grant` 仍删除活动实例的本地 grant 并恢复发现。Client 认证弹窗提供输入旧 URL、展示规范 scope、再次确认的清理入口。
+
+GitHub scoped 读写通过旧 owner 的显式适配层，写入另须 `expectedInstance:'https://github.com'`，并按 scope、仓库、generation、viewer 和 requestId 隔离去重及内容指纹。v2 仓库/对象 facts 单独提供 operationSupport、支持的方法/事件集；合并方法取仓库的 `allow_merge_commit` / `allow_squash_merge`，缺证据时禁用并在写前复核。Issue 远端写入不支持，动作同时为 false。v2 写回执包含 outcome/steps，checkout 和 issue-branch 可回部分完成。既有 GitHub v1 行为不依赖 v2。
 
 ## 配置与认证
 
@@ -27,7 +51,8 @@ payload 忽略（含 `null`）。无 seam 返回 `{ state:'off', reason:'credent
 
 | 字段 | 默认 | 语义 |
 | --- | --- | --- |
-| `clientId` | 无 | Device Flow 公共 client_id；缺少时隐藏登录，发现链仍可用 |
+| `clientId` | 无 | GitHub Device Flow 公共 client_id；缺少时隐藏登录，发现链仍可用 |
+| `instances` | 内建 GitLab.com | 最多 16 条显式 GitLab 实例配置；`url`、`label?`、`clientId?`、`credentialRef?`、`sshHost?`、`sshPort?`，身份规则见[多实例设计 D2](../architecture/remote-platform-instances.md#d2-配置与实例身份gl-r2gl-r9gl-r13) |
 | `requestTimeoutMs` | `15000` | HTTP 请求总超时，含全部重定向和正文读取 |
 | `probeTimeoutMs` | `5000` | 非交互凭据探针超时，范围 1–5000 ms |
 | `refreshTtlMs` | `30000` | 刷新持久意图及旁观等待 TTL |

@@ -303,3 +303,20 @@ describe('remote-* rejection', () => {
     }
   })
 })
+
+describe('v2 negotiation at the Host boundary', () => {
+  it('returns global off without a seam and echoes scope only after a complete seam is present', async () => {
+    const host = await mounted()
+    const payload = { remoteProtocol: 2, provider: 'gitlab', instance: 'https://gitlab.com' }
+    try {
+      expect(await host.call('remote-capability', payload)).toEqual({ ok: true, value: { state: 'off', reason: 'credentials-missing', auth: { state: 'off' } } })
+      const fiber = host.ctx.plugin(c => { c.provide('credentials', completeProvider()) }); await fiber.await()
+      try {
+        const legacy = await host.call('remote-capability', {})
+        expect(legacy).toMatchObject({ ok: true, value: { state: 'on', remoteProtocol: 2 } })
+        const scoped = await host.call('remote-capability', payload)
+        expect(scoped).toMatchObject({ ok: true, value: { remoteProtocol: 2, scope: { provider: 'gitlab', instance: 'https://gitlab.com' }, value: { state: 'on' } } })
+      } finally { await fiber.dispose() }
+    } finally { await host.dispose() }
+  })
+})

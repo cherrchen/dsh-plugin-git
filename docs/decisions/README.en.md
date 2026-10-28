@@ -16,3 +16,4 @@ Holds **why important design decisions were made**: why this option won among th
 | [ADR-0002](ADR-0002-graph-lane-cap-max-three-lanes.md) | Accepted | The Graph view renders at most 3 lanes |
 | [ADR-0003](ADR-0003-dsh-compatibility-contract.md) | Accepted | Commit to DSH support through an exact release list |
 | [ADR-0004](ADR-0004-remote-platform-integration.md) | Proposed (review closed) | Git remote-platform integration: credentials-seam gate, REST transport, provider abstraction |
+| [ADR-0005](ADR-0005-remote-provider-instances.en.md) | Accepted (GL0 design frozen, no implementation authorization) | Remote instances, versioned protocol and orphan-grant retirement |

@@ -10,3 +10,4 @@
 ## 条目
 
 - [overview.md](overview.md) —— 当前架构总览：Host service、RPC、Client 组合、三个详情面与 Desktop 增强。
+- [remote-platform-instances.md](remote-platform-instances.md) —— Target：GL0 已冻结的多实例/协议设计，配置与RPC示例、能力和验收矩阵；未实施。

@@ -257,8 +257,22 @@ export class GitService {
    */
   async sync(repository: string, signal?: AbortSignal): Promise<GitRepositorySnapshot> {
     await this.run(repository, ['pull', '--rebase', '--autostash'], signal)
+    const before = await this.pushDestination(repository, signal)
     await this.run(repository, ['push'], signal)
-    return this.status(repository, signal)
+    const snapshot = await this.status(repository, signal)
+    const after = await this.pushDestination(repository, signal)
+    return before !== undefined && after !== undefined && before.ref === after.ref && before.remote === after.remote ? { ...snapshot, pushedRemote: before.remote } : snapshot
+  }
+
+  /** A hint for notices only; ambiguous or changed push configuration is not guessed. */
+  private async pushDestination(repository: string, signal?: AbortSignal): Promise<{ ref: string; remote: 'origin' | 'upstream' } | undefined> {
+    try {
+      const ref = (await this.run(repository, ['symbolic-ref', '--quiet', 'HEAD'], signal)).trim()
+      if (!ref.startsWith('refs/heads/')) return undefined
+      const parts = (await this.run(repository, ['for-each-ref', '--format=%(refname)%00%(push:remotename)%00', ref], signal)).split('\0')
+      if (parts.length !== 3 || parts[0] !== ref || (parts[1] !== 'origin' && parts[1] !== 'upstream') || parts[2]?.trim() !== '') return undefined
+      return { ref, remote: parts[1] }
+    } catch { signal?.throwIfAborted(); return undefined }
   }
 
   /**

@@ -40,6 +40,20 @@ function repository(): string {
 }
 
 describe('portable Git service', { timeout: 20_000 }, () => {
+  it('reports a stable origin or upstream push destination after sync without guessing other remotes', async () => {
+    const repo = repository(), origin = mkdtempSync(join(tmpdir(), 'dsh-git-origin-')), upstream = mkdtempSync(join(tmpdir(), 'dsh-git-upstream-'))
+    roots.push(origin, upstream)
+    execFileSync('git', ['init', '--bare'], { cwd: origin }); execFileSync('git', ['init', '--bare'], { cwd: upstream })
+    const run = (...args: string[]) => execFileSync('git', args, { cwd: repo, stdio: 'ignore' })
+    run('remote', 'add', 'origin', origin); run('remote', 'add', 'upstream', upstream); run('remote', 'add', 'other', upstream)
+    run('push', '-u', 'upstream', 'main'); run('push', 'origin', 'main')
+    const { dispose, git } = await service()
+    try {
+      run('config', 'branch.main.pushRemote', 'origin'); expect((await git.sync(repo)).pushedRemote).toBe('origin')
+      run('config', 'branch.main.pushRemote', 'upstream'); expect((await git.sync(repo)).pushedRemote).toBe('upstream')
+      run('config', 'branch.main.pushRemote', 'other'); expect((await git.sync(repo)).pushedRemote).toBeUndefined()
+    } finally { await dispose() }
+  })
   it('recovers executable discovery after a cancelled first request', async () => {
     const repo = repository()
     const { dispose, git } = await service()
