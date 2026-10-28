@@ -16,6 +16,8 @@
 
 **2026-10-28 独立验收：未通过。** 新增探针复现 P1 实例移除死锁与 P2 登录切换残留；GL2–GL5 不因既有自动检查通过而无条件签收。详见[本轮验收与复验门](#2026-10-28--gl2gl5-独立验收未通过)，真实平台验收仍未完成。
 
+**最新修复复验（2026-10-28）**：A3/P1 分页 Link 不兼容已修复，原探针和真实 GitLab.com 受影响读取通过；最终代码的 18 个精确 release 门禁全部通过。当前状态以本计划下方 A3 修复复验节为准；Self-Managed 与跨平台等缺口仍未完成，GL5 不标 Completed。
+
 ## 目标
 
 ### 需求分析
@@ -395,11 +397,11 @@ GL1–GL4 已完成自动阶段门；GL5 的有限通知已接入，完整矩阵
 | 自动门禁通过 | `0.1.5-rc.2`、`0.2.0-rc.2`、`0.2.1-rc.3` | 各车道 compat/test/docs/build/artifact/pack 均 exit 0，另各有 11 项隔离浏览器测试通过；`0.1.5-rc.2` 的 797 项中 1 项上游 credentials 契约因该车道缺 seam 按设计跳过，缺 seam 行为另有回归 |
 | 安装受阻，后续门禁未执行 | `0.1.5-rc.3`、`0.1.6-alpha.1`、`0.1.6-alpha.2`、`0.1.7-alpha.1`、`0.1.7-alpha.2`、`0.1.7-rc.1`、`0.1.7-rc.2`、`0.2.0-rc.1`、`0.2.1-alpha.1`、`0.2.1-alpha.2`、`0.2.1-alpha.3`、`0.2.1-alpha.4`、`0.2.1-alpha.5`、`0.2.1-rc.1`、`0.2.1-rc.2` | bootstrap/upgrade/公开元数据解析通过，离线 install 均因 `ERR_PNPM_NO_OFFLINE_TARBALL` exit 1；联网安装未获授权，不能据此声明兼容 |
 
-**2026-10-28 授权联网复跑（Current）**：用户随后授权公共依赖联网安装。在仓库外隔离副本及独立 store 中，按[唯一精确清单](../../../src/compat/dsh-version.ts)完成 18／18 车道；bootstrap、适用的 upgrade/install、compat/test/docs/build/artifact/pack 全部 exit 0，矩阵总 exit 0。每个车道另通过 11 项隔离浏览器测试，共 198 项。前 9 个缺 credentials seam 的车道各有 796 项通过、1 项上游 credentials 契约按设计跳过；后 9 个车道各有 797 项通过，所有车道的 6 项 artifact 均通过。开发 pin 与锁文件未变。此证据不替代真实服务端、账号或平台验收。
+**2026-10-28 授权联网复跑（历史检查点）**：用户随后授权公共依赖联网安装。在仓库外隔离副本及独立 store 中，按[唯一精确清单](../../../src/compat/dsh-version.ts)完成 18／18 车道；bootstrap、适用的 upgrade/install、compat/test/docs/build/artifact/pack 全部 exit 0，矩阵总 exit 0。每个车道另通过 11 项隔离浏览器测试，共 198 项。前 9 个缺 credentials seam 的车道各有 796 项通过、1 项上游 credentials 契约按设计跳过；后 9 个车道各有 797 项通过，所有车道的 6 项 artifact 均通过。开发 pin 与锁文件未变。此证据不替代真实服务端、账号或平台验收。
 
 2026-10-28 准备复核：GitLab 官方[补丁公告](https://docs.gitlab.com/releases/patches/patch-release-gitlab-19-5-1-released/)记录 2026-10-21 发布 19.5.1（CE/EE）。这只是公开发布检查点，并非实际部署或兼容承诺；真实验收当天仍须重新核对稳定 patch，记录所用镜像 digest、App、tier、TLS、Host Node 与命令。
 
-**D9 C1–C7 当前证据与缺口**（自动证据不替代真实验收）：
+**D9 C1–C7 阶段证据与缺口（本轮真实验收前快照）**（最新 GitLab.com 结果与剩余范围以本计划下方真实验收节为准，自动证据不替代真实验收）：
 
 | 用例组 | 已执行证据 | 仍未验证 |
 | --- | --- | --- |
@@ -451,6 +453,35 @@ GL1–GL4 已完成自动阶段门；GL5 的有限通知已接入，完整矩阵
 默认 pin `0.2.0-rc.2`：`pnpm test --maxWorkers=4`（69 文件 / 807 项）、`compat:check`、`docs:check`、`build`、`test:artifact`（6 项）、`pack` 与 `git diff --check` 通过。隔离浏览器 E2E 首轮因 macOS 沙箱拒绝 Chromium 启动失败；允许启动后 11 项通过，fixture 仍阻断非回环网络。未使用真实账号/凭据或远端写入，未提交或发布。
 
 **后续复验计划**：先由外部验收复跑原探针与新增交错用例，再对本次最终源码复跑完整 18 个精确 release 矩阵；本轮仅完成默认 pin，不借用历史矩阵签收。真实 GitLab.com/Self-Managed OAuth/refresh、读写、服务端/实例矩阵及 Windows/Linux/真实 DSH Web/Desktop 按下一节资源与授权前置继续，均保持 Not verified；不得因此勾选 GL5 总完成或归档计划。
+
+### 2026-10-28 · GitLab.com 真实验收（A3/P1，历史 Failed 快照）
+
+**验收快照：GL5 未通过。** 用户要求自动验收，并分别批准创建测试 OAuth App、设备码与 `api` 授权，以及测试项目内的评论、关闭、合并和负向检查。本轮验证源码提交 `3d42a9e48468af84f0f818d5ae488b5cdd54319b`，未改产品代码、开发 pin 或锁文件，未提交/推送/发布。唯一脱敏证据为[GitLab.com 验收记录](evidence/remote-platform-gitlab-com-20261028.json)，包含源码指纹、34 个 RPC 结果、真实分页头、逐车道结果、refresh 与清理事实。
+
+环境为 macOS arm64 / Node `v24.18.0` / pnpm `11.7.0`，使用真实 `GitRemoteRuntime`、`GitLabAuth` 与正式发布的 `@deepseek-ai/dsh-credentials-local@0.2.0-rc.2`，在独立适配器、空 Git 凭据环境和全新 store 中请求真实 GitLab.com；不是完整 DSH Web/Desktop 启动验收。metadata 实测 `19.6.0-pre` 只记录当时 GitLab.com 返回值，不作为 Self-Managed 版本承诺。浏览器独立核对网页状态；正常 Host TLS 信任，无证书绕过。App 必须同时配置 public、`api` scope 和 **Device authorization grant**，只有 client_id 与 scope 不足以启用设备流程。
+
+| 范围 | 本轮结果 |
+| --- | --- |
+| A1/A2 与兼容门禁 | 原探针均 exit 0，4 个相关测试文件 / 53 项通过。修复后最终源码的 18／18 精确 DSH release 重新安装并通过适用的 bootstrap/upgrade/install、compat/test/docs/build/artifact/pack；缺 seam 的前 9 车道各 806 项通过 / 1 项按设计跳过，后 9 车道各 807 项通过。默认 pin 的隔离浏览器首次被沙箱阻止启动，获准后 11 项通过；本轮没有逐车道重跑浏览器，不把历史 198 项计入本轮 |
+| OAuth / store / refresh | 真实 Device Flow、`GET /user` 身份和独立 store 持久化成功；实际 provider 的 9 项隔离 store 探针通过，含四进程八次更新。确认实际 store 互斥证据后，仅在独立认证引擎的一次到期比较中注入时钟，真实请求 `/oauth/token` 完成 access/refresh token 与 revision 轮换，后续时间计算恢复真实时钟，新进程重读 grant 验证身份成功。未等待自然到期，不宣称覆盖自然到期或真实跨进程刷新崩溃场景；产品设置未改变 |
+| 真实读取与本地 Git | 仓库身份、MR/Issue 详情、当前审批事实、空 todo 结果和 Issue 本地分支成功。独立 Git 凭据为空时 checkout 返回 `outcome:unknown` / `git-transport-or-local-failure`，没有谎报切换成功；成功的 Git 传输/checkout/push 仍未验证 |
+| 真实远端写 | 在本轮新建私有项目 `cherrchen/gl5-acceptance-20261028` 创建 3 个 MR；!1 关闭，!2 直接合并且实际源分支仍存在，!3 一条合成评论。相同 requestId 返回相同 comment id，网页/API 确认仅一条；同 id 改内容返回 submission-conflict。自审批被拒绝，错误 SHA 返回 git/head-moved，!3 仍开放。无第二账号，成功审批及请求评审通知投递仍未验证 |
+| **A3 / P1 / Failed** | MR/Issue 列表、notes/discussions、commits 和 files 在真实 GitLab.com 返回 invalid-response。服务端给 first/last Link 补入 `id`、`order_by`、`sort`、`with_labels_details` 等路由/默认参数；`gitlab-project.ts` 的 next 对所有 rel 调用 `http.ts` 的严格非 page 查询相等校验，即使 x-next-page 为空且仅一页也报错。HTTP 200 和真实头已保存；现有 mock 的简化 Link 没覆盖该响应形状 |
+| 清理 | 当前测试 access token 已在 GitLab 撤销（200，之后 `/user` 401）；本地 signed-out marker 与凭据文件均不再含 access/refresh token。验收项目、MR/分支和 OAuth App 保留供审阅，未授权永久删除。隔离矩阵副本、缓存与打包产物在保留脱敏日志后清理，不操作用户缓存 |
+
+A3 可用[离线分页头重放探针](evidence/remote-platform-gitlab-com-links-20261028.mjs)复现：`node --experimental-transform-types docs/plans/active/evidence/remote-platform-gitlab-com-links-20261028.mjs`。无网络、无凭据，原验收基线 **exit 1**，是应通过却失败的验收不变量；修复后的重跑结果见下节，原失败证据保留。关闭条件：支持真实服务端的合法分页元数据，保留实例/项目/路径/查询/游标边界和恶意 Link 负向；补回归并重新执行真实列表/集合/比较及相关门禁。本轮只验收与记录，不修复 A3。
+
+Self-Managed、fork/双实例/端口/prefix、权限/tier/代理/TLS 负向、第二账号正向审批/通知、Windows/Linux 和完整 DSH Web/Desktop 仍为 Not verified。空 todos 不能证明通知已投递；本轮可移植适配器不能证明完整宿主集成。GitHub S7 仍单独跟踪，计划不归档。
+
+### 2026-10-28 · A3 修复与真实复验
+
+**Current：A3/P1 已修复，真实读取复验通过；GL5 完整验收仍未完成。** 用户授权修复、再验收后提交。本次在 `http.ts` 按具体端点核对服务端的路由回显和已验证默认值，再以原 Host 查询和已验证页码生成续页。原请求的显式非默认值保持权威；未知/重复附加参数、错误项目/对象、过滤变化、跨实例/前缀/路径和跳页继续拒绝。适用契约见[RPC reference](../../reference/remote-platform-rpc.md)，不通过放宽全部查询或跳过 first/last 校验规避问题。
+
+[修复复验证据](evidence/remote-platform-a3-fix-20261028.json)保留基线与最终源码指纹、原探针、测试摘要、真实 RPC 和分页路径。修复前，新增用例及调整后的游标用例有 8 项失败；修复后定向 56 项通过，新增 21 项覆盖六组真实分页头及恶意参数，原探针的 12 个 Link 全部通过。默认 pin 的 69 文件 / 828 项测试和 11 项独立浏览器 E2E 均通过；原 A1/A2 探针也单独复验。最终源码 18／18 精确 release 的重新安装及适用的 bootstrap/upgrade/install、compat/test/docs/build/artifact/pack 均 exit 0；前 9 个缺 seam 车道各 827 项通过 / 1 项按设计跳过，后 9 个车道各 828 项通过，逐车道 artifact 各 6 项通过。本轮浏览器仅在默认 pin 跑 11 项，不借用历史逐车道浏览器结果。
+
+复用既有测试账号、同一 App 和原 `api` scope，在全新 store/临时仓库中以真实 `GitRemoteRuntime` 请求 GitLab.com，未新增项目或远端业务写入。MR 列表返回 3 条、Issue 列表 1 条，MR notes、discussions、commits、diffs 各 1 条，Issue notes/discussions 返回空页，全部成功；文件比较仍保留 `serverCompleteness:unknown`。另以真实 `GitRemoteHttp` 和修复函数，在现有 MR 列表设置每页 1 条，验证 3 页 Link 与请求路径，获得 !3/!2/!1，无重复或遗漏；这不是对 50 条以上真实 Host 游标的承诺，Host 不透明游标通过带规范化 Link 的两页回归覆盖。
+
+本轮测试授权在真实读取完成后撤销，独立 store、临时本地仓库和矩阵安装/缓存/产物在导出脱敏证据后清理；既有测试项目及 App 保留。仅本地提交修复、双语契约/计划和验收证据，不推送或发布。此前 Self-Managed、Windows/Linux/完整 DSH Web/Desktop、第二账号正向审批/通知、成功 Git 认证传输等未验证范围保持原状态，不将 A3 关闭等同 GL5 完成。
 
 ### 剩余验收的执行准备（Not verified）
 

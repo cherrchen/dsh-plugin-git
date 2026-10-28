@@ -132,8 +132,8 @@ describe('GitLab progressive list reads', () => {
     const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async url => {
       const parsed = new URL(String(url))
       if (parsed.pathname.includes('/projects/group%2F')) return json({ id: 42, path_with_namespace: 'group/sub/repo' })
-      if (parsed.pathname === listPath && parsed.searchParams.get('page') === '1') return json([issue(900, 7, 'opened')], 200, { link: `<https://git.example.com${listPath}?state=all&per_page=50&page=2>; rel="next"`, 'x-next-page': '2' })
-      if (parsed.pathname === listPath && parsed.searchParams.get('page') === '2') return json([issue(901, 8, 'closed')], 200, { 'x-next-page': '' })
+      if (parsed.pathname === listPath && parsed.searchParams.get('page') === '1') return json([issue(900, 7, 'opened')], 200, { link: `<https://git.example.com${listPath}?id=42&order_by=created_at&sort=desc&state=all&per_page=50&page=2&with_labels_details=false>; rel="next"`, 'x-next-page': '2' })
+      if (parsed.pathname === listPath && parsed.searchParams.get('page') === '2') return json([issue(901, 8, 'closed')], 200, { link: `<https://git.example.com${listPath}?id=42&order_by=created_at&sort=desc&state=all&per_page=50&page=1&with_labels_details=false>; rel="first", <https://git.example.com${listPath}?id=42&order_by=created_at&sort=desc&state=all&per_page=50&page=2&with_labels_details=false>; rel="last"`, 'x-next-page': '' })
       throw Error('unexpected fixture request')
     })
     try {
@@ -144,6 +144,7 @@ describe('GitLab progressive list reads', () => {
       const second = await f.runtime.handle('remote-list-issues', { ...f.request, state: 'all', cursor: first.value.next }, signal, async () => {}) as any
       expect(second.value).toEqual({ items: [expect.objectContaining({ id: '901', number: 8, state: 'closed' })], truncated: false })
       expect(fetch.mock.calls.filter(([url]) => String(url).includes(listPath))).toHaveLength(2)
+      expect(String(fetch.mock.calls.at(-1)?.[0])).toBe(`https://git.example.com${listPath}?state=all&per_page=50&page=2`)
     } finally { await f.runtime.dispose() }
   })
   it.each([

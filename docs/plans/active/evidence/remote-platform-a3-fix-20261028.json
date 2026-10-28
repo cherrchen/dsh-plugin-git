@@ -1,0 +1,1378 @@
+{
+  "date": "2026-10-28",
+  "finding": {
+    "id": "A3",
+    "priority": "P1",
+    "status": "fixed",
+    "realAffectedReadsPassed": true
+  },
+  "sourceBaseCommit": "3d42a9e48468af84f0f818d5ae488b5cdd54319b",
+  "baselineEvidence": "remote-platform-gitlab-com-20261028.json",
+  "environment": {
+    "node": "v24.18.0",
+    "pnpm": "11.7.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "developmentPin": "0.2.0-rc.2",
+    "gitlabMetadataVersion": "19.6.0-pre",
+    "tls": "normal Host trust; no bypass",
+    "credentialProvider": "@deepseek-ai/dsh-credentials-local@0.2.0-rc.2",
+    "hostScope": "Real plugin runtime through isolated adapter, not full DSH Web/Desktop"
+  },
+  "change": {
+    "implementation": "Endpoint-specific route/default validation; construct next request from original Host query and verified page only",
+    "explicitRequestValuesPreserved": true,
+    "unknownOrDuplicateAdditionsRejected": true,
+    "scopeAndPageRestrictionsPreserved": true,
+    "dependencyChanges": false,
+    "remoteBusinessWritesThisRound": false
+  },
+  "regression": {
+    "beforeCapturedReplayExit": 1,
+    "beforeFocusedTests": {
+      "passed": 48,
+      "failed": 8
+    },
+    "afterCapturedReplayExit": 0,
+    "afterCapturedLinks": [
+      {
+        "path": "/api/v4/projects/88193586/merge_requests?state=all&per_page=50&page=1",
+        "relation": "first",
+        "accepted": true
+      },
+      {
+        "path": "/api/v4/projects/88193586/merge_requests?state=all&per_page=50&page=1",
+        "relation": "last",
+        "accepted": true
+      },
+      {
+        "path": "/api/v4/projects/88193586/issues?state=all&per_page=50&page=1",
+        "relation": "first",
+        "accepted": true
+      },
+      {
+        "path": "/api/v4/projects/88193586/issues?state=all&per_page=50&page=1",
+        "relation": "last",
+        "accepted": true
+      },
+      {
+        "path": "/api/v4/projects/88193586/merge_requests/3/notes?per_page=50&page=1",
+        "relation": "first",
+        "accepted": true
+      },
+      {
+        "path": "/api/v4/projects/88193586/merge_requests/3/notes?per_page=50&page=1",
+        "relation": "last",
+        "accepted": true
+      },
+      {
+        "path": "/api/v4/projects/88193586/merge_requests/3/discussions?per_page=50&page=1",
+        "relation": "first",
+        "accepted": true
+      },
+      {
+        "path": "/api/v4/projects/88193586/merge_requests/3/discussions?per_page=50&page=1",
+        "relation": "last",
+        "accepted": true
+      },
+      {
+        "path": "/api/v4/projects/88193586/merge_requests/3/commits?per_page=50&page=1",
+        "relation": "first",
+        "accepted": true
+      },
+      {
+        "path": "/api/v4/projects/88193586/merge_requests/3/commits?per_page=50&page=1",
+        "relation": "last",
+        "accepted": true
+      },
+      {
+        "path": "/api/v4/projects/88193586/merge_requests/3/diffs?per_page=50&page=1",
+        "relation": "first",
+        "accepted": true
+      },
+      {
+        "path": "/api/v4/projects/88193586/merge_requests/3/diffs?per_page=50&page=1",
+        "relation": "last",
+        "accepted": true
+      }
+    ],
+    "focusedTests": {
+      "passed": 56,
+      "newTests": 21
+    },
+    "fullDefaultPinTests": {
+      "files": 69,
+      "passed": 828
+    },
+    "defaultPinE2E": {
+      "passed": 11,
+      "personalBrowserProfileUsed": false,
+      "http": "loopback fixtures"
+    },
+    "a1ProbeExit": 0,
+    "a2ProbeExit": 0
+  },
+  "realReads": {
+    "mr-list": {
+      "passed": true,
+      "items": 3,
+      "truncated": false
+    },
+    "issue-list": {
+      "passed": true,
+      "items": 1,
+      "truncated": false
+    },
+    "comments": {
+      "passed": true,
+      "items": 1,
+      "truncated": false
+    },
+    "discussions": {
+      "passed": true,
+      "items": 1,
+      "truncated": false
+    },
+    "commits": {
+      "passed": true,
+      "items": 1,
+      "truncated": false
+    },
+    "files": {
+      "passed": true,
+      "items": 1,
+      "truncated": false
+    },
+    "issue-comments": {
+      "passed": true,
+      "items": 0,
+      "truncated": false
+    },
+    "issue-discussions": {
+      "passed": true,
+      "items": 0,
+      "truncated": false
+    }
+  },
+  "rpcResults": [
+    {
+      "id": "device-start",
+      "endpoint": "remote-login",
+      "ok": true,
+      "value": {
+        "remoteProtocol": 2,
+        "scope": {
+          "provider": "gitlab",
+          "instance": "https://gitlab.com"
+        },
+        "generation": {
+          "instanceId": "483af989-ef54-4bba-950c-3fea9e46bc0b",
+          "revision": 0
+        },
+        "value": {
+          "expiresAt": 1793176795980,
+          "intervalMs": 5000
+        }
+      }
+    },
+    {
+      "id": "device-poll",
+      "endpoint": "remote-poll-login",
+      "ok": true,
+      "value": {
+        "remoteProtocol": 2,
+        "scope": {
+          "provider": "gitlab",
+          "instance": "https://gitlab.com"
+        },
+        "generation": {
+          "instanceId": "483af989-ef54-4bba-950c-3fea9e46bc0b",
+          "revision": 1
+        },
+        "value": {
+          "state": "authenticated"
+        }
+      }
+    },
+    {
+      "id": "identity",
+      "endpoint": "remote-retry-auth",
+      "ok": true,
+      "value": {
+        "remoteProtocol": 2,
+        "scope": {
+          "provider": "gitlab",
+          "instance": "https://gitlab.com"
+        },
+        "generation": {
+          "instanceId": "483af989-ef54-4bba-950c-3fea9e46bc0b",
+          "revision": 1
+        },
+        "value": {
+          "state": "on",
+          "generation": {
+            "instanceId": "483af989-ef54-4bba-950c-3fea9e46bc0b",
+            "revision": 1
+          },
+          "credential": {
+            "configured": true,
+            "writable": true
+          },
+          "auth": {
+            "state": "authenticated",
+            "source": "grant"
+          },
+          "viewer": {
+            "host": "gitlab.com",
+            "userId": "43830984",
+            "login": "cherrchen"
+          },
+          "actions": {
+            "canComment": false,
+            "canReview": false,
+            "canMerge": false,
+            "canClose": false,
+            "canCreatePr": false
+          },
+          "authMethods": {
+            "deviceFlow": {
+              "supported": true
+            }
+          },
+          "serverVersion": {
+            "value": "19.6.0-pre",
+            "support": "unknown",
+            "reason": "not-verified"
+          },
+          "loginAvailable": true,
+          "automaticRefreshAvailable": false
+        }
+      }
+    },
+    {
+      "id": "commits",
+      "endpoint": "remote-commits",
+      "ok": true,
+      "value": {
+        "remoteProtocol": 2,
+        "scope": {
+          "provider": "gitlab",
+          "instance": "https://gitlab.com"
+        },
+        "generation": {
+          "instanceId": "483af989-ef54-4bba-950c-3fea9e46bc0b",
+          "revision": 1
+        },
+        "value": {
+          "items": [
+            {
+              "sha": "87e0a73fc95c20ef91563e6a79bbe81895705c5b",
+              "subject": "GL5 disposable review fixture",
+              "authorName": "Cherry Chen",
+              "committedAt": "2026-10-28T08:11:03.000+00:00",
+              "url": "https://gitlab.com/cherrchen/gl5-acceptance-20261028/-/commit/87e0a73fc95c20ef91563e6a79bbe81895705c5b"
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "id": "mr-list",
+      "endpoint": "remote-list-prs",
+      "ok": true,
+      "value": {
+        "remoteProtocol": 2,
+        "scope": {
+          "provider": "gitlab",
+          "instance": "https://gitlab.com"
+        },
+        "generation": {
+          "instanceId": "483af989-ef54-4bba-950c-3fea9e46bc0b",
+          "revision": 1
+        },
+        "value": {
+          "items": [
+            {
+              "id": "556982333",
+              "number": 3,
+              "title": "GL5 review acceptance",
+              "body": "Disposable synthetic merge request for automated GL5 acceptance.",
+              "author": {
+                "userId": "43830984",
+                "login": "cherrchen"
+              },
+              "url": "https://gitlab.com/cherrchen/gl5-acceptance-20261028/-/merge_requests/3",
+              "createdAt": "2026-10-28T08:11:54.828Z",
+              "updatedAt": "2026-10-28T08:15:17.999Z",
+              "state": "open",
+              "rawState": "opened",
+              "draft": false,
+              "head": {
+                "projectId": "88193586",
+                "ref": "gl5/review",
+                "sha": "87e0a73fc95c20ef91563e6a79bbe81895705c5b"
+              },
+              "base": {
+                "projectId": "88193586",
+                "ref": "main",
+                "sha": null
+              }
+            },
+            {
+              "id": "556982324",
+              "number": 2,
+              "title": "GL5 merge acceptance",
+              "body": "Disposable synthetic merge request for automated GL5 acceptance.",
+              "author": {
+                "userId": "43830984",
+                "login": "cherrchen"
+              },
+              "url": "https://gitlab.com/cherrchen/gl5-acceptance-20261028/-/merge_requests/2",
+              "createdAt": "2026-10-28T08:11:54.173Z",
+              "updatedAt": "2026-10-28T08:15:20.245Z",
+              "state": "merged",
+              "rawState": "merged",
+              "draft": false,
+              "head": {
+                "projectId": "88193586",
+                "ref": "gl5/merge",
+                "sha": "77d23386e5d05bdde35e87d17223a42d12ef9c43"
+              },
+              "base": {
+                "projectId": "88193586",
+                "ref": "main",
+                "sha": null
+              }
+            },
+            {
+              "id": "556982322",
+              "number": 1,
+              "title": "GL5 close acceptance",
+              "body": "Disposable synthetic merge request for automated GL5 acceptance.",
+              "author": {
+                "userId": "43830984",
+                "login": "cherrchen"
+              },
+              "url": "https://gitlab.com/cherrchen/gl5-acceptance-20261028/-/merge_requests/1",
+              "createdAt": "2026-10-28T08:11:53.955Z",
+              "updatedAt": "2026-10-28T08:15:19.478Z",
+              "state": "closed",
+              "rawState": "closed",
+              "draft": false,
+              "head": {
+                "projectId": "88193586",
+                "ref": "gl5/close",
+                "sha": "14224e906ddc713a1ca5993a7008277f2af4f7df"
+              },
+              "base": {
+                "projectId": "88193586",
+                "ref": "main",
+                "sha": null
+              }
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "id": "discussions",
+      "endpoint": "remote-discussions",
+      "ok": true,
+      "value": {
+        "remoteProtocol": 2,
+        "scope": {
+          "provider": "gitlab",
+          "instance": "https://gitlab.com"
+        },
+        "generation": {
+          "instanceId": "483af989-ef54-4bba-950c-3fea9e46bc0b",
+          "revision": 1
+        },
+        "value": {
+          "items": [
+            {
+              "id": "fc75b3642fbba8a024f85c8d5b904cf49ed4588a",
+              "notes": [
+                {
+                  "id": "4105512181",
+                  "discussionId": "fc75b3642fbba8a024f85c8d5b904cf49ed4588a",
+                  "body": "GL5 automated acceptance comment: expected exactly one copy.",
+                  "author": {
+                    "userId": "43830984",
+                    "login": "cherrchen"
+                  },
+                  "system": false,
+                  "resolvable": false,
+                  "createdAt": "2026-10-28T08:15:17.962Z"
+                }
+              ]
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "id": "comments",
+      "endpoint": "remote-comments",
+      "ok": true,
+      "value": {
+        "remoteProtocol": 2,
+        "scope": {
+          "provider": "gitlab",
+          "instance": "https://gitlab.com"
+        },
+        "generation": {
+          "instanceId": "483af989-ef54-4bba-950c-3fea9e46bc0b",
+          "revision": 1
+        },
+        "value": {
+          "items": [
+            {
+              "id": "4105512181",
+              "body": "GL5 automated acceptance comment: expected exactly one copy.",
+              "author": {
+                "userId": "43830984",
+                "login": "cherrchen"
+              },
+              "system": false,
+              "resolvable": false,
+              "createdAt": "2026-10-28T08:15:17.962Z"
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "id": "issue-list",
+      "endpoint": "remote-list-issues",
+      "ok": true,
+      "value": {
+        "remoteProtocol": 2,
+        "scope": {
+          "provider": "gitlab",
+          "instance": "https://gitlab.com"
+        },
+        "generation": {
+          "instanceId": "483af989-ef54-4bba-950c-3fea9e46bc0b",
+          "revision": 1
+        },
+        "value": {
+          "items": [
+            {
+              "id": "208229933",
+              "number": 1,
+              "title": "GL5 disposable issue",
+              "body": "Synthetic issue for plugin read and local branch acceptance.",
+              "author": {
+                "userId": "43830984",
+                "login": "cherrchen"
+              },
+              "url": "https://gitlab.com/cherrchen/gl5-acceptance-20261028/-/work_items/1",
+              "createdAt": "2026-10-28T08:11:05.594Z",
+              "updatedAt": "2026-10-28T08:11:05.594Z",
+              "state": "open",
+              "rawState": "opened"
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "id": "files",
+      "endpoint": "remote-files",
+      "ok": true,
+      "value": {
+        "remoteProtocol": 2,
+        "scope": {
+          "provider": "gitlab",
+          "instance": "https://gitlab.com"
+        },
+        "generation": {
+          "instanceId": "483af989-ef54-4bba-950c-3fea9e46bc0b",
+          "revision": 1
+        },
+        "value": {
+          "files": {
+            "items": [
+              {
+                "oldPath": "gl5-review.txt",
+                "newPath": "gl5-review.txt",
+                "status": "added",
+                "content": "available",
+                "patch": "@@ -0,0 +1 @@\n+Disposable GL5 review acceptance fixture.\n"
+              }
+            ],
+            "truncated": false
+          },
+          "baseSha": "96a5d3c2b8f94218f820417e9d81b46655c7dd52",
+          "startSha": "96a5d3c2b8f94218f820417e9d81b46655c7dd52",
+          "headSha": "87e0a73fc95c20ef91563e6a79bbe81895705c5b",
+          "serverCompleteness": "unknown"
+        }
+      }
+    },
+    {
+      "id": "issue-comments",
+      "endpoint": "remote-comments",
+      "ok": true,
+      "value": {
+        "remoteProtocol": 2,
+        "scope": {
+          "provider": "gitlab",
+          "instance": "https://gitlab.com"
+        },
+        "generation": {
+          "instanceId": "483af989-ef54-4bba-950c-3fea9e46bc0b",
+          "revision": 1
+        },
+        "value": {
+          "items": [],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "id": "issue-discussions",
+      "endpoint": "remote-discussions",
+      "ok": true,
+      "value": {
+        "remoteProtocol": 2,
+        "scope": {
+          "provider": "gitlab",
+          "instance": "https://gitlab.com"
+        },
+        "generation": {
+          "instanceId": "483af989-ef54-4bba-950c-3fea9e46bc0b",
+          "revision": 1
+        },
+        "value": {
+          "items": [],
+          "truncated": false
+        }
+      }
+    }
+  ],
+  "livePagination": {
+    "scope": "Real GitRemoteHttp plus gitLabContinuation, per_page=1 on existing 3 MRs; not a claim of 50-item Host cursor paging",
+    "httpMocked": false,
+    "passed": true,
+    "pages": [
+      {
+        "requestPath": "/api/v4/projects/88193586/merge_requests?state=all&per_page=1&page=1",
+        "status": 200,
+        "iids": [
+          3
+        ],
+        "link": "<https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=2&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false>; rel=\"next\", <https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=1&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false>; rel=\"first\", <https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=3&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false>; rel=\"last\"",
+        "xNextPage": "2",
+        "validatedLinks": [
+          {
+            "relation": "next",
+            "target": "https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=2&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false",
+            "normalized": "/api/v4/projects/88193586/merge_requests?state=all&per_page=1&page=2"
+          },
+          {
+            "relation": "first",
+            "target": "https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=1&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false",
+            "normalized": "/api/v4/projects/88193586/merge_requests?state=all&per_page=1&page=1"
+          },
+          {
+            "relation": "last",
+            "target": "https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=3&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false",
+            "normalized": "/api/v4/projects/88193586/merge_requests?state=all&per_page=1&page=3"
+          }
+        ]
+      },
+      {
+        "requestPath": "/api/v4/projects/88193586/merge_requests?state=all&per_page=1&page=2",
+        "status": 200,
+        "iids": [
+          2
+        ],
+        "link": "<https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=1&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false>; rel=\"prev\", <https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=3&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false>; rel=\"next\", <https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=1&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false>; rel=\"first\", <https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=3&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false>; rel=\"last\"",
+        "xNextPage": "3",
+        "validatedLinks": [
+          {
+            "relation": "prev",
+            "target": "https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=1&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false",
+            "normalized": "/api/v4/projects/88193586/merge_requests?state=all&per_page=1&page=1"
+          },
+          {
+            "relation": "next",
+            "target": "https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=3&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false",
+            "normalized": "/api/v4/projects/88193586/merge_requests?state=all&per_page=1&page=3"
+          },
+          {
+            "relation": "first",
+            "target": "https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=1&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false",
+            "normalized": "/api/v4/projects/88193586/merge_requests?state=all&per_page=1&page=1"
+          },
+          {
+            "relation": "last",
+            "target": "https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=3&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false",
+            "normalized": "/api/v4/projects/88193586/merge_requests?state=all&per_page=1&page=3"
+          }
+        ]
+      },
+      {
+        "requestPath": "/api/v4/projects/88193586/merge_requests?state=all&per_page=1&page=3",
+        "status": 200,
+        "iids": [
+          1
+        ],
+        "link": "<https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=2&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false>; rel=\"prev\", <https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=1&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false>; rel=\"first\", <https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=3&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false>; rel=\"last\"",
+        "xNextPage": "",
+        "validatedLinks": [
+          {
+            "relation": "prev",
+            "target": "https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=2&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false",
+            "normalized": "/api/v4/projects/88193586/merge_requests?state=all&per_page=1&page=2"
+          },
+          {
+            "relation": "first",
+            "target": "https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=1&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false",
+            "normalized": "/api/v4/projects/88193586/merge_requests?state=all&per_page=1&page=1"
+          },
+          {
+            "relation": "last",
+            "target": "https://gitlab.com/api/v4/projects/88193586/merge_requests?id=88193586&order_by=created_at&page=3&per_page=1&sort=desc&state=all&with_labels_details=false&with_merge_status_recheck=false",
+            "normalized": "/api/v4/projects/88193586/merge_requests?state=all&per_page=1&page=3"
+          }
+        ]
+      }
+    ],
+    "uniqueIids": [
+      3,
+      2,
+      1
+    ]
+  },
+  "cleanup": {
+    "persistedGrantRestartAuthenticated": true,
+    "viewer": {
+      "host": "gitlab.com",
+      "userId": "43830984",
+      "login": "cherrchen"
+    },
+    "mergedSourceBranchStillExists": true,
+    "serverRevokeStatus": 200,
+    "revokedAccessTokenStatus": 401,
+    "signedOut": true,
+    "noTokenInRecord": true,
+    "noTokenInCredentialFile": true,
+    "remoteResourcesRetained": {
+      "project": "cherrchen/gl5-acceptance-20261028",
+      "application": "DSH GL5 Acceptance 20261028",
+      "reason": "Reviewable acceptance fixtures retained; no project/application deletion authorized"
+    },
+    "isolatedMatrixCopiesCachesAndPackagesRemoved": true,
+    "isolatedCredentialStoreRemoved": true,
+    "isolatedLocalRepositoryRemoved": true,
+    "redactedLogsRetained": true
+  },
+  "matrix": {
+    "developmentPin": "0.2.0-rc.2",
+    "releases": [
+      "0.1.5-rc.2",
+      "0.1.5-rc.3",
+      "0.1.6-alpha.1",
+      "0.1.6-alpha.2",
+      "0.1.7-alpha.1",
+      "0.1.7-alpha.2",
+      "0.1.7-rc.1",
+      "0.1.7-rc.2",
+      "0.2.0-rc.1",
+      "0.2.0-rc.2",
+      "0.2.1-alpha.1",
+      "0.2.1-alpha.2",
+      "0.2.1-alpha.3",
+      "0.2.1-alpha.4",
+      "0.2.1-alpha.5",
+      "0.2.1-rc.1",
+      "0.2.1-rc.2",
+      "0.2.1-rc.3"
+    ],
+    "results": [
+      {
+        "version": "0.1.5-rc.2",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  68 passed | 1 skipped (69)",
+          "Tests  827 passed | 1 skipped (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.1.5-rc.3",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  68 passed | 1 skipped (69)",
+          "Tests  827 passed | 1 skipped (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.1.6-alpha.1",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  68 passed | 1 skipped (69)",
+          "Tests  827 passed | 1 skipped (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.1.6-alpha.2",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  68 passed | 1 skipped (69)",
+          "Tests  827 passed | 1 skipped (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.1.7-alpha.1",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  68 passed | 1 skipped (69)",
+          "Tests  827 passed | 1 skipped (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.1.7-alpha.2",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  68 passed | 1 skipped (69)",
+          "Tests  827 passed | 1 skipped (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.1.7-rc.1",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  68 passed | 1 skipped (69)",
+          "Tests  827 passed | 1 skipped (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.1.7-rc.2",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  68 passed | 1 skipped (69)",
+          "Tests  827 passed | 1 skipped (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.2.0-rc.1",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  68 passed | 1 skipped (69)",
+          "Tests  827 passed | 1 skipped (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.2.0-rc.2",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  69 passed (69)",
+          "Tests  828 passed (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.2.1-alpha.1",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  69 passed (69)",
+          "Tests  828 passed (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.2.1-alpha.2",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  69 passed (69)",
+          "Tests  828 passed (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.2.1-alpha.3",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  69 passed (69)",
+          "Tests  828 passed (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.2.1-alpha.4",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  69 passed (69)",
+          "Tests  828 passed (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.2.1-alpha.5",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  69 passed (69)",
+          "Tests  828 passed (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.2.1-rc.1",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  69 passed (69)",
+          "Tests  828 passed (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.2.1-rc.2",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  69 passed (69)",
+          "Tests  828 passed (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      },
+      {
+        "version": "0.2.1-rc.3",
+        "mode": "--online-install",
+        "gates": {
+          "bootstrap": 0,
+          "upgrade": 0,
+          "install": 0,
+          "compat": 0,
+          "test": 0,
+          "docs": 0,
+          "build": 0,
+          "artifact": 0,
+          "pack": 0
+        },
+        "testSummary": [
+          "Test Files  69 passed (69)",
+          "Tests  828 passed (828)"
+        ],
+        "browserE2EInThisRun": "not-repeated-per-lane"
+      }
+    ]
+  },
+  "matrixLogSha256": {
+    "0.1.5-rc.2/compat.log": "9ad2d2371536e9fb6522d682f1beb672f7ccabfe0257e6508d635c0c44587e9d",
+    "0.1.5-rc.2/upgrade.log": "32fe3bb010f41fd5e520717c02002aeb67cff6bf5c3b5d28bba244806ce3029f",
+    "0.1.5-rc.2/test.log": "9a6b98334f7c9bf8a5226df6cfb1098dff59ef25dee86ea65b53b52cbe1cc71c",
+    "0.1.5-rc.2/artifact.log": "001fc27e1dcc06f41a1625adb98657c532d1eb42f5dcf13712569b088e7f9ae2",
+    "0.1.5-rc.2/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.1.5-rc.2/pack.log": "08978347d561059b98792568289013e4cf8257a2cf72f64c9d85d20551288f9f",
+    "0.1.5-rc.2/bootstrap.log": "b66c8666ebd84778fd932bf7790d13ef9df0fe347634d324b1dedbb20774fe12",
+    "0.1.5-rc.2/install.log": "2462fc8884a2628ef32c4472ad43234ca3ea086027d146028062cb5f05c49e19",
+    "0.1.5-rc.2/build.log": "1cdaf6310457d3758662e2ecef3a8463db6639a736452af09e1ed3784345d423",
+    "0.1.5-rc.3/compat.log": "65f8b9ab3f5cb4434bd9f70a8b7477f1cdb22adfdc99d65082e8e6562ff951c6",
+    "0.1.5-rc.3/upgrade.log": "73b2082278d1711f74ae97cd103b3ae93b2450aa0eb923c05f51a868518e3957",
+    "0.1.5-rc.3/test.log": "e56ad189d0f4949fefca97d374f09fd41eb637e67631b03ff281db43cd3e43ac",
+    "0.1.5-rc.3/artifact.log": "eae339a31705ca13c7539e89ef94a7a7bcb1f7e43a932839ce1fad65838414b2",
+    "0.1.5-rc.3/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.1.5-rc.3/pack.log": "1629f6d81779f71993a97580724b5e5692700f6fdd470c9fc10f8cbc360a4270",
+    "0.1.5-rc.3/bootstrap.log": "ce7636e4b3ad413694be0e2d938dfc10aec9fc8e43b6000885f70ea4b1d4cb45",
+    "0.1.5-rc.3/install.log": "726da0bc0779eb51182cf2ecaecf638fc3c86606eb73bc536118fa2e9a04db71",
+    "0.1.5-rc.3/build.log": "bacdc9157fcc7cd7709bbefd33cfc72a58402d580509fd061d8b1e9947d67e8b",
+    "0.1.6-alpha.1/compat.log": "dd746af62e72808a0cb318252cdefc1d7794ebd1c237c9c6f14734256ca802f0",
+    "0.1.6-alpha.1/upgrade.log": "184c1e1232a90dbbbe6397222b5514223ce2f779c537b719337cf86495f91759",
+    "0.1.6-alpha.1/test.log": "4c0b956a886dc6d141240baf262389e325c3316364bc7f77f723c3cf0caaf524",
+    "0.1.6-alpha.1/artifact.log": "b749969c3e2dc71f42e834c0133debcdf8f6c168b7274e5854033594aa05e66a",
+    "0.1.6-alpha.1/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.1.6-alpha.1/pack.log": "746fbf6e8308946bd9acd21deae4b4723d8dea94cee99f77a2161a354927b710",
+    "0.1.6-alpha.1/bootstrap.log": "29638101c365b2c7192a4c41431b25b77b12160631e172e31ab10955b6f4521f",
+    "0.1.6-alpha.1/install.log": "038fdc04984d03a8b76a34f8e000067012326112edb9d353d30091c1516e5dde",
+    "0.1.6-alpha.1/build.log": "26e776b2aa5e5c46dfb66a0c33cc8b1b0ddfa8c8602c59a05b7aa3c8aee8b83f",
+    "0.1.6-alpha.2/compat.log": "1ec7144cd6caa574b991cb8dae3f51c8c47075128c477f07552e0a44059ecad3",
+    "0.1.6-alpha.2/upgrade.log": "f883d39827079019dae5009a83e67fc13906f64e840eb489217775a94071f8b8",
+    "0.1.6-alpha.2/test.log": "0248481be654ade82badf5ac66f7a905103426524bcdae08916e923bb6b62e0d",
+    "0.1.6-alpha.2/artifact.log": "541271dc99873f0d6d4058307080879dbaffa103b27afb3ccfb9c99d8fdc2eb8",
+    "0.1.6-alpha.2/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.1.6-alpha.2/pack.log": "6d0db441177caba81889b8cc16f3abb917263b9a9535e64fa549ddd1a13c36f8",
+    "0.1.6-alpha.2/bootstrap.log": "783dcc2fc029a8a69dd9350ff356fd79f8bfc55de37bad7b12099eff6997038b",
+    "0.1.6-alpha.2/install.log": "f1158bc963badeb150f8d9284a9f04c297c324c18def8ca2bd3fa98dad1e9c88",
+    "0.1.6-alpha.2/build.log": "01c3032e82839bec157cdf59ae0a6c0dd51b8223deb082069bc421c596f994dc",
+    "0.1.7-alpha.1/compat.log": "7300bff5f01e73d8dece87d0eedcc018981080ac579e1fec444fe636903864bf",
+    "0.1.7-alpha.1/upgrade.log": "12d636c7d09976bd1b14100875f9962f1ff05c46c9ab68dbd9389b8b4070b261",
+    "0.1.7-alpha.1/test.log": "5174aa57758245f83684d217ebac4c37f86d0a710a2d4c8fd7d1a22f35a9d1cb",
+    "0.1.7-alpha.1/artifact.log": "97d3ee2cca817f2211fe3da29bcd1e50ce680134d2b74ab73ca21f5fe7ccec03",
+    "0.1.7-alpha.1/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.1.7-alpha.1/pack.log": "4aa2954cba0bda3df0fbc38f47e31a18779bf822ee3331541071c5b09cc4611d",
+    "0.1.7-alpha.1/bootstrap.log": "5518f06fbbf563459e2e23a1a62aa02c9ab633de83ba4b23ed947283965f0090",
+    "0.1.7-alpha.1/install.log": "fad48ffd81b43d4da1e7cb98537149114523f8e57f3916f2ff2d7753915716bf",
+    "0.1.7-alpha.1/build.log": "3586202ff647472f6e686bd96f31bbefa8174d0bdb8741bd1085d77a2ffb4a52",
+    "0.1.7-alpha.2/compat.log": "9049638cbdacca60ec93622a51d985155a61e771273d4bbfb6c7c12ac990de70",
+    "0.1.7-alpha.2/upgrade.log": "f0e01ad95a223df30001b4c9e7f5310d23596b74cf55e9977d876533b5782d4e",
+    "0.1.7-alpha.2/test.log": "4ba09f36b97ed93b57c9a96859f8af632f1a650508905b3572537d5ee90c1b25",
+    "0.1.7-alpha.2/artifact.log": "63e61dac712c653f103551465bdec113df002258c38308cce76111f3d1ef504b",
+    "0.1.7-alpha.2/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.1.7-alpha.2/pack.log": "46394a887869becf1d0f102b0e77aa771e2486cbc042cecbae846b695d9bcfe4",
+    "0.1.7-alpha.2/bootstrap.log": "1b60d247aab1669ae6b6d5450944ddfafabc9497141feafc823043b6effc4a81",
+    "0.1.7-alpha.2/install.log": "86467e5bad322bef1c06b83cff915ae1cf2f8bed93cff5729237aadab7887344",
+    "0.1.7-alpha.2/build.log": "d73fc4f6185007e14a83e468b20245a862295ea1ddebb47e633774ceb9018a62",
+    "0.1.7-rc.1/compat.log": "e143f28b85f1783f3a4618bd535e26fe9e91df55d91130e20656fb784de14262",
+    "0.1.7-rc.1/upgrade.log": "913177aedc867c63e3e6b732c6f7053c80c415eb31caa14f6df64f702dc97d25",
+    "0.1.7-rc.1/test.log": "1fabaa122bbdcc0bd8614605d765cc5c03b24a85de76e79701ff14df4de58819",
+    "0.1.7-rc.1/artifact.log": "9d63fcc92c8390434c881dacc2afd4fea09c06d63e8b5f8e3be4f38542e70615",
+    "0.1.7-rc.1/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.1.7-rc.1/pack.log": "0c21af1efa3004fd0190227b211d51603b3e576fb9dbf90779690358e4d5a8fe",
+    "0.1.7-rc.1/bootstrap.log": "ca05ac3b5e71e36b27b583156aea3e8a24060fd851e9314241fadd10a5bdbfb5",
+    "0.1.7-rc.1/install.log": "a52f0655d6ffe01ad051aa2d201f740ffbd56b8bf5c72b22b982e617ec0713c2",
+    "0.1.7-rc.1/build.log": "a2db56b9436fcc16fef8be896dffcde55644f106ca16340a787668a74d9bceeb",
+    "0.1.7-rc.2/compat.log": "a114e02baeb2385099d270eb84b0aae43fb80d069e025a346fef775fe3d722fc",
+    "0.1.7-rc.2/upgrade.log": "56250dc9c2c0646fdaac6468aa2f81271ab3e14cb912a4e4a7fff3819308e3fe",
+    "0.1.7-rc.2/test.log": "53f2367dd5d50ef7d8e72d33b8663c295c21968e325486a895bb7c6a6ba5cb26",
+    "0.1.7-rc.2/artifact.log": "02dc42baf681d14cae078daee84ad9178a33cf91b8f40baf6fe4d516ff8b78dd",
+    "0.1.7-rc.2/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.1.7-rc.2/pack.log": "17a228a23295eb8628f90272b991ba5cf8f0e96a23a4b1de8a9563004c78d463",
+    "0.1.7-rc.2/bootstrap.log": "af1da37a3ef1d987e0927a4ac51c587e651032c84c63e63a0e363489f09a7b83",
+    "0.1.7-rc.2/install.log": "c5aa43de8e86914fe62b8d29c7ae616602bde3c191e81670694788085cc925a5",
+    "0.1.7-rc.2/build.log": "509ee883168b5cd99cb90696234950384e675c03147b5e2fb5152d97a1fb2392",
+    "0.2.0-rc.1/compat.log": "037c02a7025a438dfeff58577a487afff9874a0574709d85927676e773d2c5ba",
+    "0.2.0-rc.1/upgrade.log": "c8f8391961f2bc5ade2c8a8a03006cfaba91d803fc5e828fc46fd0ebdb19ea58",
+    "0.2.0-rc.1/test.log": "0550bb558c57ff0172ec8481e2828929dcefcad5b4088eb0c0309bde684cc2d6",
+    "0.2.0-rc.1/artifact.log": "e9619f49965d46e4cf2201950f7831be11b9ef4cd1f4b1239784240c20adb13b",
+    "0.2.0-rc.1/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.2.0-rc.1/pack.log": "127e2602fdd0819234caeadf55cfcbc19be9372c9ebb9dc16f151d15abe5314d",
+    "0.2.0-rc.1/bootstrap.log": "e84e537d677f6a8d5c7894e628d789bf7eed528b97a7ebab35de3599208599af",
+    "0.2.0-rc.1/install.log": "2173c5963ac19637c86d616d5405cf43d035cdbc2fb2d11f1851cd1e170ef792",
+    "0.2.0-rc.1/build.log": "720c4256b1bbc8b45b9cf3d403c074c82826fed6abda0012a38a14d2fb274e96",
+    "0.2.0-rc.2/compat.log": "3d1947a748e4fa71ea645f3823b0128fcc8b08d8ab25d64b6a632fe4df5627f2",
+    "0.2.0-rc.2/test.log": "eafb7d851404898ebc0092cc3b58567d47ae85290fce8281c8fb86143c8efb1d",
+    "0.2.0-rc.2/artifact.log": "d36d134b5937e234a14a251def9c4c21400ce482bf8e9a77cbd8aa3797255f0f",
+    "0.2.0-rc.2/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.2.0-rc.2/pack.log": "e901b8c2dced3169585ba7907ae635fdaadcb506d8d062d0972a42c6c90b0a08",
+    "0.2.0-rc.2/bootstrap.log": "d6bef2ca3075182d75fd1e9773e416a9dbed688bc6a8fb895369024e66892a3b",
+    "0.2.0-rc.2/build.log": "2b28e7fb1cf0783ae602b01afced3687d08f8d5f37675190f56025e5d4738f6e",
+    "0.2.1-alpha.1/compat.log": "da176d8916e2ff8918f8e8595be63e2a7422a23123cc6556b6dd788288625c21",
+    "0.2.1-alpha.1/upgrade.log": "0b2c02c181e52e4cde09ebd026dae4a45bba69896576f395d0ccbce7f7cb8387",
+    "0.2.1-alpha.1/test.log": "0789f948d7ddb1d8c6b1d0a6f049c945de2429118b8ec5f13abac800b1b140cf",
+    "0.2.1-alpha.1/artifact.log": "08f10a662cc61891a2de5ecd724f0c4657b865b65952cb5c7dc1f19084445675",
+    "0.2.1-alpha.1/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.2.1-alpha.1/pack.log": "3ee45868dcd1d2148f31455b883c8f953ffbe12efd5102c8cb62683a0d3987a4",
+    "0.2.1-alpha.1/bootstrap.log": "c5c1986db9c99db21d015e0b6d49bd3b0002b368c32e2b9ef8a4d66f4f3616c8",
+    "0.2.1-alpha.1/install.log": "a047067e1aa8ca447ea16854b79d95811385c35f4aae224dbaf58f443e89e2f6",
+    "0.2.1-alpha.1/build.log": "5765f9e85dda87e1e2012138b98d8d24fcbedfe836796a42225be5d2a87b2aff",
+    "0.2.1-alpha.2/compat.log": "5c8333286c7e81868d8cdbab76c6a33fa47e9fb79e86797bcc445874da875675",
+    "0.2.1-alpha.2/upgrade.log": "207329fc05142299ff256526c6dde3fef1e4c81426fd35238046626d5b3a70cc",
+    "0.2.1-alpha.2/test.log": "c425416a4d0c896d28a1153c76a2460900b3cc5efbe59865ae80294222441b8b",
+    "0.2.1-alpha.2/artifact.log": "77d07c213b15104f57266c43b9e076d92c7bc52f52805e10fecb6849feccb528",
+    "0.2.1-alpha.2/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.2.1-alpha.2/pack.log": "668f9f56a361c29706c8d6a602e17774f2e0c9d2751deb2468d5262512606cb6",
+    "0.2.1-alpha.2/bootstrap.log": "bab5531143efe1bfd8c2fbe88cf207a296519337d17e8f6fd7c53deffc18b1bf",
+    "0.2.1-alpha.2/install.log": "255c13acad17f2baf7b6d18447096a4840113e12c80cadd48a3904b27e11031d",
+    "0.2.1-alpha.2/build.log": "b340b12c7c5a1a6e2d9a03841fc8c3d095a63fca0c16480fa1bbc129c2f8ac07",
+    "0.2.1-alpha.3/compat.log": "e7e022127e28cad9ce9e1cc9410181fff140f8974ec1399656d26ec818d719cd",
+    "0.2.1-alpha.3/upgrade.log": "905ce25d3b1ac06bd86b76a4986a3ef12b36299fa6007b766928399d33514bad",
+    "0.2.1-alpha.3/test.log": "9d9d4d95d6cf2a056ceb390e51c2112eb1c88c29693987f0767da085bf6bf8cc",
+    "0.2.1-alpha.3/artifact.log": "00401f521e0c1d23a1462fdc86ff1afa079ffcdddf8ab5731f6b5ac3583e37dc",
+    "0.2.1-alpha.3/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.2.1-alpha.3/pack.log": "3229086ba3f1973f2873aac6a98e242e9edd1ed45d5039d815212d4e07bccaaf",
+    "0.2.1-alpha.3/bootstrap.log": "939e074cfdc9bac4ffc4ec35e6adcb61c80a9b792d6d4bada653f6236fbda835",
+    "0.2.1-alpha.3/install.log": "e32ce38dcfe3db325f678be31eb7334657c6b4501859a346c3c388157e1a8368",
+    "0.2.1-alpha.3/build.log": "fab8b408f223b46f367a5b0f8413e169b3bc244920c80e39fb118ac3955d57a7",
+    "0.2.1-alpha.4/compat.log": "f928a2e25e4c1943d2d1e21652d870ea06b3da38d7f7116dcd70874e2a3909ed",
+    "0.2.1-alpha.4/upgrade.log": "4f3e4e13a7a123d2e1374310a6694c7c933c14f371d3c29e1352289c13747e7d",
+    "0.2.1-alpha.4/test.log": "6852603a10ff24ab38f7b6fd296ffda130e9f941e804ba4a2508b1d4ff251922",
+    "0.2.1-alpha.4/artifact.log": "378b2747afffd779544156fce28e9a0a4a66d1ad58fff5ff05cde51464620ab5",
+    "0.2.1-alpha.4/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.2.1-alpha.4/pack.log": "4b214156db2d4fa99f0b5d1cc770e51fbf36be7b1afea2128516c4488c900637",
+    "0.2.1-alpha.4/bootstrap.log": "840389b5b8541724e560c6e9e673e1dce86dba27c557ad60e4db3750c1f09755",
+    "0.2.1-alpha.4/install.log": "d315afc6f632e5b247ab0e6b4b8d71fc0cab0fdb1f1fa7e96a36c940f32ee9be",
+    "0.2.1-alpha.4/build.log": "3087f48db770f13b0be88499ab6d8635cd8be4f9fcfa4d77d78bec9632cafa08",
+    "0.2.1-alpha.5/compat.log": "1574f4ec2f7d927bb57b4f4a40468a152c9e0ad97d4ce1f24b839bf5004fb8d5",
+    "0.2.1-alpha.5/upgrade.log": "5b405daae503ac7574e9e48893330a530104c7a23a7db2e8d8710cda82201054",
+    "0.2.1-alpha.5/test.log": "6116795d412e95903d81a8091ce02e9c87a5a886eb1744886867e0a9fb4170ed",
+    "0.2.1-alpha.5/artifact.log": "97f469edcb5c8735c8f3a0f9c4672c33bd9e4fbbbc7361748911467f3e65add5",
+    "0.2.1-alpha.5/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.2.1-alpha.5/pack.log": "c1680d734007c3b87d02f5fd34d7dba8ae6016f703d926077cc943f2f7b51c4e",
+    "0.2.1-alpha.5/bootstrap.log": "d6ef0c1f82c22d8e8cb00771865fc32312ff3e1503dc0559c738fafe5d8d1320",
+    "0.2.1-alpha.5/install.log": "c40eef90205d57feca47b44f6ad40127307c20b5cd27d86f8a194e1e9d00aacc",
+    "0.2.1-alpha.5/build.log": "c7ad2ac00e67965275f3859b3976d21a54141e70e17e0c92c760753b39066376",
+    "0.2.1-rc.1/compat.log": "5ce1c7c80489e721b71882cb339ee29dc0bd84d8fe782b59a807c1e0848132c0",
+    "0.2.1-rc.1/upgrade.log": "0cb17359b7c246df6f1f2a7fe9dc7d92ed00a8b0d3e0f6ee529014f30d88f28d",
+    "0.2.1-rc.1/test.log": "155196c7c1df473e13d7f01f616ae73e9a30cb6726208a864306db621b225ddc",
+    "0.2.1-rc.1/artifact.log": "037c015485dccacd5fc19c0689114d27bdcec7ff1963d545436075c2e81e4375",
+    "0.2.1-rc.1/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.2.1-rc.1/pack.log": "1dd031d669e7c9cd8aa6a30f16fac81e2917b548f93059cc0151a787ef88af26",
+    "0.2.1-rc.1/bootstrap.log": "74022d2ecd6dc5e84090a0ee6c9fb60931b6082faf23847c95f0c1bd80883875",
+    "0.2.1-rc.1/install.log": "7c4d62520890062ff3f470c70eeb82690c8371634007fd3e9e329ffdb3bb9c41",
+    "0.2.1-rc.1/build.log": "e6dc6c5d93c42586bdc3b4010fa9c520f9de8b0e7d6867c43b594262518785de",
+    "0.2.1-rc.2/compat.log": "d89a454dfd719904be600d93a3e9575f52aef0c31b39b6f7b0e2974eb18fa8e3",
+    "0.2.1-rc.2/upgrade.log": "13a0d84ee47d519a1d44e501b81d1fe5541805410946018c811b2bfcfefca234",
+    "0.2.1-rc.2/test.log": "e1619acd8da1931225802e00f95185581074498277929691e3014bda4e7acc6d",
+    "0.2.1-rc.2/artifact.log": "699860bdfa7254aafe2761e3f9df1ca8c7affb31410ad1a834c1b2cd0c8ace87",
+    "0.2.1-rc.2/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.2.1-rc.2/pack.log": "dd03ca1b841600317509b26cf5658fdbdcd58bdce1c88506f92dbeb0ee733eb4",
+    "0.2.1-rc.2/bootstrap.log": "b42aac8c974b2596477b90a06d7bf83a35f20cdae9dd6c9a8e46ca2fba5c2741",
+    "0.2.1-rc.2/install.log": "f19fb37d2e24199bb15666a09808630e29a99eb8c600e5458fc8831c1077c8a0",
+    "0.2.1-rc.2/build.log": "75d2c1424e8fb47f16670d0cc5b2ae779c550915f179195c4ec0d411ea4df091",
+    "0.2.1-rc.3/compat.log": "2592af59823b0ff018267712eda7282b3a2349ba1565e2c61f07806ae863919a",
+    "0.2.1-rc.3/upgrade.log": "ec74e316234d31680eaa7b84ee11a62bc80374c6fe83cae3fa25ce43c20abb0c",
+    "0.2.1-rc.3/test.log": "4c2849ec4a7142f242f24e93513c5144ecf39c8acbdacf0abba95cc64408b982",
+    "0.2.1-rc.3/artifact.log": "41466b1f343dd7a5307e319386ed30f195613b9f84beed7e34c5d9227b1e91d0",
+    "0.2.1-rc.3/docs.log": "97654d7712e20f415f71d50e30ca29a7b63c5fe8908d154f1f391207eb054d38",
+    "0.2.1-rc.3/pack.log": "7a8370c9eeff1b64c9c49fc92aa851f827530f6a71e3e8281de97cfd267f20ec",
+    "0.2.1-rc.3/bootstrap.log": "61967f7cf019024842fd1d7328679ec1dd3277363d38fd55c78088b6420745a8",
+    "0.2.1-rc.3/install.log": "ef5c43294a76278f87ad98b92b6a5c92a87999a441ab6f69c42df88572eaf649",
+    "0.2.1-rc.3/build.log": "d9e496043ce476660d79aa5a677020121015590aee7d88b44bc27315397b7c63"
+  },
+  "localLogSha256": {
+    "before-replay.log": "3246a2064075536e8f00b9809285dd4ecf09a76749fa1eaca39b5f4ea75a8474",
+    "after-replay.log": "ddf887b8d2ee7c5e576fa5e7ddcf3d29866ff8aabc5b1007e319fe41da645f63",
+    "before-tests.log": "fafd94ffa43e48fdfe14b141058b990feb6b86e6d5fbba0353d7d2dadb3508e2",
+    "after-tests.log": "16f9d8ac452f6510a3a15f68d73d21e9323ff5d54dc20cf0519db56ceedeb80b",
+    "test.log": "c0744ff463509099773bfbdf3f2c54d4c6c3451888e2b5caf3983f5bfada7aeb",
+    "e2e.log": "71daaa358be119adfb6660b283cedc978a4b7bfe9a263cd6c8871ac8ce8757f2",
+    "a1.log": "a4f697c61bfe3c040b7774ea4269be4e2317f9f9cc6f4f47e9963ccfc92072b3",
+    "a2.log": "590b19ba64a3e7868a95a9b7f539d3b5e6d03d43e52f90f61df938ddbac30b3d",
+    "live-pagination.log": "c2634ba1d82e431998f077a787a5dd9cfe86d3f4c7595f9d866fd4f9e9847a0a",
+    "live-cleanup.log": "9600597ecbc5fc15688a32dde50de6c96c39b1503f70713d144200697e5a8ffa"
+  },
+  "sourceSha256": {
+    "src/client/ComposerToolTrigger.module.css": "67cbb99a86a8b10a434178701cfa2fc95ecc5b5fcd0c4057438c1e5151d07e21",
+    "src/client/ComposerToolTrigger.tsx": "df5f03bd8180c7e0a22c94457ebd99a9fe30ed3461feedde55b576ce1c0899de",
+    "src/client/GitBranchControl.module.css": "f2c4f60c29fc537c436b51e76eb3c579f24204cf04c069086bae55b728cc33cc",
+    "src/client/GitBranchControl.tsx": "79dd83926881b72e6d29b5aa2689624a05409d34f6f4659592ad54dc00b29695",
+    "src/client/GitDetailsHeaderActions.module.css": "6982ca31a6ff97de1da0f992c3513a92f02dde6e802e8505699304409d309d85",
+    "src/client/GitDetailsHeaderActions.tsx": "21b5e1ffb53f292307df93d201ffd8c1a49ee7fc300c17d82b2ae8f87f1a35bf",
+    "src/client/GitDetailsSurface.module.css": "3a64273cdac2d9978d27931221f53d6fdeaf3648fd66fe3aaca647306e2e6e67",
+    "src/client/GitGraphCanvas.tsx": "bb589ebddc64be72b4ab570a18b0359b6b755989b51adda8405fefda710b92d8",
+    "src/client/GitGraphSurface.module.css": "1eaace8f67efad66f3fc017b1ad822c2308cb7cfcac3864216f7d295d573eb4d",
+    "src/client/GitPageTitle.tsx": "fd650464603714a7c7d510d03832a5190ce91575273eb29df9c1ae70e08302fc",
+    "src/client/GitRemoteSurface.module.css": "e30da4b85bea620c02a1c4f2dfe41c7b20b50428bd9d89e4e71c098de5783d6e",
+    "src/client/GitWorktreeList.tsx": "e6c97f8a01e90d2901e8a3deec582121451de41ace506309ae00a99ff8783e57",
+    "src/client/LauncherIcons.tsx": "207fd5b1e89211eeb3b2b0aea44cd5ef82e796aeb5e8b50c796551c72e3253aa",
+    "src/client/changed-path-count.ts": "1d79f57ef7f57dd53d027eddceeb48a8e1ed727a697fcd86ac57089bc2b6ae64",
+    "src/client/contract.ts": "e91121935e9b8b685c847a7fda8a6b8665a7388abb61c818834a067100367fa2",
+    "src/client/controller.ts": "fb1b0ad6eb470e34209616d3a58ac38bf8d1274e8da90e8ee18b94dee720cd4e",
+    "src/client/details/ChangeRow.tsx": "ad1344ba58e1b67868280362f35e3cf5d93b9b6716347709953b0e47a154a830",
+    "src/client/details/ChangeSection.tsx": "3341a04b7d89ad5d960114fac018bcbda95389369f7348b584ccded742290a95",
+    "src/client/details/ChangesTab.tsx": "90af02e3967dba5ce972a1886f62732de0f1576aecc2412b8057512fd0ed7927",
+    "src/client/details/CommitRegion.tsx": "9eb9b572ca305120617650c5a821d49fdc9bd4bb8ebebcf70f68e5a312a1d328",
+    "src/client/details/GitActionIcons.tsx": "13ece4f47136dacd4cd74df91caa4f0a63761b737b4340f96e02d7e75d43cf42",
+    "src/client/details/GitIconButton.tsx": "d12459408aee225bae470c6e3f06dced7f84fa55560d0e4e0fb60aa933264f3a",
+    "src/client/details/WorktreeRow.tsx": "041aad0c831f6786d6b0297b22b96cadaffb1f9c76b11a11a82ef0f2567d8cb9",
+    "src/client/git-diff-adapter.ts": "c5b1630fc396111dfbea3ff58cd8efa45ca82194c9e8eea22b503052507ad19e",
+    "src/client/gitlab-notices.ts": "0c830b696b6f9fa24cd00a680fcd1c69df040904b9e0f0b4a28f88bca08a53f6",
+    "src/client/gitlab-remote.ts": "66cae53b2c795a1d5c7eaa2d0a69d524dc8b1b9023912e638a5bfdcccd4aa156",
+    "src/client/graph/colors.ts": "27df7e8abc08260293eba143a6e87df4b703306f46ea514a0b73ea3328278681",
+    "src/client/graph/lanes.ts": "e954ed5e85defe5d6fd4c0d4b3d4d7154ebeb2ac48bae2d33120222dca5995c5",
+    "src/client/graph/layout.ts": "37412c3594894ba7703ceb4d16739fe6e3633da2652c7816ce9f28ab09f60d7e",
+    "src/client/graph/types.ts": "b7248b30da91fb83387e4d7295109b8b8e2d8f6115387394cf61dab8056bf3cc",
+    "src/client/graph-geometry.ts": "eb598fd37cb6a63502e964b8a0ff1330f98eb0035980b193016df8d9a3ed902b",
+    "src/client/index.ts": "3db34c41fd26bd2f9451967c28ba085a22bd3c2785fb8502e2c8f1c7615b82ed",
+    "src/client/locales.ts": "16f203a77238a1aab4bc3ff8c0c718b29ac96b253c61e721e92f0c4db43c3f39",
+    "src/client/path-display.ts": "b6ff2b4bd18613bee9e5ab315625ff04eb8db15c85c8a208f95c5a8373e24e2d",
+    "src/client/ref-badge.ts": "d2eff25611b7d48943d47f55c75f30b2e223edeebec98e6d0faa8decba4d7a42",
+    "src/client/remote/GitLabMarkdown.tsx": "a037910bd27fbe53316ecafbff57f7ab539d82f1a55e84b52c96f0884a9c937b",
+    "src/client/remote/GitLabRemotePanel.tsx": "5e2fb0980c3c19b2be2c94a1e8566bb95c73fae01e8e51bec42872481f9be1ce",
+    "src/client/remote/RemoteAuthControl.tsx": "e4c85ad61821591dff7ed4fc13ba4cf54c61ea0f2bed9a49304e5903b7f5694b",
+    "src/client/remote/RemoteAuthSection.tsx": "3a027a601f6535877b448c528664184acc52b257092bbf4ea7610d4c69af88f3",
+    "src/client/remote/RemoteAvatar.tsx": "232b9046d2b930ac78dc2181659a07b9b1fe431894211a8644a6c4a4bcff40cb",
+    "src/client/remote/RemoteComposer.tsx": "01e17b003023b4331601a90366e86351120d949a702725d00d1a974ba59804fd",
+    "src/client/remote/RemoteContextBar.tsx": "76ea7d1b1adb59ae5cf2fd76a78f7b754cc1feb820f30cd7b3a67557305310bc",
+    "src/client/remote/RemoteCreateDialog.tsx": "b48b5db0ab7c2c07757c21608e1f521a212edaf5f969612fe26fe6f0c3e83bba",
+    "src/client/remote/RemoteDetailSection.tsx": "1dd63c7bcbade0ea4fda7128b55bb5b7e809fe5232cdf54505f2baa34cd8dcb2",
+    "src/client/remote/RemoteItemList.tsx": "18e601fb2363763a75ada8ce8dc2cad4450354bcf9c1d9a8440be87dfb3c93ef",
+    "src/client/remote/RemoteLoading.tsx": "a1d43bba3e50a7049faabfe6991fc643e4bd0ad274747360d6ea2c3e063b4b35",
+    "src/client/remote/RemoteMarkdown.tsx": "c2df3dfd4faf2b0f8003200a359a9e4192ed4f348bd64c504bb3978fe1aafda7",
+    "src/client/remote/RemoteNotices.tsx": "2b5e234e39f2a92523257cca5a4a08c11efe55b46c0c0b1c8d02a422c93d2707",
+    "src/client/remote/RemotePullActions.tsx": "8193c03f3d413e551bd47813c9fe9ee3d4ad23c84a00eefe8f158e90f581fa7f",
+    "src/client/remote/RemoteTimeline.tsx": "f2dc6cf01aef9508095b7ad2ecd976ed23c5451964c5555d2c8808856314b61c",
+    "src/client/remote/github-markdown.ts": "e622e86540fce0cb2d666598a61921a087a29f258a0b9ed494dc3e65d2551ece",
+    "src/client/remote/icons.tsx": "50f451064182330b28f8b4d4ad86c36ed0ed5af797fc372d7ee56e3260b87b43",
+    "src/client/remote/timeline.ts": "f38f078fc9f5dc5d5be3fc44f35978afa62611d51e51d5ec3b3bdb0c2c148af1",
+    "src/client/remote-protocol.ts": "e71315889e2af24440beccca12ec36d168858d558b8c2a106dda97a7beb6dc63",
+    "src/client/remote.ts": "0e92576f83fe8144d5e5fa338118ce97a2a1d82fcefcdf75687530abdda47c09",
+    "src/client/session-controllers.ts": "1049e2acb75200e4a1e09c3c8608ca7373f9dec7ed19081b59d91c0aef84e728",
+    "src/client/settings/CommitMessageSettingsCard.module.css": "3906c583a14bcc4afe70efd5c62d4c19f16935ec8755e43a03e902f0ea041866",
+    "src/client/settings/CommitMessageSettingsCard.tsx": "142a71c1b06095678f7f3a8b27ff87c5e3958e7e8da10218c4b096bcb03e4597",
+    "src/client/settings/GitBundleConfigCard.tsx": "bae2fa03e4a1d2324a5f8aaa14edc0e44adcd5653bda07bfd3572056b8932cfa",
+    "src/client/settings/WorktreeSettingsCard.tsx": "6f01b8ab0c23efae010efcd95ebadaee91d2595ddf5c5173d58111149b4652d7",
+    "src/client/settings/commit-message-card-controller.ts": "c43265b27a4a759be9035a1e50686f8287ca4af08012314850f9baabbccf9960",
+    "src/client/settings/worktree-card-controller.ts": "8b2665867aca0a67e954e2d4b7d5e47f7bedfda6c7e49f699f1e4b48992c64a1",
+    "src/client/status-letter.ts": "043a702c1a1078fffe828f4c6bfc7d84d9cb684635b00fecaa9e3ad11e2dc0e1",
+    "src/client/surfaces/GitChangesSurface.tsx": "6beced14d87b4c42bda986906257ecd48d71fc1a501b9a06c221c63ca86ac522",
+    "src/client/surfaces/GitDiffSurface.tsx": "fab66ea6af45feb875f9a222e6a6e7aff7a19c8ad59a8a8b9af74bee3d9253fe",
+    "src/client/surfaces/GitGraphSurface.tsx": "0299263c4bdb58c329671103d2b2cb300beb335c576f61f1b85a03a086db9c8b",
+    "src/client/surfaces/GitRemoteItemSurface.tsx": "e00ff98cfba60e115689fa7eadd1287afcef919619971c093a0ec340562cb163",
+    "src/client/surfaces/GitRemoteSurface.tsx": "9ad34043235693772ed09c18e1bea31a36af3751d7e07e22fff9faebe9b04b97",
+    "src/client/surfaces/GitWorktreesSurface.tsx": "d4698b7779df73f590e37e5ccf41bbce3729b796c0491e7652c62e39d5a8b373",
+    "src/client/surfaces/RefBadge.tsx": "8246b51e96645c3605f76800d2888057cb12e4bd6d655dd65225b837259d29af",
+    "src/client/tab-definitions.ts": "c25b18811817d7862f5bf590ea4510ca37f0c12150d66ee9ce1065c4f4a91c1f",
+    "src/client/use-git-workspace.ts": "0885c167eed77a4aea0ab6a9238db42123ee8353b5dd1296d4b8be50adeaffb9",
+    "src/client/workspace-path.ts": "bc15d969ec3a3c2f1b0562472ec4b6e23638f60b4a97871e3fa14e6208e0bc49",
+    "src/client/worktree-feature.ts": "38726414efa1a312537283393bcb7addb4a754b48a90f9892948b5f5c5d73ec6",
+    "src/commit-message-settings.ts": "25480a2652c847532bbf1cc611aba90d8187ef08c8b96811669a08ca42876a7a",
+    "src/commit-message.ts": "6a6a8379343d04821714fede571f2b8b301302b397aeeaf9c77a02fc637969e8",
+    "src/compat/dsh-client-settings.ts": "cd78d1469f266c05cf68e55244630ac0183a1ef2cdb3b85272993be2d060f021",
+    "src/compat/dsh-diff.ts": "1dd0c83fbc3e0b0a34fb0c94f4219885a5fff311412e3d63ba3b2da75e478718",
+    "src/compat/dsh-icons.tsx": "5307ac9e1641a1dd63873b7e21d270a2f8c0171b3987876ef2937b8589be7796",
+    "src/compat/dsh-markdown.tsx": "c53dcd65ad74c865dc73b6fb719b1838aba5a3d1febb25d9290c1422c7b93e2b",
+    "src/compat/dsh-schema.ts": "65c27e08d2801f7c9030b89a97fe2295ea05cf9da16898bab2fa4d88418ac3c7",
+    "src/compat/dsh-settings-form.tsx": "224de22af4ee8ab6e856c8c064d9a49604809cdc1b3e175d2428dc6cac024fcf",
+    "src/compat/dsh-version.ts": "01cd2eb9c32fbbcecdc0b06bf936e7f4f3f031337c73445dfbd617e8e27955a4",
+    "src/css-modules.d.ts": "e28410d74a0d763364c04fa690c2ca2202ad3019c74f8f5205e8dc6cba69c02f",
+    "src/index.ts": "11c0c636541915697fd2ec7f814f4dadd4d7ac9640094ad256ae13c0da08e241",
+    "src/log.ts": "bd2fa949a5f46efc9135ba634ca8a409cfc17b37c8a3810014c08552876400e0",
+    "src/path-identity.ts": "a6c4e3583cc70d70c5be9973abdddb2b39ec81e3663c02b89cd2ac78a83cb030",
+    "src/remote/assembly.ts": "404e0fd9ab99fa09820de8baf1ce78635115fd94618d94656a3c0142b33f67c0",
+    "src/remote/auth.ts": "05dbd9d35ad4e35e52cb78a0db1b7d74c7dc2da7a3ca79424d06ea19e463ee3e",
+    "src/remote/credentials-types.ts": "392876d98cb1c2e65b8e0e07f254a2a390e8d23b46e571c1f51d229f3d49fcbf",
+    "src/remote/credentials.ts": "126c5fdc9e04c677b49ef4aabaaa188393d0a13c1e882fe7bdfbb3f9fb776798",
+    "src/remote/diff.ts": "dc20bd01f60d563f791b5b2d61fe4ec1f1440a68bd46231db1d92448d1b8e2fb",
+    "src/remote/errors.ts": "e78a12cadd1e865ed650b23a92585d8f7cd0f5a9feb05e426f3795f63b4fd2b9",
+    "src/remote/feature.ts": "a90236241c18d4348edaf8bc06f3d3fbae88d3394d908fccbba3358ea08721b4",
+    "src/remote/git.ts": "8528bac964d55efa29513ac5c453e4160759f57b879c0699d0e0759f4bf5fc67",
+    "src/remote/github-legacy.ts": "fa414e1f99875e725f1441e1d0d537dc7dba76a1af11f3e9f69de44c00eb9498",
+    "src/remote/github-model.ts": "18652260ac189060e2805dcfb362677a431f2306ce8ffa3ad016af359d6cef4b",
+    "src/remote/github-scoped.ts": "a7b4f502e015c7a4c74c156f2f373d2db9480d925d244377aa959a177b2ee3e2",
+    "src/remote/github.ts": "c1cb3479789df69a3a3679ca494612fa6095599c5d1755516eedff9f2a5bfe12",
+    "src/remote/gitlab-auth.ts": "9454e6287d755ac2f22bec5bc3091e2f7236d68459eee9f6f1c7ec4295e2d902",
+    "src/remote/gitlab-facts.ts": "82ec71a03cb4cfe49a9aceec1acb57e5f3d366783d3e7efb7de1911edb05e609",
+    "src/remote/gitlab-git.ts": "89f41da9fc6643f0e592d491f66260ef59c49c9efe887ec1e3c8b17e89377604",
+    "src/remote/gitlab-grant.ts": "32f1bfb2724d8416eac30065632379435b24b64a6c033945af7cca19ac3ff68d",
+    "src/remote/gitlab-model.ts": "61f4cd0c9e3ab9d3b6e531b0a8c225f3effb2b9ce96942dff690491861aac937",
+    "src/remote/gitlab-project.ts": "d8b28b26b11b4acea6ea11a2c39cddcdc1afe58795f41ef775b594c77e0febdf",
+    "src/remote/gitlab-read-boundaries.ts": "c9582ec54c4289be10170d77aa6ee4f928990e08eb93132ae8028b5eb50c32c7",
+    "src/remote/grant.ts": "c0773aa9559205e4136ad036b5d5d8df59123f5ef67e43867e29cb9d4bcb769c",
+    "src/remote/http.ts": "3a12d69991738eee85ee85640accc0c33535efaf43a886b9ac4993901f40b625",
+    "src/remote/instance-url.ts": "eaf1b1086d3099d77bd6eabd9c270b54122b78907e62be258eb33e931a2ca06b",
+    "src/remote/instances.ts": "cd32fde74abc6b6437ff692f3d14b9a98d38d656a31e84bf233e85a563bc78db",
+    "src/remote/probe.ts": "4f030809b19c4eafa7af4167feff7a10d364f0c4aeeeb5732354ca1f1b8f13ab",
+    "src/remote/provider.ts": "942898c39607d17d2138f7a53a77b19b38f2507945b9e5970fce4afbfd055bba",
+    "src/remote/registry.ts": "7bc2c4db91bc6db46da3e5a57d8f67f41313dec0be551f11348a3749654581de",
+    "src/remote/runtime.ts": "cd2bb89cdc45ec76f780e7723b9ea630999c655355bade11f7cfc29d4aa7fffb",
+    "src/remote/scoped-git.ts": "3eb4e1431622180894b88addc2aed172dea2ff85602495d5770f3e647cf6b662",
+    "src/remote/settings.ts": "5a0d6dc26204fb6b6e2d1ed76eab4d80c8f2f14677177d71a78d8fef7b03c07f",
+    "src/remote/types.ts": "e3fe4ad3f81bccc1cd5bc0ec8c0c36912b58e032610dfe1873ed36111a0499c8",
+    "src/service.ts": "6f8b3017e88ab0fe737496cc8929ebe7a09cffa1f21ca0685fa61c5005764e6c",
+    "src/session-directory.ts": "9f10cff4dfd201e5895a43d5ef11fee6c42d458868c089d1aa85ed97c727aa67",
+    "src/status.ts": "83ca076077a9a6123fbcd24a5c26aed9a6c6265fa9cbb64fbb0df732a74e474b",
+    "src/types.ts": "496e60e4c5fe2b26478d07363aca0725e4ce5b4313979bce5e3bea965cf3df05",
+    "src/worktree-feature.ts": "b746439e65e6f0a7110b7d4c40b8c73e5dc00916e514e65a5bb683418d532b57",
+    "src/worktree-settings.ts": "781a8bc94188857dfb48ebd968815b756c137b2cc0b81b3f3ab317ffc67b2026",
+    "src/worktrees.ts": "30debb314174b69e220c8f529a77d207e9257e4c83e5f7265b7ddc029c84d57d",
+    "package.json": "fee6c9a17789a3f55699cce3c4c5ff0748750a3b8299c5c690a213e618463a0c",
+    "pnpm-lock.yaml": "ef46ab7adbd687b02f11a6a9024fa29689e059aecbec5fedbc3b9d0f7b02746e",
+    "tests/remote-gitlab-http.spec.ts": "67c44af5e797b7bd4504bc4458b77f673eac9769c16439543c7b9a26117cfc42",
+    "tests/remote-gitlab-project.spec.ts": "f58457a4022e1bffd6f73f29fa1cea750f210389f9bc442a33822b648ef11ab3"
+  },
+  "baselineChangedSources": {
+    "src/remote/http.ts": {
+      "before": "e47ff71a43ad85bcf543d396e7d89af53556471b59332569f3e79d65669164aa",
+      "after": "3a12d69991738eee85ee85640accc0c33535efaf43a886b9ac4993901f40b625"
+    }
+  },
+  "limits": [
+    "GL5 overall remains incomplete: other historical server/platform/account/Git transport gaps are unchanged",
+    "Real per_page=1 pagination validates production HTTP/helper, not a >50-item real Host cursor",
+    "Browser E2E ran only on the default pin in this round; no historical per-lane browser results are borrowed",
+    "No new real project/MR/comment/close/merge/push operations in this round"
+  ],
+  "matrixExit": 0
+}

@@ -70,7 +70,27 @@ function safeGitLabPath(raw: string, prefix: string): boolean {
   return !pathname.split('/').some(segment => segment === '.' || segment === '..')
 }
 
-/** Validate a continuation against the exact request path and non-page query. */
+/** Observed GitLab route echoes and defaults, limited to the endpoint that owns them. */
+function gitLabPaginationAdditions(path: string): Readonly<Record<string, string>> {
+  const match = /^\/api\/v4\/projects\/([1-9][0-9]*)\/(merge_requests|issues)(?:\/([1-9][0-9]*)\/(notes|discussions|commits|diffs))?$/u.exec(path)
+  if (match === null) return {}
+  const [, project, kind, number, collection] = match
+  if ((collection === 'commits' || collection === 'diffs') && kind !== 'merge_requests') return {}
+  const additions: Record<string, string> = { id: project! }
+  if (collection === undefined) {
+    Object.assign(additions, { order_by: 'created_at', sort: 'desc', with_labels_details: 'false' })
+    if (kind === 'merge_requests') additions['with_merge_status_recheck'] = 'false'
+  } else if (collection === 'notes' || collection === 'discussions') {
+    additions['noteable_id'] = number!
+    if (collection === 'notes') Object.assign(additions, { activity_filter: 'all_notes', order_by: 'created_at', sort: 'desc' })
+  } else {
+    additions['merge_request_iid'] = number!
+    if (collection === 'diffs') additions['unidiff'] = 'false'
+  }
+  return additions
+}
+
+/** Validate server metadata, then construct the continuation from the original Host query. */
 export function gitLabContinuation(instance: string, currentPath: string, next: string, direction: 'next' | 'any' = 'next'): string {
   const base = new URL(canonicalGitLabInstance(instance))
   const prefix = base.pathname === '/' ? '' : base.pathname
@@ -78,12 +98,21 @@ export function gitLabContinuation(instance: string, currentPath: string, next: 
   let current: URL, target: URL
   try { current = new URL(currentPath, base.origin); target = new URL(next, base.origin) } catch { throw new GitRemoteHttpError('invalid-response', 'git-remote: invalid continuation') }
   if (current.origin !== base.origin || target.origin !== base.origin || target.username || target.password || target.hash || target.pathname !== current.pathname) throw new GitRemoteHttpError('invalid-response', 'git-remote: continuation changed scope')
-  const compare = (url: URL) => [...url.searchParams.entries()].filter(([key]) => key !== 'page').sort(([ak, av], [bk, bv]) => ak.localeCompare(bk) || av.localeCompare(bv))
+  const normalized = new URLSearchParams(target.search)
+  for (const [key, expected] of Object.entries(gitLabPaginationAdditions(current.pathname.slice(prefix.length)))) {
+    // An explicit request value remains authoritative, including a nondefault value.
+    if (current.searchParams.has(key) || !normalized.has(key)) continue
+    const values = normalized.getAll(key)
+    if (values.length !== 1 || values[0] !== expected) throw new GitRemoteHttpError('invalid-response', 'git-remote: continuation changed query')
+    normalized.delete(key)
+  }
+  const compare = (params: URLSearchParams) => [...params.entries()].filter(([key]) => key !== 'page').sort(([ak, av], [bk, bv]) => ak.localeCompare(bk) || av.localeCompare(bv))
   const pages = target.searchParams.getAll('page')
   const currentPages = current.searchParams.getAll('page')
   const nextPage = Number(pages[0]), currentPage = currentPages.length === 0 ? 1 : Number(currentPages[0])
-  if (pages.length !== 1 || !/^[1-9][0-9]*$/.test(pages[0] ?? '') || !Number.isSafeInteger(nextPage) || currentPages.length > 1 || (currentPages.length === 1 && !/^[1-9][0-9]*$/.test(currentPages[0] ?? '')) || !Number.isSafeInteger(currentPage) || (direction === 'next' && nextPage !== currentPage + 1) || JSON.stringify(compare(target)) !== JSON.stringify(compare(current))) throw new GitRemoteHttpError('invalid-response', 'git-remote: continuation changed query')
-  return target.pathname + target.search
+  if (pages.length !== 1 || !/^[1-9][0-9]*$/.test(pages[0] ?? '') || !Number.isSafeInteger(nextPage) || currentPages.length > 1 || (currentPages.length === 1 && !/^[1-9][0-9]*$/.test(currentPages[0] ?? '')) || !Number.isSafeInteger(currentPage) || (direction === 'next' && nextPage !== currentPage + 1) || JSON.stringify(compare(normalized)) !== JSON.stringify(compare(current.searchParams))) throw new GitRemoteHttpError('invalid-response', 'git-remote: continuation changed query')
+  current.searchParams.set('page', pages[0]!)
+  return current.pathname + current.search
 }
 
 export class GitRemoteHttp {
