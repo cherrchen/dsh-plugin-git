@@ -1,14 +1,15 @@
-/** Isolated DSH release matrix using the repository's canonical upgrade workflow. */
+/** Isolated supported/candidate DSH matrix using the canonical upgrade workflow. */
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { homedir } from 'node:os'
 const root = resolve(fileURLToPath(new URL('..', import.meta.url)))
 const args = process.argv.slice(2)
 const mode = args[0], output = args[1], only = args[2]
-if (!['--offline', '--online-install'].includes(mode) || output === undefined || !isAbsolute(output) || (only !== undefined && !/^\d+\.\d+\.\d+-(?:alpha|beta|rc)\.\d+$/u.test(only))) {
-  console.error('Usage: node scripts/run-dsh-matrix.mjs <--offline|--online-install> <new-absolute-output-directory> [exact-version]')
+const candidate = args[3] === '--candidate'
+if (!['--offline', '--online-install'].includes(mode) || output === undefined || !isAbsolute(output) || (only !== undefined && !/^\d+\.\d+\.\d+-(?:alpha|beta|rc)\.\d+$/u.test(only)) || args.length > 4 || (args[3] !== undefined && !candidate) || (candidate && only === undefined)) {
+  console.error('Usage: node scripts/run-dsh-matrix.mjs <--offline|--online-install> <new-absolute-output-directory> [exact-version [--candidate]]')
   process.exit(2)
 }
 const out = resolve(output), inside = relative(root, out)
@@ -17,7 +18,7 @@ const versionSource = readFileSync(join(root, 'src/compat/dsh-version.ts'), 'utf
 const match = /export const SUPPORTED_DSH_RELEASES = \[([^\]]*)\]/u.exec(versionSource)
 if (match === null) throw Error('Canonical DSH release list is missing')
 const releases = [...match[1].matchAll(/'([^']+)'/gu)].map(item => item[1])
-if (only !== undefined && !releases.includes(only)) throw Error('Requested version is not in the canonical release list')
+if (only !== undefined && !releases.includes(only) && !candidate) throw Error('Requested version is not in the canonical release list; use --candidate to validate without promoting')
 const dev = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).devDependencies['@deepseek-ai/dsh-settings']
 if (!releases.includes(dev)) throw Error('Development pin is not a supported release')
 mkdirSync(out, { recursive: true })
@@ -42,7 +43,7 @@ for (const entry of [...roots, ...files]) if (existsSync(join(root, entry))) cpS
 const all = only === undefined ? releases : [only]
 const results = []
 function command(cwd, name, executable, argv, version) {
-  const laneEnvironment = version === undefined ? env : { ...env, DSH_COMPAT_VERSION: version }
+  const laneEnvironment = version === undefined ? env : { ...env, DSH_COMPAT_VERSION: version, ...(candidate ? { DSH_COMPAT_MODE: 'warn' } : {}) }
   const childEnvironment = mode === '--offline' && executable === 'pnpm' && argv[0] === 'install' && !argv.includes('--lockfile-only') ? { ...laneEnvironment, npm_config_offline: 'true', NODE_OPTIONS: `--require=${JSON.stringify(networkGuard)}` } : laneEnvironment
   const result = spawnSync(executable, argv, { cwd, env: childEnvironment, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 })
   const outputText = `${result.stdout ?? ''}${result.stderr ?? ''}${result.error === undefined ? '' : `\n${result.error.message}\n`}`
@@ -52,16 +53,22 @@ function command(cwd, name, executable, argv, version) {
 for (const version of all) {
   const lane = join(out, version), work = join(lane, 'work'); mkdirSync(work, { recursive: true })
   cpSync(snapshot, work, { recursive: true })
-  const record = { version, mode, gates: {} }; results.push(record)
+  const record = { version, mode, candidate, gates: {} }; results.push(record)
   const installOptions = ['install', '--frozen-lockfile', '--store-dir', store, ...(mode === '--offline' ? ['--offline'] : [])]
   record.gates.bootstrap = command(work, 'bootstrap', 'pnpm', installOptions)
   if (record.gates.bootstrap === 0 && version !== dev) record.gates.upgrade = command(work, 'upgrade', 'node', ['scripts/upgrade-dsh.mjs', version], version)
+  if (record.gates.upgrade === 0 && mode === '--online-install') {
+    // Auto-installed root peers from the bootstrap lock can survive an upgrade
+    // even when the new host requires another prerelease of include/group.
+    rmSync(join(work, 'pnpm-lock.yaml'))
+    rmSync(join(work, 'node_modules'), { recursive: true, force: true })
+  }
   if (record.gates.bootstrap === 0 && version !== dev && record.gates.upgrade === 0 && mode === '--offline') record.gates.metadata = command(work, 'metadata', 'pnpm', ['install', '--lockfile-only', '--ignore-scripts', '--store-dir', store], version)
   if (record.gates.bootstrap === 0 && version !== dev && record.gates.upgrade === 0 && (mode !== '--offline' || record.gates.metadata === 0)) record.gates.install = command(work, 'install', 'pnpm', ['install', mode === '--offline' ? '--frozen-lockfile' : '--no-frozen-lockfile', '--store-dir', store, ...(mode === '--offline' ? ['--offline'] : [])], version)
   if (record.gates.bootstrap === 0 && (version === dev || record.gates.install === 0)) {
-    for (const [name, argv] of [['compat', ['compat:check']], ['test', ['test']], ['docs', ['docs:check']], ['build', ['build']], ['artifact', ['test:artifact']], ['pack', ['pack', '--pack-destination', lane]]]) record.gates[name] = command(work, name, 'pnpm', argv, version)
+    for (const [name, argv] of [['peers', ['peers', 'check']], ['compat', ['compat:check']], ['test', ['test']], ['docs', ['docs:check']], ['build', ['build']], ['artifact', ['test:artifact']], ['pack', ['pack', '--pack-destination', lane]]]) record.gates[name] = command(work, name, 'pnpm', argv, version)
   }
   writeFileSync(join(out, 'results.json'), JSON.stringify({ developmentPin: dev, releases: all, results }, null, 2) + '\n')
   console.log(`[matrix] ${version}: ${JSON.stringify(record.gates)}`)
 }
-if (results.some(lane => ['bootstrap', 'compat', 'test', 'docs', 'build', 'artifact', 'pack'].some(name => lane.gates[name] !== 0) || (lane.version !== dev && (lane.gates.upgrade !== 0 || lane.gates.install !== 0)))) process.exitCode = 1
+if (results.some(lane => ['bootstrap', 'peers', 'compat', 'test', 'docs', 'build', 'artifact', 'pack'].some(name => lane.gates[name] !== 0) || (lane.version !== dev && (lane.gates.upgrade !== 0 || lane.gates.install !== 0)))) process.exitCode = 1

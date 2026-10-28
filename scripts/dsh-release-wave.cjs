@@ -3,6 +3,28 @@
 const DSH_PREFIX = '@deepseek-ai/dsh-'
 const PIN_FIELDS = ['dependencies', 'optionalDependencies', 'peerDependencies']
 
+/** Vendor packages share the host runtime but do not use DSH release numbers. */
+function isHostRuntimePackage(name) {
+  return name === '@deepseek-ai/cordis' || name === '@deepseek-ai/cosmokit'
+    || name === '@deepseek-ai/schemastery' || name.startsWith('@deepseek-ai/cordis-plugin-')
+}
+
+/** Later manifests are authoritative (the published host goes last). */
+function hostRuntimePins(manifests) {
+  const pins = {}
+  for (const manifest of manifests) {
+    for (const field of ['peerDependencies', 'dependencies']) {
+      for (const [name, range] of Object.entries(manifest[field] ?? {})) {
+        if (!isHostRuntimePackage(name)) continue
+        const match = typeof range === 'string' ? /^[~^]?(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/u.exec(range) : null
+        if (match === null) throw new Error(`[dsh-pin] ${name} has no single runtime floor: ${range}`)
+        pins[name] = match[1]
+      }
+    }
+  }
+  return pins
+}
+
 function developmentPin(manifest) {
   const pins = [...new Set(Object.entries(manifest.devDependencies ?? {})
     .filter(([name]) => name.startsWith(DSH_PREFIX))
@@ -48,6 +70,8 @@ function lockfileDrift(lockText, pin) {
 }
 
 module.exports = {
+  hostRuntimePins,
+  isHostRuntimePackage,
   DSH_PREFIX,
   developmentPin,
   pinDshDependencies,

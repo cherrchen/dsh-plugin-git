@@ -64,7 +64,8 @@ jobs:
           version: 11.7.0
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.19.0
+          # The 0.2.2 host requires Node >=24.9; retain the older-host lane.
+          node-version: ${{ matrix.dsh-version == '0.2.2-alpha.2' && '24.9.0' || '22.19.0' }}
           cache: pnpm
       # The committed lockfile is the development pin. Ignore the lane
       # version until upgrade-dsh.mjs has rewritten the root manifest.
@@ -74,7 +75,11 @@ jobs:
       - name: Select DSH matrix version
         run: node scripts/upgrade-dsh.mjs "$DSH_COMPAT_VERSION"
       - name: Install the selected host runtime
-        run: pnpm install --no-frozen-lockfile
+        run: |
+          # Resolve auto-installed Cordis peers for this host from scratch.
+          rm -rf node_modules pnpm-lock.yaml
+          pnpm install --no-frozen-lockfile
+      - run: pnpm peers check
       - run: pnpm compat:check
       - run: pnpm test
       - run: pnpm docs:check
