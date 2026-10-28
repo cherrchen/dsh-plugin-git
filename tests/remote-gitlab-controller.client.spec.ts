@@ -15,8 +15,9 @@ const owners: GitRemoteFeature[] = []
 afterEach(() => owners.splice(0).forEach(owner => owner.dispose()))
 function fixture(override?: Override, negotiated = true) {
   const call = vi.fn(async (_channel: string, endpoint: string, raw: unknown): Promise<Reply> => {
-    const payload = raw as Record<string, unknown>, custom = await override?.(endpoint, payload)
+    const payload = raw as Record<string, unknown>, custom = payload?.['remoteProtocol'] === 2 ? await override?.(endpoint, payload) : undefined
     if (custom !== undefined) return custom
+    if (endpoint === 'remote-capability' && payload?.['remoteProtocol'] !== 2) return { ok: true, value: { state: 'on', remoteProtocol: 2, generation, auth: { state: 'authenticated' }, credential: { configured: true, writable: true }, actions, loginAvailable: false } }
     if (endpoint === 'remote-repositories') return { ok: true, value: { remoteProtocol: 2, value: { state: 'supported', remotes: [{ name: 'origin', identity: target }] } } }
     const object = payload?.['object']
     const facts = { actionScope: { path: target.path, projectId: '12', ...(object === undefined ? {} : { object }) }, viewer, permissions: { push: true }, actions, operationSupport: support, supportedMergeMethods: ['merge', 'squash'], supportedReviewEvents: ['COMMENT', 'APPROVE'], reviewPermissions: { COMMENT: true, APPROVE: true, REQUEST_CHANGES: false } }
@@ -31,13 +32,13 @@ function fixture(override?: Override, negotiated = true) {
   })
   const feature = new GitRemoteFeature({ call } as unknown as GitRpcClient); owners.push(feature)
   if (negotiated) feature.scoped.observeCapability({ state: 'on', remoteProtocol: 2 })
-  const controller = feature.gitlabControllerFor('session')
+  const controller = feature.controllerFor('session')
   return { call, feature, controller }
 }
 async function ready(controller: ReturnType<typeof fixture>['controller']) {
   controller.setRepository('/repo')
   await vi.waitFor(() => expect(controller.getSnapshot().items).toHaveLength(1))
-  await controller.open(7)
+  await controller.open(7, 'pulls')
   expect(controller.getSnapshot().detail?.number).toBe(7)
 }
 describe('GitLab scoped controller', () => {
@@ -58,7 +59,7 @@ describe('GitLab scoped controller', () => {
     await vi.waitFor(() => expect(f.controller.getSnapshot().items).toHaveLength(1))
     await f.controller.login()
     const finishOldLogin = finishLogin
-    await f.controller.select(other)
+    await f.controller.load('pulls', other)
     expect(f.controller.getSnapshot()).toMatchObject({ login: undefined, error: undefined, target: other })
     await f.controller.login()
     releaseCancel(envelope(null))
@@ -86,7 +87,7 @@ describe('GitLab scoped controller', () => {
     })
     await ready(f.controller); await f.controller.login()
     expect(f.controller.getSnapshot().login?.userCode).toBe('AAAA')
-    await f.controller.select(other)
+    await f.controller.load('pulls', other)
     expect(f.controller.getSnapshot()).toMatchObject({ target: other, login: undefined, busy: false })
     const cancellations = () => f.call.mock.calls.filter(call => call[1] === 'remote-cancel-login').map(call => call[2])
     expect(cancellations()).toEqual([expect.objectContaining({ instance: scope.instance, attemptId: scope.instance })])
@@ -102,8 +103,12 @@ describe('GitLab scoped controller', () => {
     polls.get(otherScope.instance)!.reject(Error('cancelled'))
   })
   it('never sends GitLab operations without v2 negotiation', async () => {
-    const f = fixture(undefined, false); f.controller.setRepository('/repo'); await f.controller.discover()
-    expect(f.call).not.toHaveBeenCalled(); expect(f.controller.getSnapshot().hostSupported).toBe(false)
+    const f = fixture(undefined, false)
+    expect(f.controller.scopedAvailable).toBe(false)
+    f.controller.setRepository('/repo')
+    await vi.waitFor(() => expect(f.controller.getSnapshot().busy).toBe(false))
+    expect(f.call.mock.calls.some(call => call[1] === 'remote-list-prs' || call[1] === 'remote-discussions')).toBe(false)
+    expect(f.controller.getSnapshot().items).toHaveLength(0)
   })
   it('accepts the first authenticated generation when resolving a previously uninitialized instance', async () => {
     let first = true
@@ -146,7 +151,8 @@ describe('GitLab scoped controller', () => {
     let removed = false
     const f = fixture(endpoint => endpoint === 'remote-capability' && removed ? { ok: false, error: { code: 'git/remote-unavailable', details: { reason: 'instance-removed' } } } : undefined)
     await ready(f.controller); f.controller.prepare('close'); removed = true; await f.controller.pollNotices()
-    expect(f.controller.getSnapshot()).toMatchObject({ detail: undefined, facts: undefined, confirmation: undefined, notices: [], blocked: false })
+    expect(f.controller.getSnapshot()).toMatchObject({ detail: undefined, facts: undefined, confirmation: undefined, blocked: false })
+    expect(f.feature.getNotices()).toEqual([])
     await f.controller.confirm(); expect(f.call.mock.calls.some(call => call[1] === 'remote-close-pr')).toBe(false)
   })
   it('requires refreshed notes, approvals and explicit acknowledgement after an unknown approval', async () => {
@@ -158,18 +164,19 @@ describe('GitLab scoped controller', () => {
     await ready(f.controller); await f.controller.write('remote-review', { event: 'APPROVE', body: 'A comment' })
     expect(f.controller.getSnapshot()).toMatchObject({ blocked: true, error: 'git/write-result-unknown', errorDetails: { commentSucceeded: true } })
     await f.controller.write('remote-review', { event: 'APPROVE', body: 'A comment' })
-    await f.controller.list('pulls', 'all'); await f.controller.select(target)
+    await f.controller.load('pulls', target, 'all')
     expect(f.call.mock.calls.filter(call => call[1] === 'remote-review')).toHaveLength(1)
-    await f.controller.refresh(); f.controller.acknowledgeReconciliation(); expect(f.controller.getSnapshot().blocked).toBe(true)
+    await f.controller.refresh()
+    await vi.waitFor(() => expect(f.controller.getSnapshot().reconciled).toBe(true))
     expect(f.controller.getSnapshot().errorDetails?.['commentSucceeded']).toBe(true)
-    await f.controller.more('comments'); expect(f.controller.getSnapshot().reconciled).toBe(true)
+    expect(f.controller.getSnapshot().blocked).toBe(true)
     f.controller.acknowledgeReconciliation(); expect(f.controller.getSnapshot().blocked).toBe(false)
   })
   it('refuses unsupported events and accounts, and preserves blocking across sidebar remounts', async () => {
     const f = fixture((endpoint, payload) => endpoint === 'remote-repository' ? { ok: true, value: { remoteProtocol: 2, scope, generation, value: { actionScope: { path: target.path, projectId: '12', ...(payload['object'] === undefined ? {} : { object: payload['object'] }) }, viewer, permissions: {}, actions, operationSupport: support, supportedMergeMethods: ['merge'], supportedReviewEvents: ['COMMENT'], reviewPermissions: { COMMENT: true, APPROVE: false, REQUEST_CHANGES: false } } } } : undefined)
     await ready(f.controller); await f.controller.write('remote-review', { event: 'APPROVE', body: '' }); f.controller.prepare('merge', 'squash')
     expect(f.controller.getSnapshot().confirmation).toBeUndefined(); expect(f.call.mock.calls.some(call => call[1] === 'remote-review')).toBe(false)
-    expect(f.feature.gitlabControllerFor('session')).toBe(f.controller)
+    expect(f.feature.controllerFor('session')).toBe(f.controller)
   })
   it('polls scoped review todos and notices state changes only for a loaded own MR', async () => {
     let merged = false
@@ -182,16 +189,16 @@ describe('GitLab scoped controller', () => {
     f.controller.subscribe(() => {}); f.controller.setRepository('/repo'); await vi.waitFor(() => expect(f.controller.getSnapshot().items).toHaveLength(1))
     const poll = () => f.controller.pollNotices()
     merged = true; await poll(); await poll()
-    expect(f.controller.getSnapshot().notices.map(item => item.kind)).toEqual(['review-requested', 'merged'])
+    expect(f.feature.getNotices().map(item => item.kind)).toEqual(['review-requested', 'merged'])
     expect(native).toHaveBeenCalledTimes(2)
     expect(f.call.mock.calls.filter(call => call[1] === 'remote-notifications').every(call => (call[2] as Record<string, unknown>)['automatic'] === true)).toBe(true)
-    f.feature.setNotify(undefined); expect(f.controller.getSnapshot().notices).toHaveLength(2)
+    f.feature.setNotify(undefined); expect(f.feature.getNotices()).toHaveLength(2)
   })
   it('deduplicates pushed-branch suggestions within the verified project context', async () => {
     const f = fixture(); await ready(f.controller); const native = vi.fn(); f.feature.setNotify(native)
     f.controller.receivePush(target, '12', viewer, generation, sha)
     f.controller.receivePush(target, '12', viewer, generation, sha)
-    expect(f.controller.getSnapshot().notices.map(item => item.kind)).toEqual(['create-pr'])
+    expect(f.feature.getNotices().map(item => item.kind)).toEqual(['create-pr'])
     expect(native).toHaveBeenCalledTimes(1)
   })
   it('does not accept a substituted project or a missing scope echo', async () => {
@@ -233,7 +240,7 @@ describe('GitLab scoped controller', () => {
     let release!: (value: Reply) => void
     const f = fixture(endpoint => endpoint === 'remote-pr' ? new Promise(resolve => { release = resolve }) : undefined)
     f.controller.setRepository('/repo'); await vi.waitFor(() => expect(f.controller.getSnapshot().items).toHaveLength(1))
-    const pending = f.controller.open(7); await vi.waitFor(() => expect(release).toBeDefined())
+    const pending = f.controller.open(7, 'pulls'); await vi.waitFor(() => expect(release).toBeDefined())
     f.feature.dispose(); release({ ok: true, value: { remoteProtocol: 2, scope, generation, value: pull } }); await pending
     expect(f.controller.getSnapshot().detail).toBeUndefined()
   })

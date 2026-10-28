@@ -1,18 +1,14 @@
 import { useId } from 'react'
 import type { ReactNode } from 'react'
 import { Button, StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { GitRemoteCapabilityOn, GitRemoteAuthSource, GitRemoteAuthState } from '../../remote/types.ts'
+import type { GitRemoteCapabilityOn, ScopedRemoteCapabilityOn, GitRemoteAuthSource, GitRemoteAuthState } from '../../remote/types.ts'
 import type { GitRemoteViewer } from '../../remote/types.ts'
+import type { RemoteLoginAttempt } from './remote-view.ts'
 import type { GitLocaleKey } from '../locales.ts'
 import { RemoteAvatar } from './RemoteAvatar.tsx'
 import css from '../GitRemoteSurface.module.css'
 
-/** Pending device-flow attempt shown until the poll settles or the user cancels. */
-export interface RemoteLoginAttempt {
-  readonly userCode: string
-  readonly verificationUri: string
-  readonly attemptId: string
-}
+export type { RemoteLoginAttempt }
 
 function authDot(state: GitRemoteAuthState): 'done' | 'warning' | 'error' | 'idle' {
   if (state === 'authenticated') return 'done'
@@ -21,26 +17,29 @@ function authDot(state: GitRemoteAuthState): 'done' | 'warning' | 'error' | 'idl
   return 'idle'
 }
 
-const sourceLabels: Record<GitRemoteAuthSource, GitLocaleKey> = {
+const sourceLabels: Record<GitRemoteAuthSource | 'glab', GitLocaleKey> = {
   grant: 'remote.authSourceOAuth',
   ref: 'remote.authSourceRef',
   gh: 'remote.authSourceGh',
+  glab: 'remote.authSourceGlab',
   'git-credential': 'remote.authSourceGitCredential',
 }
 
-function statusCopy(state: GitRemoteAuthState): { readonly headline: GitLocaleKey; readonly hint?: GitLocaleKey } {
-  if (state === 'authenticated') return { headline: 'remote.authStatusConnected' }
+function statusCopy(state: GitRemoteAuthState, gitlab: boolean): { readonly headline: GitLocaleKey; readonly hint?: GitLocaleKey } {
+  if (state === 'authenticated') return { headline: gitlab ? 'gitlab.authConnected' : 'remote.authStatusConnected' }
   if (state === 'signed-out') return { headline: 'remote.authStatusSignedOut', hint: 'remote.authStatusSignedOutHint' }
-  if (state === 'invalid') return { headline: 'remote.authStatusInvalid', hint: 'remote.authStatusInvalidHint' }
-  return { headline: 'remote.authStatusAnonymous', hint: 'remote.authStatusAnonymousHint' }
+  if (state === 'invalid') return { headline: gitlab ? 'gitlab.authInvalid' : 'remote.authStatusInvalid', hint: 'remote.authStatusInvalidHint' }
+  return { headline: gitlab ? 'gitlab.authDisconnected' : 'remote.authStatusAnonymous', hint: 'remote.authStatusAnonymousHint' }
 }
 
 /** Authentication status card plus a radio choice of connect methods; checked state derives from capability only. */
-export function RemoteAuthSection({ capability, viewer, busy, login, onAuth, onLogin, onCancelLogin, t }: {
-  readonly capability: GitRemoteCapabilityOn
+export function RemoteAuthSection({ capability, viewer, busy, login, gitlab = false, onAuth, onLogin, onCancelLogin, t }: {
+  readonly capability: GitRemoteCapabilityOn | ScopedRemoteCapabilityOn
   readonly viewer: GitRemoteViewer | undefined
   readonly busy: boolean
   readonly login: RemoteLoginAttempt | undefined
+  /** Scoped GitLab instance: CLI radio describes glab and the API/transport auth hint is shown. */
+  readonly gitlab?: boolean
   readonly onAuth: (...endpoints: string[]) => void
   readonly onLogin: () => void
   readonly onCancelLogin: (attemptId: string) => void
@@ -51,9 +50,10 @@ export function RemoteAuthSection({ capability, viewer, busy, login, onAuth, onL
   const authenticated = auth.state === 'authenticated'
   // A stored grant or signed-out marker would override the chosen method; drop it first.
   const reset = auth.state === 'signed-out' || auth.state === 'invalid' || auth.source === 'grant'
-  const status = statusCopy(auth.state)
+  const status = statusCopy(auth.state, gitlab)
+  const cliSource = gitlab ? 'glab' : 'gh'
   const source = authenticated && auth.source !== undefined ? sourceLabels[auth.source] ?? 'remote.authSourceUnknown' : 'remote.authSourceUnknown'
-  const subline = authenticated && auth.source !== 'gh' && auth.source !== 'grant' ? source : undefined
+  const subline = authenticated && auth.source !== cliSource && auth.source !== 'grant' ? source : undefined
   return (
     <section className={css.authSection} aria-label={t('remote.auth')}>
       <div className={css.authCard}>
@@ -82,13 +82,14 @@ export function RemoteAuthSection({ capability, viewer, busy, login, onAuth, onL
           <input
             type="radio"
             name={group}
-            checked={authenticated && auth.source === 'gh'}
+            checked={authenticated && auth.source === cliSource}
             disabled={busy}
             onChange={() => { onAuth(...(reset ? ['remote-clear-grant'] : []), 'remote-retry-auth') }}
           />
-          <span>{t('remote.authSourceGh')}</span>
+          <span>{t(gitlab ? 'remote.authSourceGlab' : 'remote.authSourceGh')}</span>
         </label>
-        {!authenticated && <span className={css.radioHint}>{t('remote.ghLoginHint')}</span>}
+        {!authenticated && <span className={css.radioHint}>{t(gitlab ? 'remote.glabLoginHint' : 'remote.ghLoginHint')}</span>}
+        {gitlab && <span className={css.radioHint}>{t('gitlab.authHint')}</span>}
         {capability.loginAvailable && (
           <label className={css.radioRow}>
             <input

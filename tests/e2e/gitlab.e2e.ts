@@ -4,7 +4,7 @@ async function openGitLab(page: Page, scenario = 'gitlab', lang = 'en') {
   await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort())
   await page.goto(`/?scenario=${scenario}&lang=${lang}`)
   await page.getByRole('button', { name: /Fixture merge request/ }).click()
-  await expect(page.getByRole('heading', { name: '#7 · Fixture merge request' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '#7 Fixture merge request' })).toBeVisible()
   await expect(page.getByRole('button', { name: lang === 'en' ? 'Checkout verified PR head' : '检出已核验的 PR 提交' })).toBeEnabled()
 }
 test('browses a scoped GitLab merge request and posts one comment with an isolated Host', async ({ page }) => {
@@ -29,7 +29,7 @@ test('keeps an unknown approval blocked until the comment and current approval a
   await expect(page.getByText('评论已发送；核对审批时不要再次发送该评论。')).toBeVisible()
   await expect(page.getByRole('button', { name: '批准', exact: true })).toBeDisabled()
   const id = await page.getByRole('status', { name: 'Fixture ID' }).textContent()
-  await page.getByRole('button', { name: '刷新 GitLab' }).click()
+  await page.getByRole('button', { name: '刷新' }).click()
   await expect(page.locator('article').filter({ hasText: '只发送一次' })).toBeVisible()
   await page.getByRole('button', { name: '我已核对刷新后的结果' }).click()
   await expect(page.getByRole('button', { name: '批准', exact: true })).toBeEnabled()

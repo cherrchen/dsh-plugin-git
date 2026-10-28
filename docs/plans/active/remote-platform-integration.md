@@ -615,3 +615,4 @@ GitLab 本轮工作位于当前 `feat/remote-gitlab` 分支；若之后获准提
 - [计划总索引](../README.md) / [进行中索引](README.md)
 
 | 2026-10-27 | GL0 B2–B4补证与最终冻结 | 两个正式file-backed provider各9项通过；21份精确版本官方文档/hash与逐端点表；隔离EE19.5.1两车道18/14项及真实SSH MR head SHA通过。异常/资源限制/未验证范围和清理记录见B2–B4及脱敏JSON；ADR-0005 Accepted、设计Target，GL1未授权/未启动。未改产品运行时/依赖；检查结果见交接 |
+| 2026-10-28 | GL5 Client 统一 UI 重构 | 合并 GitHub/GitLab 双控制器为统一 GitRemoteController（v1+scoped 双通道），删除 GitLabRemotePanel 与 provider 手工切换：provider 由 remote-repositories v2 远端 URL 身份自动决定，unregistered/ambiguous 逐条提示，不匹配报 unsupported。GitLab 复用共享列表/详情/tab UI（含新 tab、时间线、评论、审批、合并、检出、通知），地址加 gitlab/<instance>/<path> 五段语法互不碰撞；notes/discussions/commits/approvals 投影为共享视图模型。`pnpm test` 70 文件 857 项、tsc 双配置、compat、docs、git diff --check 均 exit 0。真实平台验收仍 Not verified |

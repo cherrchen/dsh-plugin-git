@@ -928,11 +928,3 @@
 .retireInput { display: grid; gap: 4px; }
 .retireInput input { min-width: 0; width: 100%; }
 
-/* GitLab uses the same compact sidebar language as the existing remote view. */
-.gitlabControls, .gitlabForm { display: grid; gap: 8px; margin: 8px 0 12px; }
-.gitlabControls label, .gitlabForm label { display: grid; gap: 4px; color: var(--dsw-alias-label-secondary); font-size: 12px; }
-.gitlabControls select, .gitlabForm select, .gitlabForm input:not([type='checkbox']), .gitlabForm textarea { box-sizing: border-box; width: 100%; min-width: 0; padding: 5px 7px; border: 0.5px solid var(--dsw-alias-border-l2); border-radius: 6px; color: var(--dsw-alias-label-primary); background: transparent; font: inherit; }
-.gitlabForm textarea { min-height: 72px; resize: vertical; }
-.gitlabActions { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
-.gitlabNote { overflow-wrap: anywhere; padding: 6px 0; border-bottom: 0.5px solid var(--dsw-alias-border-l2); }
-.gitlabPatch { max-width: 100%; overflow: auto; white-space: pre; }

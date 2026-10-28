@@ -5,24 +5,25 @@ import { canonicalGitLabInstance } from '../../remote/instance-url.ts'
 import { ScopedProtocolError } from '../remote-protocol.ts'
 import { IconUserOutline16 } from '../../compat/dsh-icons.tsx'
 import { GitIconButton } from '../details/GitIconButton.tsx'
-import { RemoteAuthSection, type RemoteLoginAttempt } from './RemoteAuthSection.tsx'
+import { RemoteAuthSection } from './RemoteAuthSection.tsx'
 import { RemoteLoading } from './RemoteLoading.tsx'
 import css from '../GitRemoteSurface.module.css'
 import type { GitRemoteController } from '../remote.ts'
-import type { GitRemoteCapabilityOn } from '../../remote/types.ts'
+import type { GitRemoteCapabilityOn, ScopedRemoteCapabilityOn } from '../../remote/types.ts'
 import type { GitRemoteViewer } from '../../remote/types.ts'
 import type { GitLocaleKey } from '../locales.ts'
 
-/** Toolbar entry to the platform-authentication dialog; owns the login-attempt state. */
-export function RemoteAuthControl({ capability, viewer, busy, controller, t }: {
-  readonly capability: GitRemoteCapabilityOn
+/** Toolbar entry to the platform-authentication dialog; the controller owns the login-attempt state. */
+export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, controller, t }: {
+  readonly capability: GitRemoteCapabilityOn | ScopedRemoteCapabilityOn
   readonly viewer: GitRemoteViewer | undefined
   readonly busy: boolean
+  /** Scoped GitLab target: labels and retry semantics follow the instance. */
+  readonly gitlab?: boolean
   readonly controller: GitRemoteController
   readonly t: (key: GitLocaleKey) => string
 }): ReactNode {
   const [open, setOpen] = useState(false)
-  const [login, setLogin] = useState<RemoteLoginAttempt>()
   const [retireInput, setRetireInput] = useState('')
   const [retireScope, setRetireScope] = useState<string>()
   const [retireResult, setRetireResult] = useState<GitLocaleKey>()
@@ -46,10 +47,11 @@ export function RemoteAuthControl({ capability, viewer, busy, controller, t }: {
           capability={capability}
           viewer={viewer}
           busy={busy}
-          login={login}
+          login={state.login}
+          gitlab={gitlab}
           onAuth={(...endpoints) => { void controller.authAction(...endpoints) }}
-          onLogin={() => { void controller.login(setLogin).finally(() => { setLogin(undefined) }) }}
-          onCancelLogin={attemptId => { void controller.cancelLogin(attemptId).finally(() => { setLogin(undefined) }) }}
+          onLogin={() => { void controller.login() }}
+          onCancelLogin={() => { void controller.cancelLogin() }}
           t={t}
         />
         {controller.scopedAvailable && (

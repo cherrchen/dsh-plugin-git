@@ -3,9 +3,10 @@ import type { ReactNode } from 'react'
 import { Tag, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownLabels } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IconRightUpOutline16 } from '../../compat/dsh-icons.tsx'
-import type { RemoteIssue, RemotePull } from '../../remote/provider.ts'
+import type { RemoteItem } from './remote-view.ts'
 import type { GitLocaleKey } from '../locales.ts'
 import { RemoteMarkdown } from './RemoteMarkdown.tsx'
+import { GitLabMarkdown } from './GitLabMarkdown.tsx'
 import { RemoteAvatar } from './RemoteAvatar.tsx'
 import css from '../GitRemoteSurface.module.css'
 
@@ -17,22 +18,26 @@ export function remoteMarkdownLabels(t: (key: GitLocaleKey) => string): Markdown
   }
 }
 
-function detailStateKey(state: RemoteIssue['state'] | RemotePull['state']): GitLocaleKey {
+function detailStateKey(state: RemoteItem['state']): GitLocaleKey {
   if (state === 'closed') return 'remote.stateClosed'
   if (state === 'merged') return 'remote.stateMerged'
+  if (state === 'unknown') return 'remote.stateUnknown'
   return 'remote.stateOpen'
 }
 
-function detailStateTone(state: RemoteIssue['state'] | RemotePull['state']): 'success' | 'neutral' | 'info' {
+function detailStateTone(state: RemoteItem['state']): 'success' | 'neutral' | 'info' | 'warning' {
   if (state === 'closed') return 'neutral'
   if (state === 'merged') return 'info'
+  if (state === 'unknown') return 'warning'
   return 'success'
 }
 
 /** Detail head and opening post: number, title, state tags, browser shortcut, then the description as the first timeline card. */
-export function RemoteDetailSection({ detail, labels, t, children }: {
-  readonly detail: RemotePull | RemoteIssue
+export function RemoteDetailSection({ detail, labels, instance, t, children }: {
+  readonly detail: RemoteItem
   readonly labels: MarkdownLabels
+  /** GitLab canonical instance; enables GitLab link projection in Markdown bodies. */
+  readonly instance?: string | undefined
   readonly t: (key: GitLocaleKey) => string
   readonly children?: ReactNode
 }): ReactNode {
@@ -40,14 +45,26 @@ export function RemoteDetailSection({ detail, labels, t, children }: {
   const base = 'base' in detail ? detail.base : undefined
   const meta = useMemo(() => {
     if (head === undefined || base === undefined) return undefined
-    return `${head.repository?.owner ?? ''}:${head.ref} → ${base.repository?.owner ?? ''}:${base.ref} · ${head.sha.slice(0, 12)}`
+    if ('repository' in head || 'repository' in base) {
+      const left = 'repository' in head ? head : undefined
+      const right = 'repository' in base ? base : undefined
+      if (left === undefined || right === undefined || left.sha === null || right.sha === null) return undefined
+      return `${left.repository?.owner ?? ''}:${left.ref} → ${right.repository?.owner ?? ''}:${right.ref} · ${left.sha.slice(0, 12)}`
+    }
+    const headSha = head.sha === null ? '—' : head.sha.slice(0, 12)
+    return `${head.projectId ?? '—'}:${head.ref} → ${base.projectId ?? '—'}:${base.ref} · ${headSha}`
   }, [head, base])
+  const body = detail.body === ''
+    ? <p className={css.tlEmpty}>{t('remote.noDescription')}</p>
+    : instance === undefined
+      ? <RemoteMarkdown text={detail.body} labels={labels} detailsLabel={t('remote.details')} />
+      : <GitLabMarkdown text={detail.body} instance={instance} detailsLabel={t('remote.details')} />
   return (
     <section className={css.section} aria-label={`#${detail.number}`}>
       <div className={css.detailHeader}>
         <h4 className={css.detailTitle}>#{detail.number} {detail.title}</h4>
         <span className={css.detailTags}>
-          {'draft' in detail && detail.draft && <Tag tone="quiet">{t('remote.draft')}</Tag>}
+          {'draft' in detail && detail.draft === true && <Tag tone="quiet">{t('remote.draft')}</Tag>}
           <Tag tone={detailStateTone(detail.state)}>{t(detailStateKey(detail.state))}</Tag>
           {detail.url === undefined ? null : (
             <Tooltip label={t('remote.openBrowser')} side="top" delayMs={200}>
@@ -82,11 +99,7 @@ export function RemoteDetailSection({ detail, labels, t, children }: {
               </Tooltip>
             )}
           </header>
-          <div className={css.tlCardBody}>
-            {detail.body === ''
-              ? <p className={css.tlEmpty}>{t('remote.noDescription')}</p>
-              : <RemoteMarkdown text={detail.body} labels={labels} detailsLabel={t('remote.details')} />}
-          </div>
+          <div className={css.tlCardBody}>{body}</div>
         </article>
       </div>
       {children}

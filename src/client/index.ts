@@ -10,7 +10,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
-import { GitRemoteFeature, remoteNoticeKeys } from './remote.ts'
+import { GitRemoteFeature, gitLabNoticeKeys, remoteNoticeKeys } from './remote.ts'
+import type { RemoteTarget } from './remote/remote-view.ts'
 import { GitRemoteSurface, GitRemoteTitle } from './surfaces/GitRemoteSurface.tsx'
 import { GitRemoteItemSurface } from './surfaces/GitRemoteItemSurface.tsx'
 import { GitBranchControl } from './GitBranchControl.tsx'
@@ -52,7 +53,7 @@ import {
   gitDiffAddress,
   gitRemoteItemAddress,
 } from './contract.ts'
-import type { RemoteRepository } from '../remote/provider.ts'
+
 import { changesDefinition, diffDefinition, graphDefinition, worktreesDefinition, remoteDefinition, remoteItemDefinition } from './tab-definitions.ts'
 import { en, NS, zh, type GitLocaleKey } from './locales.ts'
 import { injectDshGitSettings } from '../compat/dsh-client-settings.ts'
@@ -116,8 +117,11 @@ export function apply(ctx: ClientContext): void {
   gitSessions.setDiffNavigator(openDiff)
   // A pull/issue opens as a resource tab whose address is the remote identity;
   // one shared body renders either kind from the navigation payload.
-  const openRemoteItem = (target: RemoteRepository, kind: 'pulls' | 'issues', number: number): void => {
-    ctx.sidebarRight.openResource(gitRemoteItemAddress(target, kind, number), { params: { owner: target.owner, repo: target.repo, kind, number } })
+  const openRemoteItem = (target: RemoteTarget, kind: 'pulls' | 'issues', number: number): void => {
+    const params = target.provider === 'gitlab'
+      ? { provider: 'gitlab' as const, instance: target.instance, path: target.path, kind, number }
+      : { owner: target.owner, repo: target.repo, kind, number }
+    ctx.sidebarRight.openResource(gitRemoteItemAddress(target, kind, number), { params })
   }
 
   ctx.effect(() => ctx.locale.register(NS, { en, zh }), 'git: dictionaries')
@@ -208,7 +212,7 @@ export function apply(ctx: ClientContext): void {
   ctx.inject(['desktop'], (desktopCtx) => {
     gitSessions.setDesktop(desktopCtx.desktop)
     remoteFeature.setNotify(async notice => {
-      const label = notice.provider === 'gitlab' ? notice.kind === 'review-requested' ? 'gitlab.noticeReview' : notice.kind === 'merged' ? 'gitlab.noticeMerged' : notice.kind === 'closed' ? 'gitlab.noticeClosed' : 'gitlab.noticeCreate' : remoteNoticeKeys[notice.kind]
+      const label = (notice.provider === 'gitlab' ? gitLabNoticeKeys : remoteNoticeKeys)[notice.kind]
       await desktopCtx.desktop.notification.show({ title: t('remote.title'), body: `${t(label)} · ${notice.title}` })
     })
     return () => { gitSessions.setDesktop(undefined); remoteFeature.setNotify(undefined) }

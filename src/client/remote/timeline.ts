@@ -1,28 +1,29 @@
 /** Chronological ordering for the pull/issue detail: interleaves comments, commits, reviews and inline threads. */
-import type { RemoteComment, RemoteCommit, RemoteReview } from '../../remote/provider.ts'
+import type { RemoteReview } from '../../remote/provider.ts'
+import type { RemoteCommentView, RemoteCommitView } from './remote-view.ts'
 
 export interface RemoteThread {
-  readonly root: RemoteComment
-  readonly replies: readonly RemoteComment[]
+  readonly root: RemoteCommentView
+  readonly replies: readonly RemoteCommentView[]
 }
 
 export type RemoteTimelineEntry =
-  | { readonly kind: 'comment'; readonly key: string; readonly at?: string | undefined; readonly comment: RemoteComment }
-  | { readonly kind: 'commit'; readonly key: string; readonly at?: string | undefined; readonly commit: RemoteCommit }
+  | { readonly kind: 'comment'; readonly key: string; readonly at?: string | undefined; readonly comment: RemoteCommentView }
+  | { readonly kind: 'commit'; readonly key: string; readonly at?: string | undefined; readonly commit: RemoteCommitView }
   | { readonly kind: 'review'; readonly key: string; readonly at?: string | undefined; readonly review: RemoteReview; readonly threads: readonly RemoteThread[] }
   | { readonly kind: 'thread'; readonly key: string; readonly at?: string | undefined; readonly thread: RemoteThread }
 
 const time = (at: string | undefined): number => (at === undefined ? Number.NaN : Date.parse(at))
 
 export function remoteTimeline(input: {
-  readonly comments: readonly RemoteComment[]
-  readonly inline: readonly RemoteComment[]
-  readonly commits: readonly RemoteCommit[]
+  readonly comments: readonly RemoteCommentView[]
+  readonly inline: readonly RemoteCommentView[]
+  readonly commits: readonly RemoteCommitView[]
   readonly reviews: readonly RemoteReview[]
 }): readonly RemoteTimelineEntry[] {
   const byId = new Map(input.inline.map(comment => [comment.id, comment]))
-  const replies = new Map<string, RemoteComment[]>()
-  const roots: RemoteComment[] = []
+  const replies = new Map<string, RemoteCommentView[]>()
+  const roots: RemoteCommentView[] = []
   for (const comment of input.inline) {
     if (comment.replyTo === undefined || !byId.has(comment.replyTo)) roots.push(comment)
   }
@@ -64,7 +65,7 @@ export function remoteTimeline(input: {
     }
   }
   const entries: RemoteTimelineEntry[] = []
-  for (const commit of input.commits) entries.push({ kind: 'commit', key: `commit:${commit.sha}`, at: commit.committedAt ?? commit.date, commit })
+  for (const commit of input.commits) entries.push({ kind: 'commit', key: `commit:${commit.sha}`, at: commit.committedAt ?? ('date' in commit ? commit.date : undefined), commit })
   for (const comment of input.comments) entries.push({ kind: 'comment', key: `comment:${comment.id}`, at: comment.createdAt, comment })
   for (const thread of standalone) entries.push({ kind: 'thread', key: `thread:${thread.root.id}`, at: thread.root.createdAt, thread })
   for (const review of input.reviews) {

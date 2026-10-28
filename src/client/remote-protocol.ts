@@ -79,9 +79,9 @@ export class ScopedRemoteClient {
     this.generations.set(scopeKey, actual)
     return { remoteProtocol: 2, scope, generation: actual, value: data['value'] as T }
   }
-  async discover(repository: string, sessionId?: string, signal?: AbortSignal): Promise<{ state: 'supported' | 'no-remotes' | 'unsupported'; remotes: readonly { name: 'origin' | 'upstream'; identity: import('../remote/provider.ts').ScopedRemoteRepository }[]; unresolved?: readonly { name: 'origin' | 'upstream'; reason: 'unregistered' | 'ambiguous' }[] }> {
+  async discover(repository: string, sessionId?: string, signal?: AbortSignal, lane?: string): Promise<{ state: 'supported' | 'no-remotes' | 'unsupported'; remotes: readonly { name: 'origin' | 'upstream'; identity: import('../remote/provider.ts').ScopedRemoteRepository }[]; unresolved?: readonly { name: 'origin' | 'upstream'; reason: 'unregistered' | 'ambiguous' }[] }> {
     if (!this.enabled) throw new ScopedProtocolError('host-not-negotiated')
-    const key = JSON.stringify(['discovery', repository, sessionId ?? '']), seq = (this.sequence.get(key) ?? 0) + 1, epoch = this.capabilityEpoch
+    const key = JSON.stringify(['discovery', repository, sessionId ?? '', lane ?? '']), seq = (this.sequence.get(key) ?? 0) + 1, epoch = this.capabilityEpoch
     this.sequence.set(key, seq)
     const reply = await this.rpc.call('/git', 'remote-repositories', { remoteProtocol: 2, repository, ...(sessionId === undefined ? {} : { sessionId }) }, signal)
     if (!this.enabled || this.capabilityEpoch !== epoch || this.sequence.get(key) !== seq) throw new ScopedProtocolError('stale-response')

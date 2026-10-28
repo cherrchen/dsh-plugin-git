@@ -3,8 +3,7 @@ import type { ReactNode } from 'react'
 import { Menu, Pill } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IconChevronDownOutline14 } from '../../compat/dsh-icons.tsx'
-import type { BoundRemote } from '../../remote/git.ts'
-import type { RemoteRepository } from '../../remote/provider.ts'
+import { remoteTargetLabel, sameRemoteTarget, type RemoteBoundRemote, type RemoteTarget } from './remote-view.ts'
 import type { GitLocaleKey } from '../locales.ts'
 import css from '../GitRemoteSurface.module.css'
 
@@ -18,13 +17,17 @@ function listStateKey(state: RemoteListState): GitLocaleKey {
   return 'remote.stateOpen'
 }
 
-/** Remote target selector and the list-state filter. */
+function remoteLabel(remote: RemoteBoundRemote): string {
+  return `${remote.name} · ${remoteTargetLabel(remote.identity)}`
+}
+
+/** Remote target selector and the list-state filter; identities are provider-aware. */
 export function RemoteContextBar({ remotes, target, listState, busy, onSelect, onListState, t }: {
-  readonly remotes: readonly BoundRemote[]
-  readonly target: RemoteRepository | undefined
+  readonly remotes: readonly RemoteBoundRemote[]
+  readonly target: RemoteTarget | undefined
   readonly listState: RemoteListState
   readonly busy: boolean
-  readonly onSelect: (remote: BoundRemote) => void
+  readonly onSelect: (remote: RemoteBoundRemote) => void
   readonly onListState: (state: RemoteListState) => void
   readonly t: (key: GitLocaleKey) => string
 }): ReactNode {
@@ -32,14 +35,14 @@ export function RemoteContextBar({ remotes, target, listState, busy, onSelect, o
   const items = useMemo((): readonly MenuEntry[] =>
     remotes.map(remote => ({
       id: remote.name,
-      label: `${remote.name} · ${remote.identity.owner}/${remote.identity.repo}`,
+      label: remoteLabel(remote),
     })), [remotes])
   const selected = target === undefined
     ? undefined
-    : remotes.find(remote => remote.identity.owner === target.owner && remote.identity.repo === target.repo)
+    : remotes.find(remote => sameRemoteTarget(remote.identity, target))
   const chipLabel = selected === undefined
     ? t('remote.repository')
-    : `${selected.name} · ${selected.identity.owner}/${selected.identity.repo}`
+    : remoteLabel(selected)
 
   const onMenuSelect = (id: string): void => {
     setMenuOpen(false)
