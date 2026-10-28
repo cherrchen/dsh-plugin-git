@@ -30,8 +30,6 @@ function repository(): string {
   return root
 }
 
-
-
 function completeProvider() {
   return {
     accessToken: SECRET,
