@@ -195,14 +195,12 @@ describe('portable Git service', { timeout: 20_000 }, () => {
   })
 
   it('preserves Git command failures instead of reporting a missing repository', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'dsh-plugin-git-failing-'))
-    roots.push(root)
-    const executable = join(root, 'failing-git')
-    writeFileSync(executable, '#!/bin/sh\nprintf permission-denied >&2\nexit 42\n')
-    chmodSync(executable, 0o755)
-    const { dispose, git } = await service(executable, 1024)
-    await expect(git.discover(root)).rejects.toMatchObject({ exitCode: 42, stderr: 'permission-denied' })
-    await dispose()
+    const root = repository()
+    writeFileSync(join(root, '.git', 'config'), '[invalid-config\n')
+    const { dispose, git } = await service('git', 1024)
+    try {
+      await expect(git.discover(root)).rejects.toMatchObject({ exitCode: 128, stderr: expect.stringContaining('bad config line') })
+    } finally { await dispose() }
   })
 
   it('reads paged history and discards unstaged changes', async () => {

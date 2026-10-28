@@ -18,6 +18,12 @@ Entry points are `playwright.config.ts` and `tests/e2e/auth.e2e.ts`. Playwright 
 
 Set `DSH_E2E_OUTPUT_DIR` to an absolute path outside the repository to keep failure screenshots and traces without overwriting working-tree test artifacts.
 
+## Cross-platform CI acceptance
+
+[Main CI](../../.github/workflows/ci.yml) runs the development pin on ubuntu-latest, windows-latest and macos-latest for PRs (including drafts) and main pushes, without cancelling other systems after one fails. Each lane performs frozen installation, compatibility checks, the full unit suite, A1/A2/A3 acceptance probes, Chromium E2E, documentation checks, build, artifact checks and pack. Git fixtures disable autocrlf consistently. Command-error classification uses an actual Git repository with a malformed config rather than a POSIX shell. Browsers use list and HTML reporters; per-system reports and failure traces are retained for 14 days.
+
+The other 17 exact DSH releases remain covered by the [compatibility matrix](../../.github/workflows/upgrade.yml) on Ubuntu. OS and release matrices are separate, not the full release × OS product. Associate CI results with the current PR head; queued/running checks are not passes. Automation covers portable Host/Git and browser Client fixtures. Real accounts, Self-Managed GitLab, full DSH Web/Desktop startup and native enhancement unload still require independent environment evidence in the [remote-platform plan](../plans/active/remote-platform-integration.en.md).
+
 ## Isolation and validation boundaries
 
 The browser runs the repository's actual `RemoteAuthControl` / `RemoteAuthSection`, Client controller and capability store. A loopback HTTP adapter calls the real `GitRemoteRuntime`, authentication engine and GitHub/GitLab providers. Repository reads execute real Git using temporary HOME / USERPROFILE / XDG_CONFIG_HOME / GH_CONFIG_DIR values and isolated global/system Git configuration. User helper settings and token environment variables are never read.

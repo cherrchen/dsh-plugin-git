@@ -483,6 +483,10 @@ Self-Managed、fork/双实例/端口/prefix、权限/tier/代理/TLS 负向、�
 
 本轮测试授权在真实读取完成后撤销，独立 store、临时本地仓库和矩阵安装/缓存/产物在导出脱敏证据后清理；既有测试项目及 App 保留。仅本地提交修复、双语契约/计划和验收证据，不推送或发布。此前 Self-Managed、Windows/Linux/完整 DSH Web/Desktop、第二账号正向审批/通知、成功 Git 认证传输等未验证范围保持原状态，不将 A3 关闭等同 GL5 完成。
 
+### 2026-10-28 · Draft PR 与跨平台 CI
+
+**Current：用户要求以 Draft PR 提交评审，自动跨平台验收交由 CI。** [主 CI](../../../.github/workflows/ci.yml) 已配置 Linux/Windows/macOS 三系统开发 pin 车道，涵盖完整单测、生命周期/分页探针、浏览器 E2E、文档、构建与产物；其余精确 release 维持 Ubuntu 兼容矩阵。覆盖、报告保留和边界唯一说明见[浏览器与 CI 验证](../../development/browser-e2e.md#ci-跨平台验收)。当前 PR head 的 CI 成功前保持 Pending；真实账号/自建服务端、完整 DSH Web/Desktop 宿主和原生增强卸载不由这些 fixture 自动签收。GL5 不因此标 Completed，PR 保持 Draft，发布和合并另行处理。
+
 ### 剩余验收的执行准备（Not verified）
 
 - **DSH 联网矩阵**：如获准联网安装公共 registry 的精确版本及其传递依赖，在仓库外新建输出目录，用 `node scripts/run-dsh-matrix.mjs --online-install <新建的绝对输出目录>` 逐车道运行兼容检查、测试、文档、构建、artifact 和打包。工具在隔离源码副本、pnpm store 和空 npm 用户/全局配置中运行既有 upgrade workflow；安装过程允许相关包安装脚本，主工作树的开发 pin 和锁文件不改。保留脱敏逐车道日志与 `results.json`；验收后只清理该次新建的副本、包缓存与产物，不清理其他工作树或用户缓存。

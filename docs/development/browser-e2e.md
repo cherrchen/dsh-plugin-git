@@ -18,6 +18,12 @@ Linux CI 安装浏览器时使用 `pnpm exec playwright install --with-deps chro
 
 可以设置 `DSH_E2E_OUTPUT_DIR` 为仓库外的绝对路径，以保存失败截图和 trace 而不覆盖主工作树内的测试产物。
 
+## CI 跨平台验收
+
+[主 CI](../../.github/workflows/ci.yml) 在 PR（含 Draft）和 main push 上，以开发 pin 分别运行 `ubuntu-latest`、`windows-latest`、`macos-latest`，失败不取消其他系统。每条车道执行冻结安装、兼容门禁、完整单测、A1/A2/A3 验收探针、Chromium E2E、文档检查、构建、artifact 检查和打包。Git fixture 统一关闭 autocrlf；命令失败分类使用真实 Git 的损坏配置 fixture，避免依赖 POSIX shell。浏览器使用 list + HTML reporter，报告与失败 trace 按系统分别保留 14 天。
+
+DSH 其余 17 个精确 release 继续由 [兼容矩阵](../../.github/workflows/upgrade.yml) 在 Ubuntu 回归；操作系统矩阵和 release 矩阵分别验证，不把它们声称为全部 release × OS 的笛卡尔积。CI 结果应关联当前 PR head，排队/运行中不表示验收通过。此自动验证覆盖可移植 Host/Git 和浏览器 Client fixture；真实账号、自建 GitLab、完整 DSH Web/Desktop 启动与原生增强卸载仍需独立环境证据，见[远程计划](../plans/active/remote-platform-integration.md)。
+
 ## 隔离与验证边界
 
 浏览器实际运行仓库的 `RemoteAuthControl` / `RemoteAuthSection`、Client 控制器与 capability store，经 loopback HTTP 适配器调用真实 `GitRemoteRuntime`、认证引擎以及 GitHub/GitLab Provider。Git 仓库读操作执行真实 `git`，使用临时 HOME / USERPROFILE / XDG_CONFIG_HOME / GH_CONFIG_DIR，并隔离全局与系统 Git 配置，不读取用户的 helper 配置或令牌环境变量。
