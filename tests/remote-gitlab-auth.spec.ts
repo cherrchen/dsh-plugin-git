@@ -23,7 +23,7 @@ function store() {
   return { service, records, refs, resolve }
 }
 let serial = 0
-function fixture(s: ReturnType<typeof store>, url = 'https://one.example/gitlab', options: { ref?: string; clientId?: string; exclusive?: boolean; fetch?: typeof fetch; discover?: () => Promise<string | undefined> } = {}) {
+function fixture(s: ReturnType<typeof store>, url = 'https://one.example/gitlab', options: { ref?: string; clientId?: string; exclusive?: boolean; fetch?: typeof fetch; discover?: (signal: AbortSignal) => Promise<string | undefined> } = {}) {
   const instance = resolveGitLabInstances([{ url, ...(options.ref === undefined ? {} : { credentialRef: options.ref }), ...(options.clientId === undefined ? {} : { clientId: options.clientId }) }])[0]!
   const calls: { url: string; init: RequestInit }[] = []
   const fetch = options.fetch ?? (async () => json({ id: 9, username: 'same' }))
@@ -33,6 +33,146 @@ function fixture(s: ReturnType<typeof store>, url = 'https://one.example/gitlab'
   return { engine, instance, calls }
 }
 const payload = (instance: string, extra: Record<string, unknown> = {}): CredentialRecord => ({ kind: 'grant', payload: { v: 2, provider: 'gitlab', instance, revision: 'old', state: 'authenticated', clientId: 'app', accessToken: 'old-token', refreshToken: 'old-refresh', expiresAt: 1, ...extra } })
+
+describe('GitLab CLI identity discovery lifecycle', () => {
+  it.each(['sequential', 'concurrent'] as const)('shares one probe and verified viewer across %s snapshots', async mode => {
+    const discover = vi.fn(async () => 'cli-token'), f = fixture(store(), 'https://gitlab.com', { discover })
+    const snapshots = []
+    if (mode === 'concurrent') snapshots.push(...await Promise.all(Array.from({ length: 5 }, () => f.engine.snapshot(SIG))))
+    else for (let i = 0; i < 5; i++) snapshots.push(await f.engine.snapshot(SIG))
+    const first = snapshots[0]!
+    expect(discover).toHaveBeenCalledOnce(); expect(f.calls).toHaveLength(1)
+    for (const snapshot of snapshots) {
+      expect(snapshot.generation).toEqual(first.generation)
+      expect(snapshot.viewer).toEqual(first.viewer); expect(snapshot.state).toBe('authenticated')
+    }
+    await f.engine.dispose()
+  })
+  it.each(['missing', 'empty', 'failed'] as const)('caches a %s probe until explicit retry', async mode => {
+    const discover = vi.fn(async (): Promise<string | undefined> => { if (mode === 'failed') throw Error('CLI unavailable'); return mode === 'empty' ? '' : undefined })
+    const f = fixture(store(), 'https://gitlab.com', { discover })
+    for (let i = 0; i < 5; i++) expect((await f.engine.snapshot(SIG)).state).toBe('anonymous')
+    expect(discover).toHaveBeenCalledOnce(); expect(f.calls).toHaveLength(0)
+    discover.mockResolvedValue('new-cli-token')
+    expect((await f.engine.retry(SIG)).value.auth.state).toBe('authenticated')
+    await f.engine.snapshot(SIG)
+    expect(discover).toHaveBeenCalledTimes(2)
+    expect(f.calls.filter(call => call.url.endsWith('/user'))).toHaveLength(1)
+    await f.engine.dispose()
+  })
+  it.each(['record', 'reference'] as const)('reprobes and revalidates after a %s invalidation', async kind => {
+    const discover = vi.fn(async () => 'cli-token'), f = fixture(store(), 'https://gitlab.com', { discover })
+    const first = await f.engine.snapshot(SIG)
+    f.engine.invalidate(kind)
+    expect(first.signal.aborted).toBe(true)
+    expect(discover).toHaveBeenCalledOnce(); expect(f.calls).toHaveLength(1)
+    const second = await f.engine.snapshot(SIG)
+    await f.engine.snapshot(SIG)
+    expect(second.generation.revision).toBeGreaterThan(first.generation.revision)
+    expect(discover).toHaveBeenCalledTimes(2); expect(f.calls).toHaveLength(2)
+    await f.engine.dispose()
+  })
+  it.each(['verification', 'business'] as const)('keeps a %s 401 on the selected CLI token until explicit repair', async stage => {
+    const s = store(), discover = vi.fn(async () => 'old-cli-token')
+    let rejectUser = stage === 'verification'
+    const f = fixture(s, 'https://gitlab.com', { discover, fetch: async () => rejectUser ? json({}, 401) : json({ id: 9, username: 'viewer' }) })
+    if (rejectUser) await expect(f.engine.snapshot(SIG)).rejects.toMatchObject({ details: { reason: 'invalid-token' } })
+    else f.engine.markInvalid(await f.engine.snapshot(SIG))
+    discover.mockResolvedValue('new-cli-token')
+    s.refs.set('GITLAB_TOKEN', { value: 'other-account', source: 'fixture' })
+    await expect(f.engine.snapshot(SIG)).rejects.toMatchObject({ details: { reason: 'invalid-token' } })
+    expect(discover).toHaveBeenCalledOnce(); expect(f.calls).toHaveLength(1)
+    rejectUser = false
+    expect((await f.engine.retry(SIG)).value.auth.state).toBe('authenticated')
+    expect((await f.engine.snapshot(SIG)).token).toBe('new-cli-token')
+    expect(discover).toHaveBeenCalledTimes(2)
+    await f.engine.dispose()
+  })
+  it('does not fall through when an adopted CLI source disappears after invalidation', async () => {
+    const s = store(), discover = vi.fn(async (): Promise<string | undefined> => 'cli-token'), f = fixture(s, 'https://gitlab.com', { discover })
+    await f.engine.snapshot(SIG)
+    discover.mockResolvedValue(undefined); s.refs.set('GITLAB_TOKEN', { value: 'other-account', source: 'fixture' })
+    f.engine.invalidate()
+    for (let i = 0; i < 2; i++) await expect(f.engine.snapshot(SIG)).rejects.toMatchObject({ details: { reason: 'source-lost' } })
+    expect(discover).toHaveBeenCalledTimes(2); expect(f.calls).toHaveLength(1)
+    await f.engine.dispose()
+  })
+  it('retries transient user verification with the cached candidate', async () => {
+    const discover = vi.fn(async () => 'cli-token'); let available = false
+    const f = fixture(store(), 'https://gitlab.com', { discover, fetch: async () => available ? json({ id: 9, username: 'viewer' }) : json({}, 503) })
+    await expect(f.engine.snapshot(SIG)).rejects.toMatchObject({ details: { reason: 'verification-retryable' } })
+    available = true
+    expect((await f.engine.snapshot(SIG)).state).toBe('authenticated')
+    expect(discover).toHaveBeenCalledOnce(); expect(f.calls).toHaveLength(2)
+    await f.engine.dispose()
+  })
+  it.each(['caller', 'invalidation', 'disposal'] as const)('discards a late probe after %s cancellation', async mode => {
+    let started!: () => void, release!: (token: string) => void
+    const entered = new Promise<void>(resolve => { started = resolve })
+    const result = new Promise<string>(resolve => { release = resolve })
+    const discover = vi.fn(async (_signal: AbortSignal) => 'fresh-token').mockImplementationOnce(async () => { started(); return result })
+    const f = fixture(store(), 'https://gitlab.com', { discover }), caller = new AbortController()
+    const pending = f.engine.snapshot(caller.signal), rejected = expect(pending).rejects.toBeDefined()
+    await entered
+    let disposal: Promise<void> | undefined
+    if (mode === 'caller') caller.abort()
+    else if (mode === 'invalidation') f.engine.invalidate()
+    else disposal = f.engine.dispose()
+    expect(discover.mock.calls[0]?.[0].aborted).toBe(true)
+    release('stale-token'); await rejected
+    if (disposal !== undefined) {
+      await disposal
+      await expect(f.engine.snapshot(SIG)).rejects.toMatchObject({ details: { reason: 'disposed' } })
+      expect(f.calls).toHaveLength(0)
+    } else {
+      expect((await f.engine.snapshot(SIG)).token).toBe('fresh-token')
+      expect(discover).toHaveBeenCalledTimes(2); expect(f.calls).toHaveLength(1)
+      await f.engine.dispose()
+    }
+  })
+  it('fences invalidation during user verification before adopting the CLI identity', async () => {
+    const discover = vi.fn(async () => 'new-token').mockResolvedValueOnce('old-token')
+    let invalidate = true
+    const f = fixture(store(), 'https://gitlab.com', { discover, fetch: async () => {
+      if (invalidate) { invalidate = false; f.engine.invalidate() }
+      return json({ id: 9, username: 'viewer' })
+    } })
+    await expect(f.engine.snapshot(SIG)).rejects.toBeDefined()
+    expect((await f.engine.capability()).value.viewer).toBeUndefined()
+    expect((await f.engine.snapshot(SIG)).token).toBe('new-token')
+    expect(discover).toHaveBeenCalledTimes(2)
+    await f.engine.dispose()
+  })
+  it('suppresses CLI discovery after sign-out and clears its cache when the grant is cleared', async () => {
+    const discover = vi.fn(async () => 'old-token'), f = fixture(store(), 'https://gitlab.com', { discover })
+    await f.engine.snapshot(SIG); await f.engine.signOut(SIG)
+    discover.mockResolvedValue('new-token'); f.engine.invalidate('reference')
+    expect((await f.engine.snapshot(SIG)).state).toBe('signed-out')
+    expect(discover).toHaveBeenCalledOnce()
+    await f.engine.clearGrant(SIG)
+    expect((await f.engine.snapshot(SIG)).token).toBe('new-token')
+    expect(discover).toHaveBeenCalledTimes(2)
+    await f.engine.dispose()
+  })
+  it.each(['grant', 'ref'] as const)('still discovers a newly available %s after caching CLI absence', async source => {
+    const s = store(), discover = vi.fn(async () => undefined), f = fixture(s, 'https://gitlab.com', { discover, clientId: 'app' })
+    expect((await f.engine.snapshot(SIG)).state).toBe('anonymous')
+    if (source === 'grant') s.records.set(gitLabGrantKey(f.instance.instance), payload(f.instance.instance, { accessToken: 'new-token', expiresAt: 60_000 }))
+    else s.refs.set('GITLAB_TOKEN', { value: 'new-token', source: 'fixture' })
+    expect((await f.engine.snapshot(SIG)).token).toBe('new-token')
+    expect(discover).toHaveBeenCalledOnce(); expect(f.calls).toHaveLength(1)
+    await f.engine.dispose()
+  })
+  it('keeps CLI caches isolated between instance owners and disables discovery for Self-Managed', async () => {
+    const discover = vi.fn(async () => 'cli-token'), s = store()
+    const a = fixture(s, 'https://gitlab.com', { discover }), b = fixture(s, 'https://gitlab.com', { discover }), self = fixture(s, undefined, { discover })
+    const first = await a.engine.snapshot(SIG), second = await b.engine.snapshot(SIG)
+    expect(first.generation.instanceId).not.toBe(second.generation.instanceId)
+    expect((await self.engine.snapshot(SIG)).state).toBe('anonymous')
+    expect(discover).toHaveBeenCalledTimes(2)
+    await Promise.all([a.engine.dispose(), b.engine.dispose(), self.engine.dispose()])
+  })
+})
 
 describe('GitLab per-instance authentication', () => {
   it('fences a host-only snapshot when the account changes or the owner unloads', async () => {

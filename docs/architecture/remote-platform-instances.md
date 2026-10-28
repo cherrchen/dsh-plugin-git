@@ -113,6 +113,8 @@ GitHub v1 host/owner/repo、viewer.host、expectedViewer.host 和 grant v1 均�
 
 发现候选顺序：authenticated grant → 实例配置的 credentialRef → GitLab.com 专用 GITLAB_TOKEN/GL_TOKEN refs → GitLab.com 的非交互 glab 探针 → 匿名。自建实例不消费通用 refs 或 CLI；本轮自建 git credential fill 禁用，避免含部署前缀时 helper 共享其他实例 token。CLI 仅身份建立事件 ≤一轮、≤5s；单行无空白/控制字符且有界输出后仍须 GET /user 验证，不要求固定 token 前缀。缺命令/帮助输出不等于有效凭据；接受过身份后 401 不切账号。来源不证明 token 类型或过期时间。
 
+glab 探测结果（含无凭据或非取消的探测失败）仅缓存在所属实例 owner 内；同一身份建立周期的连续/并发业务快照复用候选及已验证身份，不重复启动 CLI。凭据记录/引用失效事件或显式 retry 开启新探测周期；登出、清除 grant 和实例卸载清除缓存。取消或失效后迟到的探测/身份验证结果不得写回。401 保留所选来源与失效 token 指纹，普通快照不得重探测并切换 CLI 账号；显式修复后才重新发现。缓存不改变每操作的 grant 读取/到期刷新、ref 解析、signed-out 抑制或 generation 守护。
+
 **credentialRef 解析规则（G4）**：Host 对已选实例描述中的 ref 调用既有 `ctx.credentials.resolve(ref)`，不将 RPC 提供的 ref 直接传入。首次建立身份、尚未采用任何凭据时，未配置/resolve 返回无值（含空值）视为该来源缺席，跳过到本实例下一来源；不是登录失败。不把存储异常、解析出的非法 token、GET /user 401 或先前使用过的 ref 消失当成“缺席”而换来源：存储故障给可修复读取错误；非法 token、GET /user 401 或已采用来源丢失进入 invalid 并要求显式修复；传输/限流/5xx 保持可重试的验证错误，不换来源，也不宣称 token 本身失效。所有非匿名新 token（包括显式 ref）在其绑定实例经 GET /user 验证后才建立 viewer；该请求属于身份初始化，绝不进入 capability 探测。
 
 每个显式 credentialRef 在配置中只能归属一个规范实例；重复跨实例绑定拒绝。GH_TOKEN/GITHUB_TOKEN 固定属于 GitHub，GITLAB_TOKEN/GL_TOKEN 自动发现固定属于 GitLab.com，其他实例显式引用这些保留名即拒绝；同一 context 中显式与自动路径使用同一 ref 时去重。resolve 只获取值/来源，不证明 token 类型或 host；实例归属由显式配置提供，Host 不将该值用于其他实例。不同 ref 恰巧返回同值也不合并 context 或验证结果；运行时每操作解析、signed-out 抑制与凭据事件失效规则保持。
