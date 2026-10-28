@@ -23,9 +23,14 @@ function repository(): { root: string; git: (...args: string[]) => string } {
 }
 
 describe('Git patch → official file changes', () => {
+  it('preserves a literal double-quoted display path without creating an invalid Windows filename', () => {
+    const path = '文件 "quoted" name.txt', before = JSON.stringify(`a/${path}`), after = JSON.stringify(`b/${path}`)
+    const patch = `diff --git ${before} ${after}\n--- ${before}\n+++ ${after}\n@@ -1 +1 @@\n-before\n+after\n`
+    expect(gitFileComparison(path, patch)).toEqual({ kind: 'text', newlineChanged: false, diffs: [{ path, oldText: 'before\n', newText: 'after\n' }] })
+  })
   it('keeps staged and worktree content separate and preserves literal Unicode paths', () => {
     const { root, git } = repository()
-    const path = '文件 "quoted" name.txt'
+    const path = "文件 'quoted' name.txt"
     writeFileSync(join(root, path), 'shared\nbefore\ntail\n')
     git('add', '--', path)
     git('commit', '-m', 'initial')

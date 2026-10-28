@@ -1,6 +1,8 @@
 import { useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
-import { Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { canonicalGitLabInstance } from '../../remote/instance-url.ts'
+import { ScopedProtocolError } from '../remote-protocol.ts'
 import { IconUserOutline16 } from '../../compat/dsh-icons.tsx'
 import { GitIconButton } from '../details/GitIconButton.tsx'
 import { RemoteAuthSection, type RemoteLoginAttempt } from './RemoteAuthSection.tsx'
@@ -21,6 +23,10 @@ export function RemoteAuthControl({ capability, viewer, busy, controller, t }: {
 }): ReactNode {
   const [open, setOpen] = useState(false)
   const [login, setLogin] = useState<RemoteLoginAttempt>()
+  const [retireInput, setRetireInput] = useState('')
+  const [retireScope, setRetireScope] = useState<string>()
+  const [retireResult, setRetireResult] = useState<GitLocaleKey>()
+  const [retiring, setRetiring] = useState(false)
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
   return (
     <>
@@ -46,6 +52,36 @@ export function RemoteAuthControl({ capability, viewer, busy, controller, t }: {
           onCancelLogin={attemptId => { void controller.cancelLogin(attemptId).finally(() => { setLogin(undefined) }) }}
           t={t}
         />
+        {controller.scopedAvailable && (
+          <section className={css.retireSection} aria-label={t('remote.retireTitle')}>
+            <strong>{t('remote.retireTitle')}</strong>
+            <p className={css.methodHint}>{t('remote.retireHint')}</p>
+            <label className={css.retireInput}>
+              <span>{t('remote.retireUrl')}</span>
+              <input value={retireInput} disabled={retiring} onChange={event => { setRetireInput(event.target.value); setRetireScope(undefined); setRetireResult(undefined) }} placeholder="https://git.example.com" />
+            </label>
+            {retireScope === undefined ? (
+              <Button variant="ghost" size="sm" disabled={retiring || !retireInput} onClick={() => {
+                try { setRetireScope(canonicalGitLabInstance(retireInput)); setRetireResult(undefined) } catch { setRetireResult('remote.retireInvalid') }
+              }}>{t('remote.retirePrepare')}</Button>
+            ) : (
+              <div>
+                <p>{t('remote.retireConfirmHint')} <strong>{retireScope}</strong></p>
+                <Button variant="ghost" size="sm" disabled={retiring} onClick={() => {
+                  setRetiring(true)
+                  void controller.retireGrant(retireScope).then(result => {
+                    setRetireResult(result.disposition === 'retired' ? 'remote.retireDone' : result.disposition === 'already-retired' ? 'remote.retireAlready' : 'remote.retireAbsent')
+                    setRetireScope(undefined)
+                  }).catch(error => {
+                    setRetireResult(error instanceof ScopedProtocolError && error.reason === 'instance-registered' ? 'remote.retireRegistered' : error instanceof ScopedProtocolError && error.reason === 'record-mismatch' ? 'remote.retireMismatch' : 'remote.retireFailed')
+                  }).finally(() => { setRetiring(false) })
+                }}>{t('remote.retireConfirm')}</Button>
+                <Button variant="ghost" size="sm" disabled={retiring} onClick={() => { setRetireScope(undefined) }}>{t('branch.cancel')}</Button>
+              </div>
+            )}
+            {retireResult !== undefined && <p role="status">{t(retireResult)}</p>}
+          </section>
+        )}
       </Modal>
     </>
   )

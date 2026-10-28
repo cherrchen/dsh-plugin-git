@@ -54,7 +54,59 @@ function mountItem(unknown = false) {
   render(<GitRemoteItemSurface {...props} />)
   return { call }
 }
+function gitlabFixture(action: 'approve' | 'close' | 'merge', outcome: 'succeeded' | 'partial' | 'unknown') {
+  const scope = { provider: 'gitlab', instance: 'https://git.example.com' } as const
+  const target = { ...scope, path: 'team/repo', scope }
+  const viewer = { host: 'git.example.com', userId: '9', login: 'alice' }
+  const actions = { canComment: true, canReview: true, canMerge: true, canClose: true, canCreatePr: true }
+  const operationSupport = { comment: { supported: true }, 'inline-comment': { supported: false }, review: { supported: true }, 'close-pr': { supported: true }, 'merge-pr': { supported: true }, 'create-pr': { supported: true } }
+  const endpointForAction = action === 'approve' ? 'remote-review' : action === 'close' ? 'remote-close-pr' : 'remote-merge-pr'
+  const f = fixture(false, (endpoint, payload) => {
+    const request = payload as { remoteProtocol?: number; object?: unknown }
+    const capability = { state: 'on', remoteProtocol: 2, generation, viewer, auth: { state: 'authenticated' }, credential: { configured: true, writable: true }, actions, loginAvailable: false }
+    if (request.remoteProtocol !== 2) return endpoint === 'remote-capability' ? { ok: true, value: capability } : undefined
+    if (endpoint === 'remote-repositories') return { ok: true, value: { remoteProtocol: 2, value: { state: 'supported', remotes: [{ name: 'origin', identity: target }] } } }
+    if (endpoint === endpointForAction && outcome === 'unknown') return { ok: false, error: { code: 'git/write-result-unknown', details: { action: endpoint, number: 7 } } }
+    const item = { ...pull, number: 7, title: 'Fixture MR', rawState: 'opened', head: { projectId: '42', ref: 'topic', sha }, base: { projectId: '42', ref: 'main', sha } }
+    const facts = { actionScope: { path: target.path, projectId: '42', ...(request.object === undefined ? {} : { object: request.object }) }, viewer, permissions: {}, actions, operationSupport, supportedMergeMethods: ['merge'], supportedReviewEvents: ['COMMENT', 'APPROVE'], reviewPermissions: { COMMENT: true, APPROVE: true, REQUEST_CHANGES: false } }
+    const page = { items: [], truncated: false }
+    const values: Record<string, unknown> = { 'remote-capability': capability, 'remote-repository': facts, 'remote-list-prs': { items: [item], truncated: false }, 'remote-pr': item, 'remote-comments': page, 'remote-discussions': page, 'remote-commits': page, 'remote-approvals': { approved: false, approvedBy: [] }, 'remote-files': { files: page, baseSha: sha, startSha: sha, headSha: sha, serverCompleteness: 'unknown' }, [endpointForAction]: { outcome, steps: [] } }
+    return { ok: true, value: { remoteProtocol: 2, scope, generation, value: values[endpoint] } }
+  })
+  return { ...f, controller: f.base.remoteFeature.gitlabControllerFor('s'), endpointForAction }
+}
 describe('portable remote surface', () => {
+  it.each([
+    ['approve', 'succeeded'], ['close', 'succeeded'], ['merge', 'succeeded'], ['approve', 'partial'], ['approve', 'unknown'],
+  ] as const)('keeps retained GitLab %s reconciliation accessible after remount for %s outcomes', async (action, outcome) => {
+    const f = gitlabFixture(action, outcome)
+    const props = { ...f.base, openRemoteItem: vi.fn() } as unknown as ComponentProps<typeof GitRemoteSurface>
+    const first = render(<GitRemoteSurface {...props} />)
+    await screen.findByRole('button', { name: /Example PR/ })
+    fireEvent.click(screen.getByRole('button', { name: 'GitLab', exact: true }))
+    fireEvent.click(await screen.findByRole('button', { name: /Fixture MR/ }))
+    await waitFor(() => expect((screen.getByRole('button', { name: en['remote.close'] }) as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(screen.getByRole('button', { name: action === 'approve' ? en['remote.approve'] : action === 'close' ? en['remote.close'] : en['gitlab.directMerge'] }))
+    if (action !== 'approve') fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: en['remote.confirm'] }))
+    await waitFor(() => { expect(f.controller.getSnapshot().blocked).toBe(true); expect(f.controller.getSnapshot().busy).toBe(false) })
+    expect((screen.getByRole('button', { name: 'GitHub', exact: true }) as HTMLButtonElement).disabled).toBe(true)
+    first.unmount()
+    render(<GitRemoteSurface {...props} />)
+    const gitlab = screen.getByRole('button', { name: 'GitLab', exact: true }) as HTMLButtonElement
+    expect(gitlab.disabled).toBe(false)
+    fireEvent.click(gitlab)
+    expect(screen.getByRole('heading', { name: '#7 · Fixture MR' })).not.toBeNull()
+    expect(f.controller.getSnapshot().blocked).toBe(true)
+    expect((screen.getByRole('button', { name: en['remote.close'] }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: en['gitlab.reconcile'] }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: en['gitlab.refresh'] }))
+    await waitFor(() => expect((screen.getByRole('button', { name: en['gitlab.reconcile'] }) as HTMLButtonElement).disabled).toBe(false))
+    expect((screen.getByRole('button', { name: 'GitHub', exact: true }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: en['gitlab.reconcile'] }))
+    expect(f.controller.getSnapshot().blocked).toBe(false)
+    expect((screen.getByRole('button', { name: 'GitHub', exact: true }) as HTMLButtonElement).disabled).toBe(false)
+    expect(f.call.mock.calls.filter(args => args[1] === f.endpointForAction)).toHaveLength(1)
+  })
   it('keeps lists, selected filters and completed pages across tab unmount/remount without reads', async () => {
     const { base, call } = fixture(false, endpoint => endpoint === 'remote-list-issues'
       ? { ok: true, value: { generation, value: { items: [{ number: 2, title: 'Example issue', body: '', state: 'open', rawState: 'open', author: null }], truncated: false } } } : undefined)

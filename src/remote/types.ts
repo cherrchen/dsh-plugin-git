@@ -100,3 +100,20 @@ export interface GitRemoteWriteContext {
     readonly userId: string
   }
 }
+
+/** Additive v2 contracts; published v1 types above retain their original meaning. */
+export interface ScopedRemoteScope { readonly provider: 'github' | 'gitlab'; readonly instance: string }
+export interface ScopedRemoteResult<T> { readonly generation: GitRemoteGeneration; readonly value: T }
+export interface ScopedRemoteEnvelope<T> extends ScopedRemoteResult<T> { readonly remoteProtocol: 2; readonly scope: ScopedRemoteScope }
+export interface ScopedRemoteCapabilityOn {
+  readonly state: 'on'
+  readonly generation: GitRemoteGeneration
+  readonly credential: GitRemoteCredentialInfo
+  readonly auth: { readonly state: Exclude<GitRemoteAuthState, 'off'>; readonly source?: 'grant' | 'ref' | 'gh' | 'glab' | 'git-credential' }
+  readonly viewer?: GitRemoteViewer
+  readonly actions: GitRemoteActions
+  readonly authMethods: { readonly deviceFlow: { readonly supported: boolean | 'unknown'; readonly reason?: string } }
+  readonly serverVersion?: { readonly value: string; readonly support: 'unknown'; readonly reason: 'not-verified' }
+  readonly loginAvailable: boolean
+  readonly automaticRefreshAvailable: boolean
+}

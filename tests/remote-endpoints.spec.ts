@@ -1,10 +1,12 @@
-import { execFileSync, spawn } from 'node:child_process'
-import { accessSync, constants, mkdtempSync, realpathSync, statSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { delimiter, join } from 'node:path'
+import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { canonicalPath } from '../src/path-identity.ts'
+import { localSubprocess } from './harness/local-subprocess.ts'
 import { apply } from '../src/index.ts'
 import { GIT_REMOTE_CREDENTIAL_MEMBERS } from '../src/remote/credentials.ts'
 
@@ -26,58 +28,6 @@ function repository(): string {
   execFileSync('git', ['add', 'tracked.txt'], { cwd: root })
   execFileSync('git', ['commit', '-m', 'initial'], { cwd: root })
   return root
-}
-
-function localSubprocess() {
-  const reader = (parts: Buffer[]) => ({
-    readFrom: (from: number) => {
-      const buffer = Buffer.concat(parts).subarray(from)
-      return { text: buffer.toString('utf8'), nextOffset: from + buffer.length, lossy: false }
-    },
-  })
-  return {
-    resolveExecutable: async (command: string) => {
-      for (const directory of (process.env['PATH'] ?? '').split(delimiter)) {
-        const candidate = join(directory, command)
-        try {
-          if (!statSync(candidate).isFile()) continue
-          accessSync(candidate, constants.X_OK)
-          return candidate
-        } catch {}
-      }
-      throw new Error(`localSubprocess: ${command} was not found on PATH`)
-    },
-    spawn(spec: { argv: readonly string[]; cwd: string; env?: NodeJS.ProcessEnv; signal?: AbortSignal }) {
-      const env = { ...process.env }
-      for (const [key, value] of Object.entries(spec.env ?? {})) {
-        if (value === undefined) delete env[key]
-        else env[key] = value
-      }
-      const child = spawn(spec.argv[0]!, [...spec.argv.slice(1)], {
-        cwd: spec.cwd,
-        env,
-        stdio: ['ignore', 'pipe', 'pipe'],
-        ...(spec.signal !== undefined ? { signal: spec.signal } : {}),
-      })
-      const stdoutParts: Buffer[] = []
-      const stderrParts: Buffer[] = []
-      child.stdout?.on('data', (chunk: Buffer) => stdoutParts.push(chunk))
-      child.stderr?.on('data', (chunk: Buffer) => stderrParts.push(chunk))
-      return {
-        stdin: undefined,
-        stdout: undefined,
-        stderr: undefined,
-        collected: { stdout: reader(stdoutParts), stderr: reader(stderrParts) },
-        done: new Promise<{ exitCode: number | null; signal: NodeJS.Signals | null }>((resolve, reject) => {
-          child.once('error', reject)
-          child.once('close', (exitCode, signal) => resolve({ exitCode, signal }))
-        }),
-        terminate: () => { child.kill('SIGTERM') },
-        terminateForHostExit: () => { child.kill('SIGKILL') },
-        waitForExit: async () => true,
-      }
-    },
-  }
 }
 
 function completeProvider() {
@@ -297,9 +247,26 @@ describe('remote-* rejection', () => {
       await provider.dispose()
       const status = await host.call('status', { repository: repo })
       expect(status.ok).toBe(true)
-      if (status.ok) expect((status.value as { root: string }).root).toBe(realpathSync(repo))
+      if (status.ok) expect(canonicalPath((status.value as { root: string }).root, repo)).toBe(canonicalPath(repo, repo))
     } finally {
       await host.dispose()
     }
+  })
+})
+
+describe('v2 negotiation at the Host boundary', () => {
+  it('returns global off without a seam and echoes scope only after a complete seam is present', async () => {
+    const host = await mounted()
+    const payload = { remoteProtocol: 2, provider: 'gitlab', instance: 'https://gitlab.com' }
+    try {
+      expect(await host.call('remote-capability', payload)).toEqual({ ok: true, value: { state: 'off', reason: 'credentials-missing', auth: { state: 'off' } } })
+      const fiber = host.ctx.plugin(c => { c.provide('credentials', completeProvider()) }); await fiber.await()
+      try {
+        const legacy = await host.call('remote-capability', {})
+        expect(legacy).toMatchObject({ ok: true, value: { state: 'on', remoteProtocol: 2 } })
+        const scoped = await host.call('remote-capability', payload)
+        expect(scoped).toMatchObject({ ok: true, value: { remoteProtocol: 2, scope: { provider: 'gitlab', instance: 'https://gitlab.com' }, value: { state: 'on' } } })
+      } finally { await fiber.dispose() }
+    } finally { await host.dispose() }
   })
 })

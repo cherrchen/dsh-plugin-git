@@ -114,3 +114,12 @@ export async function gitCredentialFill(deps: GitRemoteProbeDeps, signal: AbortS
   }
   return undefined
 }
+
+/** GitLab.com only; a valid single-line candidate still requires GET /user. */
+export async function glabAuthToken(deps: GitRemoteProbeDeps, signal: AbortSignal): Promise<string | undefined> {
+  const stdout = await run(deps, { argv: ['glab', 'auth', 'token', '--hostname', 'gitlab.com'] }, signal)
+  const token = stdout.replace(/\r?\n$/, '')
+  if (token === '') return undefined
+  if (token.length > 4096 || /[\s\x00-\x1f\x7f]/u.test(token)) throw new GitRemoteError('git/remote-unavailable', 'git-remote: credential probe returned invalid output')
+  return token
+}

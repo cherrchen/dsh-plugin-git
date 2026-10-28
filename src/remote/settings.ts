@@ -1,9 +1,11 @@
 /** `Config.remote` shape, validation, and volatile-safe resolution (ADR-0004 clause 5/6). */
 
 import { readVolatile } from '../compat/dsh-schema.ts'
+import { resolveGitLabInstances, type GitLabInstance, type GitLabInstanceSettings } from './instances.ts'
 
 export interface RemoteSettings {
   clientId?: string
+  instances?: readonly GitLabInstanceSettings[]
   requestTimeoutMs?: number
   probeTimeoutMs?: number
   refreshTtlMs?: number
@@ -14,6 +16,7 @@ export interface RemoteSettings {
 
 export interface ResolvedRemoteSettings {
   clientId?: string
+  instances: readonly GitLabInstance[]
   requestTimeoutMs: number
   probeTimeoutMs: number
   refreshTtlMs: number
@@ -32,6 +35,7 @@ export function resolveRemoteSettings(source: RemoteSettings | undefined): Resol
   const maxResponseBytes = readVolatile(source?.maxResponseBytes)
   return {
     ...(typeof clientId === 'string' && clientId !== '' ? { clientId } : {}),
+    instances: resolveGitLabInstances(source?.instances),
     requestTimeoutMs: typeof requestTimeoutMs === 'number' ? requestTimeoutMs : 15_000,
     probeTimeoutMs: typeof probeTimeoutMs === 'number' ? probeTimeoutMs : 5_000,
     refreshTtlMs: typeof refreshTtlMs === 'number' ? refreshTtlMs : 30_000,

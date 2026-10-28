@@ -11,8 +11,16 @@ permissions:
 
 jobs:
   verify:
-    runs-on: ubuntu-latest
+    name: verify (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
+      - name: Preserve fixture line endings
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
@@ -23,10 +31,26 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm compat:check
-      - run: pnpm test
+      - run: pnpm test --maxWorkers=4
+      - name: Replay instance lifecycle acceptance (A1)
+        run: node --experimental-transform-types docs/plans/active/evidence/remote-platform-lifecycle-20261028.mjs
+      - name: Replay login switching acceptance (A2)
+        run: node --experimental-transform-types docs/plans/active/evidence/remote-platform-login-switch-20261028.mjs
+      - name: Replay captured GitLab pagination (A3)
+        run: node --experimental-transform-types docs/plans/active/evidence/remote-platform-gitlab-com-links-20261028.mjs
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
+      - run: pnpm test:e2e --reporter="list,html"
       - run: pnpm docs:check
       - run: pnpm build
       - run: pnpm test:artifact
       - run: pnpm pack
+      - name: Retain browser reports and failure traces
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-results-${{ runner.os }}
+          path: |
+            playwright-report/
+            test-results/e2e/
+          if-no-files-found: ignore
+          retention-days: 14

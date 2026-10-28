@@ -298,11 +298,19 @@ function checkAdrNames() {
     if (dirname(f) !== 'docs/decisions') continue;
     const base = basename(f);
     if (base === 'README.md' || base === 'README.en.md' || base === 'README.zh.md') continue;
-    if (!ADR_NAME.test(base)) {
-      violation(f, `ADR 文件名不符合 ADR-\\d{4}-[a-z0-9]+(-[a-z0-9]+)*.md（SKILL.md ADR 纪律）`);
+    // English is a view of the same ADR, not a second decision/number.
+    const isEnglish = base.endsWith('.en.md');
+    const canonicalBase = isEnglish ? base.slice(0, -'.en.md'.length) + '.md' : base;
+    if (!ADR_NAME.test(canonicalBase)) {
+      violation(f, `ADR 文件名不符合 ADR-\\d{4}-[a-z0-9]+(-[a-z0-9]+)*.md 或其 .en.md 副版（SKILL.md ADR 纪律）`);
       continue;
     }
-    const number = base.slice('ADR-'.length, 'ADR-'.length + 4);
+    if (isEnglish) {
+      const canonical = join(dirname(f), canonicalBase).split('\\').join('/');
+      if (!mdFiles.includes(canonical)) violation(f, `ADR 英文副版缺少中文 canonical 文档 ${canonical}`);
+      continue;
+    }
+    const number = canonicalBase.slice('ADR-'.length, 'ADR-'.length + 4);
     if (seen.has(number)) {
       violation(f, `ADR 编号 ${number} 与 ${seen.get(number)} 重复（编号唯一不复用）`);
     } else {

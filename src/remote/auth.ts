@@ -77,6 +77,7 @@ export class GitRemoteAuth {
   private ghToken: string | undefined
   private readonly pending = new Set<Promise<unknown>>()
   private readonly polls = new Map<string, Promise<{ state: 'authenticated' }>>()
+  private readonly pollCaptures = new Map<string, Set<(generation: GitRemoteGeneration) => void>>()
   private readonly logins = new Map<string, PendingLogin>()
   private chain: Promise<unknown> = Promise.resolve()
   private disposed = false
@@ -121,13 +122,13 @@ export class GitRemoteAuth {
     return task
   }
 
-  private serialize<T>(work: (signal: AbortSignal) => Promise<T>, signal?: AbortSignal): Promise<T> {
+  private serialize<T>(work: (signal: AbortSignal) => Promise<T>, signal?: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<T> {
     return this.track((inner) => {
       const run = this.chain.then(() => {
         if (this.disposed || inner.aborted) {
           throw new GitRemoteError('git/remote-unavailable', 'git-remote: auth engine is disposed', { reason: 'disposed' })
         }
-        return work(inner)
+        return work(inner).then(value => { capture?.(this.generation()); return value })
       })
       this.chain = run.catch(() => {})
       return run
@@ -220,34 +221,39 @@ export class GitRemoteAuth {
     return { grant: parsed.grant, malformed: false }
   }
 
-  retry(signal: AbortSignal): Promise<GitRemoteSnapshot> { this.markState('unauthenticated'); this.ghToken = undefined; return this.establish(signal) }
+  retry(signal: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<GitRemoteSnapshot> {
+    return this.serialize(async inner => { this.markState('unauthenticated'); this.ghToken = undefined; return this.establishCurrent(inner) }, signal, capture)
+  }
 
-  establish(signal: AbortSignal): Promise<GitRemoteSnapshot> {
-    return this.serialize(async (inner) => {
-      const { grant, malformed } = await this.readGrantOrMalformed()
-      if (malformed) return this.markState('invalid')
-      if (grant !== undefined) {
-        if (grant.state === 'refreshing') {
-          const settled = await this.waitRefresh(grant, inner)
-          const follow = settled === undefined ? undefined : await this.readGrant()
-          if (follow === undefined) return this.markState('invalid')
-          return this.fromGrant(follow)
-        }
-        return this.fromGrant(grant)
-      }
-      for (const ref of REFS) {
-        const resolved = await this.credentials.resolve(ref)
-        if (resolved !== undefined) return this.acceptToken(resolved.value, 'ref', resolved.source)
-      }
-      if (this.discoverGh !== undefined) {
-        const token = await this.discoverGh(inner)
-        if (token !== undefined) {
-          this.ghToken = token
-          return this.acceptToken(token, 'gh')
-        }
-      }
-      return this.markState('anonymous')
-    }, signal)
+  establish(signal: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<GitRemoteSnapshot> {
+    return this.serialize(inner => this.establishCurrent(inner), signal, capture)
+  }
+
+  private async establishCurrent(inner: AbortSignal): Promise<GitRemoteSnapshot> {
+  const { grant, malformed } = await this.readGrantOrMalformed()
+  if (malformed) return this.markState('invalid')
+  if (grant !== undefined) {
+    if (grant.state === 'refreshing') {
+      const settled = await this.waitRefresh(grant, inner)
+      const follow = settled === undefined ? undefined : await this.readGrant()
+      if (follow === undefined) return this.markState('invalid')
+      return this.fromGrant(follow)
+    }
+    return this.fromGrant(grant)
+  }
+  for (const ref of REFS) {
+    const resolved = await this.credentials.resolve(ref)
+    if (resolved !== undefined) return this.acceptToken(resolved.value, 'ref', resolved.source)
+  }
+  if (this.discoverGh !== undefined) {
+    const token = await this.discoverGh(inner)
+    if (token !== undefined) {
+      this.ghToken = token
+      return this.acceptToken(token, 'gh')
+    }
+  }
+  return this.markState('anonymous')
+
   }
 
   snapshot(signal: AbortSignal): Promise<GitRemoteSnapshot> {
@@ -278,7 +284,7 @@ export class GitRemoteAuth {
     return { v: 1, revision: this.uuid(), host: GIT_REMOTE_HOST, clientId }
   }
 
-  startLogin(signal: AbortSignal): Promise<{ attemptId: string; userCode: string; verificationUri: string; expiresAt: number; intervalMs: number }> {
+  startLogin(signal: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<{ attemptId: string; userCode: string; verificationUri: string; expiresAt: number; intervalMs: number }> {
     const clientId = this.settings.clientId
     if (clientId === undefined) return Promise.reject(remoteAuthError('client-id-missing'))
     return this.serialize(async (inner) => {
@@ -322,14 +328,15 @@ export class GitRemoteAuth {
         await this.modify(current => current?.state === 'authorizing' && current.attemptId === attemptId ? { ...this.authBase(current.clientId), state: 'reauth-required' } : undefined)
         throw error
       }
-    }, signal)
+    }, signal, capture)
   }
 
-  pollLogin(attemptId: string, signal: AbortSignal): Promise<{ state: 'authenticated' }> {
+  pollLogin(attemptId: string, signal: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<{ state: 'authenticated' }> {
+    if (capture !== undefined) { const captures = this.pollCaptures.get(attemptId) ?? new Set(); captures.add(capture); this.pollCaptures.set(attemptId, captures) }
     const polling = this.polls.get(attemptId)
     if (polling !== undefined) return polling
     const login = this.logins.get(attemptId)
-    if (login === undefined) return Promise.reject(remoteAuthError('unknown-attempt'))
+    if (login === undefined) { this.pollCaptures.delete(attemptId); return Promise.reject(remoteAuthError('unknown-attempt')) }
     const task = this.serialize(async (owned) => {
       const inner = AbortSignal.any([owned, login.controller.signal])
       const clientId = this.settings.clientId ?? ''
@@ -375,12 +382,14 @@ export class GitRemoteAuth {
           await this.modify(current => current?.state === 'authorizing' && current.attemptId === attemptId ? { ...this.authBase(current.clientId), state: 'reauth-required' } : undefined)
         }
       }
-    }, signal).finally(() => { this.logins.delete(attemptId); this.polls.delete(attemptId) })
+    }, signal, generation => { for (const capture of this.pollCaptures.get(attemptId) ?? []) capture(generation) }).finally(() => { this.logins.delete(attemptId); this.polls.delete(attemptId); this.pollCaptures.delete(attemptId) })
     this.polls.set(attemptId, task)
     return task
   }
 
-  async cancelLogin(attemptId: string): Promise<void> {
+  ownsLogin(attemptId: string): boolean { return this.logins.has(attemptId) }
+
+  async cancelLogin(attemptId: string, capture?: (generation: GitRemoteGeneration) => void): Promise<void> {
     const login = this.logins.get(attemptId)
     login?.controller.abort()
     await this.serialize(() => this.modify(async (current) => {
@@ -388,11 +397,11 @@ export class GitRemoteAuth {
         return { ...this.authBase(current.clientId), state: 'signed-out' }
       }
       return undefined
-    }))
+    }), undefined, capture)
     this.logins.delete(attemptId)
   }
 
-  signOut(signal: AbortSignal): Promise<void> {
+  signOut(signal: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<void> {
     for (const login of this.logins.values()) login.controller.abort()
     return this.serialize(async () => {
       const grant = await this.readGrant()
@@ -400,26 +409,26 @@ export class GitRemoteAuth {
       await this.modify(async () => ({ ...this.authBase(clientId), state: 'signed-out' }))
       this.context = { authState: 'signed-out' }
       this.bump()
-    }, signal)
+    }, signal, capture)
   }
 
-  async clearLocalGrant(signal: AbortSignal): Promise<void> {
+  async clearLocalGrant(signal: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<void> {
     await this.serialize(async () => {
       await this.credentials.deleteRecord(GIT_REMOTE_GRANT_RECORD_KEY)
       this.context = { authState: 'unauthenticated' }
       this.ghToken = undefined
       this.bump()
-    }, signal)
+    }, signal, capture)
   }
 
-  useGitCredential(signal: AbortSignal): Promise<GitRemoteSnapshot> {
+  useGitCredential(signal: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<GitRemoteSnapshot> {
     const discover = this.discoverGitCredential
     if (discover === undefined) return Promise.reject(remoteAuthError('git-credential-unavailable'))
     return this.serialize(async (inner) => {
       const token = await discover(inner)
       if (token === undefined) throw remoteAuthError('git-credential-missing')
       return this.acceptToken(token, 'git-credential')
-    }, signal)
+    }, signal, capture)
   }
 
   async capability(): Promise<GitRemoteCapabilityOn> {
@@ -607,6 +616,7 @@ export class GitRemoteAuth {
     await Promise.allSettled([...this.pending])
     this.logins.clear()
     this.polls.clear()
+    this.pollCaptures.clear()
     this.context = { authState: 'unauthenticated' }
     this.ghToken = undefined
     this.invalidFingerprint = undefined

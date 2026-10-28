@@ -16,6 +16,7 @@ import { RemoteItemList } from '../remote/RemoteItemList.tsx'
 import { RemoteCreateDialog } from '../remote/RemoteCreateDialog.tsx'
 import { RemoteNotices } from '../remote/RemoteNotices.tsx'
 import { RemoteLoading, RemoteListSkeleton } from '../remote/RemoteLoading.tsx'
+import { GitLabRemotePanel } from '../remote/GitLabRemotePanel.tsx'
 import css from '../GitRemoteSurface.module.css'
 
 type Props = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'git'> & {
@@ -29,20 +30,32 @@ export function GitRemoteSurface({ gitSessions, remoteFeature, openRemoteItem, s
   const workspacePath = useSessions(list => effectiveWorkspacePath(list.byId[sessionId]))
   useGitWorkspace(local, workspacePath)
   const controller = remoteFeature.controllerFor(sessionId)
-  useEffect(() => { controller.setRepository(localState.repository?.root, false) }, [controller, localState.repository?.root])
+  const gitlab = remoteFeature.gitlabControllerFor(sessionId)
+  const gitlabState = useSyncExternalStore(gitlab.subscribe, gitlab.getSnapshot)
+  const [provider, setProvider] = useState<'github' | 'gitlab'>('github')
+  useEffect(() => { if (provider === 'github') controller.setRepository(localState.repository?.root, false) }, [controller, localState.repository?.root, provider])
+  useEffect(() => { if (provider !== 'gitlab' && gitlab.getSnapshot().repository !== localState.repository?.root) gitlab.setRepository(undefined) }, [gitlab, localState.repository?.root, provider])
   const notices = useSyncExternalStore(remoteFeature.subscribe, remoteFeature.getNotices)
-  useEffect(() => { const timer = setInterval(() => { void controller.pollNotices() }, 60000); return () => clearInterval(timer) }, [controller])
+  useEffect(() => { if (provider !== 'github') return; const timer = setInterval(() => { void controller.pollNotices() }, 60000); return () => clearInterval(timer) }, [controller, provider])
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
   const [kind, setKind] = useState<'pulls' | 'issues'>(state.listKind ?? 'pulls')
   const [listState, setListState] = useState<RemoteListState>(state.listState ?? 'open')
-  useEffect(() => { void controller.ensureList(kind, undefined, listState) }, [controller, kind, listState, state.repository, state.capability.state, state.capability.state === 'on' ? state.capability.generation.instanceId : undefined, state.capability.state === 'on' ? state.capability.generation.revision : undefined])
+  useEffect(() => { if (provider === 'github') void controller.ensureList(kind, undefined, listState) }, [controller, kind, listState, provider, state.repository, state.capability.state, state.capability.state === 'on' ? state.capability.generation.instanceId : undefined, state.capability.state === 'on' ? state.capability.generation.revision : undefined])
   const [create, setCreate] = useState(false)
   const capability = state.capability
   const writable = state.facts?.viewer !== undefined && !state.busy && !state.unknown
   const loadingList = state.pending === 'repositories' || state.pending === 'repository' || state.pending === 'items'
   const displayedKind = state.listKind ?? kind
-  if (capability.state === 'off') return <p className={css.empty}>{t('remote.unavailable')}</p>
+  // Lock leaving the active provider, while allowing return to retained work after a remount.
+  const providerLocked = provider === 'github' ? state.busy || state.unknown : gitlabState.busy || gitlabState.blocked || gitlabState.login !== undefined
+  const providerBar = <div className={css.modeBar} aria-label={t('gitlab.provider')}><div className={css.modePills}>
+    <Pill active={provider === 'github'} disabled={providerLocked} onClick={() => { setProvider('github') }}>GitHub</Pill>
+    <Pill active={provider === 'gitlab'} disabled={providerLocked} onClick={() => { setProvider('gitlab') }}>GitLab</Pill>
+  </div></div>
+  if (provider === 'gitlab') return <div className={css.root} data-git-remote-surface="">{providerBar}<GitLabRemotePanel controller={gitlab} repository={localState.repository?.root} t={t} /></div>
+  if (capability.state === 'off') return <div className={css.root}>{providerBar}<p className={css.empty}>{t('remote.unavailable')}</p></div>
   return <div className={css.root} data-git-remote-surface="">
+    {providerBar}
     <div className={css.modeBar} data-git-remote-toolbar="">
       <div className={css.modePills}>
         <Pill active={kind === 'pulls'} disabled={state.busy} onClick={() => { setKind('pulls'); void controller.ensureList('pulls', undefined, listState) }}>{t('remote.pulls')}</Pill>

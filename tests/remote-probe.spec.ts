@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ghAuthToken, gitCredentialFill, type GitRemoteSubprocess } from '../src/remote/probe.ts'
+import { ghAuthToken, glabAuthToken, gitCredentialFill, type GitRemoteSubprocess } from '../src/remote/probe.ts'
 
 interface SpawnRecord {
   argv: string[]
@@ -75,4 +75,15 @@ describe('credential subprocess probes', () => {
       code: 'git/remote-unavailable',
     })
   })
+})
+
+
+it('runs a bounded GitLab.com-only CLI probe and rejects help output even on exit zero', async () => {
+  const good = fakeSubprocess({ stdout: 'candidate-token\n' })
+  expect(await glabAuthToken({ subprocess: good.subprocess, probeTimeoutMs: 5000 }, new AbortController().signal)).toBe('candidate-token')
+  expect(good.spawns[0]?.argv).toEqual(['/usr/bin/glab', 'auth', 'token', '--hostname', 'gitlab.com'])
+  for (const stdout of ['Usage: glab auth token\n', ' token\n', 'token \n', 'token\n\n']) {
+    const help = fakeSubprocess({ stdout })
+    await expect(glabAuthToken({ subprocess: help.subprocess, probeTimeoutMs: 5000 }, new AbortController().signal)).rejects.toMatchObject({ code: 'git/remote-unavailable' })
+  }
 })

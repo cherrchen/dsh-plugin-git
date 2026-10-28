@@ -8,9 +8,12 @@ import type { RemotePage, RemotePageRequest, RemoteProvider, RemoteReadContext, 
 import type { GitRemoteGeneration, GitRemoteViewer, GitRemoteWriteContext } from './types.ts'
 
 export function sameGeneration(a: GitRemoteGeneration, b: GitRemoteGeneration): boolean { return a.instanceId === b.instanceId && a.revision === b.revision }
+export interface GitHubScopedFactsProvider extends RemoteProvider {
+  scopedRepository(repo: RemoteRepository, context: RemoteReadContext): Promise<RemoteResult<RemoteRepositoryFacts & { supportedMergeMethods: readonly ('merge' | 'squash')[] }>>
+}
 interface CacheEntry { body: unknown; etag?: string; link: string | null }
 interface Operation { snapshot: GitRemoteSnapshot; signal: AbortSignal; viewer?: GitRemoteViewer }
-export class GitHubProvider implements RemoteProvider {
+export class GitHubProvider implements GitHubScopedFactsProvider {
   readonly id = 'github'
   readonly apiOrigin = GIT_REMOTE_API_ORIGIN
   readonly webOrigin = GIT_REMOTE_WEB_ORIGIN
@@ -162,6 +165,23 @@ export class GitHubProvider implements RemoteProvider {
         canClose: authenticated ? permissions['push'] === true ? true : 'unknown' : false,
         canCreatePr: authenticated ? true : false,
       } }
+    })
+  }
+  scopedRepository(repo: RemoteRepository, context: RemoteReadContext): Promise<RemoteResult<RemoteRepositoryFacts & { supportedMergeMethods: readonly ('merge' | 'squash')[] }>> {
+    return this.operation(repo, context, async op => {
+      const data = object((await this.get(repositoryPath(repo), op)).body)
+      const source = data['permissions'] == null ? {} : object(data['permissions'])
+      const permissions = Object.fromEntries(['pull', 'triage', 'push', 'maintain', 'admin'].flatMap(key => typeof source[key] === 'boolean' ? [[key, source[key]]] : []))
+      const authenticated = op.viewer !== undefined
+      const supportedMergeMethods: ('merge' | 'squash')[] = []
+      if (data['allow_merge_commit'] === true) supportedMergeMethods.push('merge')
+      if (data['allow_squash_merge'] === true) supportedMergeMethods.push('squash')
+      return { ...(op.viewer === undefined ? {} : { viewer: op.viewer }), permissions, actions: {
+        canComment: authenticated ? true : false, canReview: authenticated ? true : false,
+        canMerge: authenticated ? permissions['push'] as boolean | undefined ?? 'unknown' : false,
+        canClose: authenticated ? permissions['push'] === true ? true : 'unknown' : false,
+        canCreatePr: authenticated ? true : false,
+      }, supportedMergeMethods }
     })
   }
   pulls(repo: RemoteRepository, state: 'open' | 'closed' | 'all', page: RemotePageRequest, context: RemoteReadContext) {

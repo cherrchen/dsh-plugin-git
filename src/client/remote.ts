@@ -1,6 +1,9 @@
 /** Portable remote capability lifecycle and session/workspace-scoped controller. */
 import type { GitRpcClient } from './controller.ts'
+import { ScopedRemoteClient } from './remote-protocol.ts'
+import { GitLabRemoteController } from './gitlab-remote.ts'
 import type { GitRemoteCapability, GitRemoteGeneration, GitRemoteWriteContext } from '../remote/types.ts'
+import type { ScopedRemoteRepositoryFacts } from '../remote/provider.ts'
 import type { BoundRemote, RemoteRepositorySet, RemoteCheckoutReceipt } from '../remote/git.ts'
 import type { RemoteComment, RemoteCommit, RemoteIssue, RemotePage, RemotePull, RemoteRepository, RemoteRepositoryFacts, RemoteResult, RemoteNotice, RemoteReview } from '../remote/provider.ts'
 
@@ -15,8 +18,22 @@ const STREAM_RESUME_MAX_MS = 600_000
 export class RemoteRpcError extends Error {
   constructor(readonly code: string, message: string, readonly details: unknown) { super(message) }
 }
+type ClientNotice = RemoteNotice & { readonly provider?: 'gitlab' }
 export class GitRemoteFeature {
   private readonly controllers = new Map<string, GitRemoteController>()
+  private readonly gitlabControllers = new Map<string, GitLabRemoteController>()
+  /** Keep reconciliation state across sidebar unmounts until the feature itself unloads. */
+  gitlabControllerFor(sessionId: string): GitLabRemoteController {
+    const existing = this.gitlabControllers.get(sessionId)
+    if (existing !== undefined) return existing
+    for (const [key, controller] of this.gitlabControllers) {
+      if (this.gitlabControllers.size < 64) break
+      if (controller.idle) { controller.dispose(); this.gitlabControllers.delete(key) }
+    }
+    const controller = new GitLabRemoteController(this, sessionId)
+    this.gitlabControllers.set(sessionId, controller)
+    return controller
+  }
   /** Controllers belong to the feature, so tab unmounts retain data and in-flight pages. */
   controllerFor(sessionId: string, view = 'list'): GitRemoteController {
     const key = JSON.stringify([sessionId, view])
@@ -39,9 +56,13 @@ export class GitRemoteFeature {
   private state = OFF
   private notices: readonly RemoteNotice[] = []
   private readonly seen = new Set<string>()
-  private notify: ((notice: RemoteNotice) => void | Promise<void>) | undefined
+  private notify: ((notice: ClientNotice) => void | Promise<void>) | undefined
   readonly getNotices = () => this.notices
-  setNotify(notify: ((notice: RemoteNotice) => void | Promise<void>) | undefined): void { this.notify = notify }
+  setNotify(notify: ((notice: ClientNotice) => void | Promise<void>) | undefined): void { this.notify = notify }
+  notifyGitLab(notice: RemoteNotice): void {
+    if (this.owner.signal.aborted) return
+    try { void Promise.resolve(this.notify?.({ ...notice, provider: 'gitlab' })).catch(() => {}) } catch { /* Native enhancement is optional. */ }
+  }
   ingest(notices: readonly RemoteNotice[]): void {
     if (this.owner.signal.aborted || this.state.state !== 'on') return
     for (const notice of notices) {
@@ -57,7 +78,9 @@ export class GitRemoteFeature {
   private pending: Promise<void> | undefined
   private refreshAgain = false
   private timer: ReturnType<typeof setInterval> | undefined
-  constructor(readonly rpc: GitRpcClient) {}
+  readonly scoped: ScopedRemoteClient
+  private readonly pushScoped: ScopedRemoteClient
+  constructor(readonly rpc: GitRpcClient) { this.scoped = new ScopedRemoteClient(rpc); this.pushScoped = new ScopedRemoteClient(rpc) }
   readonly getSnapshot = () => this.state
   readonly subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
   start(): void { this.refresh(); this.timer ??= setInterval(() => this.refresh(), 5000) }
@@ -69,16 +92,36 @@ export class GitRemoteFeature {
         const reply = await this.rpc.call('/git', 'remote-capability', {}, this.owner.signal)
         if (this.owner.signal.aborted) return
         const cap = reply.ok ? reply.value as GitRemoteCapability : OFF
+        this.scoped.observeCapability(cap)
+        this.pushScoped.observeCapability(cap)
         if (cap?.state !== 'on' || (this.state.state === 'on' && !equal(cap.generation, this.state.generation))) { this.notices = []; this.seen.clear() }
         this.state = cap?.state === 'on' || cap?.state === 'off' ? cap : OFF
-      } catch { this.state = OFF }
+      } catch { this.scoped.observeCapability(OFF); this.pushScoped.observeCapability(OFF); this.state = OFF }
       if (!this.owner.signal.aborted) for (const listener of this.listeners) listener()
     })().finally(() => {
       this.pending = undefined
       if (this.refreshAgain) { this.refreshAgain = false; this.refresh() }
     })
   }
-  dispose(): void { this.owner.abort(); clearInterval(this.timer); for (const controller of this.controllers.values()) controller.dispose(); this.controllers.clear(); this.listeners.clear() }
+  async pushed(repository: string, head: string, sessionId: string, legacyTitle: string, remoteName: 'origin' | 'upstream' | undefined, isCurrent: () => boolean = () => true): Promise<void> {
+    if (this.owner.signal.aborted || !isCurrent()) return
+    if (!this.pushScoped.available) { this.ingest([{ id: `push/${repository}/${head}`, kind: 'create-pr', title: legacyTitle }]); return }
+    if (remoteName === undefined) return
+    try {
+      const discovered = await this.pushScoped.discover(repository, sessionId, this.owner.signal)
+      if (this.owner.signal.aborted || !isCurrent()) return
+      const origin = discovered.remotes.find(item => item.name === remoteName)?.identity
+      if (origin?.provider === 'github') { this.ingest([{ id: `push/${repository}/${head}`, kind: 'create-pr', title: legacyTitle }]); return }
+      if (origin?.provider !== 'gitlab' || !/^[A-Za-z0-9._/-]{1,255}$/u.test(head)) return
+      const facts = await this.pushScoped.call<ScopedRemoteRepositoryFacts>('remote-repository', origin.scope, { repository, sessionId, path: origin.path }, this.owner.signal, sessionId)
+      if (this.owner.signal.aborted || !isCurrent()) return
+      if (facts.value.actionScope.path !== origin.path || facts.value.actionScope.object !== undefined || !/^[1-9][0-9]{0,39}$/u.test(facts.value.actionScope.projectId ?? '') || facts.value.viewer === undefined) return
+      const controller = this.gitlabControllerFor(sessionId)
+      if (controller.getSnapshot().repository !== repository) controller.setRepository(repository)
+      controller.receivePush(origin, facts.value.actionScope.projectId!, facts.value.viewer, facts.generation, head)
+    } catch { /* A suggestion is optional and never expands an unverified remote. */ }
+  }
+  dispose(): void { this.owner.abort(); this.scoped.observeCapability(OFF); this.pushScoped.observeCapability(OFF); clearInterval(this.timer); for (const controller of this.controllers.values()) controller.dispose(); for (const controller of this.gitlabControllers.values()) controller.dispose(); this.controllers.clear(); this.gitlabControllers.clear(); this.listeners.clear() }
 }
 export type RemotePending = 'repositories' | 'repository' | 'items' | 'detail' | 'auth' | 'authorization' | 'write'
 export interface RemoteClientState {
@@ -338,6 +381,8 @@ export class GitRemoteController {
     const epoch = this.epoch
     try { const result = await this.call<RemoteResult<RemotePage<RemoteNotice>>>('remote-notifications', { ...target, automatic: true }); if (epoch === this.epoch && equal(generation, result.generation)) this.feature.ingest(result.value.items) } catch { /* Shared Host budgets decide when polling can resume. */ }
   }
+  get scopedAvailable(): boolean { return this.feature.scoped.available }
+  retireGrant(instance: string): Promise<{ disposition: 'retired' | 'already-retired' | 'absent' }> { return this.feature.scoped.retire(instance, this.active.signal) }
   async authAction(...endpoints: string[]): Promise<void> {
     if (endpoints[0] === 'remote-sign-out' && this.state.busy) { this.clear(this.state.repository); this.patch({}) }
     await this.run(async epoch => {

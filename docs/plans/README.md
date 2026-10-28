@@ -10,5 +10,5 @@
 
 ## 索引
 
-- 进行中：[remote-platform-integration](active/remote-platform-integration.md) —— ADR-0004 远程平台集成分阶段实施（In progress；阶段进度与验收证据以计划正文为准）。
+- 进行中：[remote-platform-integration](active/remote-platform-integration.md) —— ADR-0004 远程平台集成与 GitLab.com/自建 GitLab 后续支持（In progress；GitLab GL0设计已冻结、B2–B4限定证据已补齐，GL1尚未授权/实施，进度与证据以计划正文为准）。
 - 已完成：[npm-first-release](completed/npm-first-release.md) —— npm 首次发布与 Release 流水线。

@@ -14,8 +14,11 @@ interface SharedGitCapabilities {
  * Creating a controller for a new session does not reset another session.
  */
 export class GitSessionControllers {
-  private pushObserver: ((repository: string, head: string) => void) | undefined
-  setPushObserver(observer: ((repository: string, head: string) => void) | undefined): void { this.pushObserver = observer; for (const controller of this.controllers.values()) controller.setPushObserver(observer) }
+  private pushObserver: ((repository: string, head: string, sessionId: string, remoteName: 'origin' | 'upstream' | undefined) => void) | undefined
+  setPushObserver(observer: ((repository: string, head: string, sessionId: string, remoteName: 'origin' | 'upstream' | undefined) => void) | undefined): void {
+    this.pushObserver = observer
+    for (const [sessionId, controller] of this.controllers) controller.setPushObserver(observer === undefined ? undefined : (repository, head, remoteName) => observer(repository, head, sessionId, remoteName))
+  }
   private readonly controllers = new Map<string, GitClientController>()
   private readonly shared: SharedGitCapabilities = {
     desktop: undefined,
@@ -37,7 +40,7 @@ export class GitSessionControllers {
     const existing = this.controllers.get(sessionId)
     if (existing !== undefined) return existing
     const controller = new GitClientController(this.rpc, sessionId, this.worktreeFeature)
-    controller.setPushObserver(this.pushObserver)
+    controller.setPushObserver(this.pushObserver === undefined ? undefined : (repository, head, remoteName) => this.pushObserver?.(repository, head, sessionId, remoteName))
     if (this.shared.desktop !== undefined) controller.setDesktop(this.shared.desktop)
     if (this.shared.diffNavigator !== undefined) controller.setDiffNavigator(this.shared.diffNavigator)
     this.controllers.set(sessionId, controller)

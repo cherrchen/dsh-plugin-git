@@ -101,6 +101,14 @@ export const Config = z.object({
   }),
   remote: z.object({
     clientId: markVolatile(z.string()),
+    instances: markVolatile(z.array(z.object({
+      url: z.string(),
+      label: z.string(),
+      clientId: z.string(),
+      credentialRef: z.string(),
+      sshHost: z.string(),
+      sshPort: z.natural().min(1).max(65535),
+    }))),
     requestTimeoutMs: markVolatile(z.natural().min(1)),
     probeTimeoutMs: markVolatile(z.natural().min(1).max(5000)),
     refreshTtlMs: markVolatile(z.natural().min(1)),
@@ -126,8 +134,8 @@ export function apply(ctx: Context, config: Config): void {
     if (credentials === undefined) return
     const runtime = new GitRemoteRuntime(credentials, ctx.subprocess, service, config.remote)
     remote.current = runtime
-    bound.on('credentials/record-updated', () => runtime.invalidate())
-    bound.on('credentials/reference-updated', () => runtime.invalidate())
+    bound.on('credentials/record-updated', key => runtime.invalidateRecord(key))
+    bound.on('credentials/reference-updated', ref => runtime.invalidateReference(ref))
     return async () => { if (remote.current === runtime) remote.current = undefined; await runtime.dispose() }
   })
   let directory: SessionDirectory | undefined
@@ -386,7 +394,10 @@ async function invoke(
 ): Promise<unknown> {
   if (endpoint === 'remote-capability') {
     const boundary = remoteCapability(remote.credentials())
-    return boundary.state === 'off' && boundary.reason !== 'implementation-pending' ? boundary : remote.current?.capability() ?? boundary
+    if (boundary.state === 'off' && boundary.reason !== 'implementation-pending') return boundary
+    const scoped = typeof payload === 'object' && payload !== null && !Array.isArray(payload) && 'remoteProtocol' in payload
+    if (scoped && remote.current !== undefined) return remote.current.handle(endpoint, payload, signal, (request, inner) => assertSessionRepository(service, directory, request, inner))
+    return remote.current?.capability() ?? boundary
   }
   if (endpoint.startsWith('remote-')) {
     const boundary = remoteCapability(remote.credentials())
