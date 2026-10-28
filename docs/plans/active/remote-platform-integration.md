@@ -426,7 +426,7 @@ GL1–GL4 已完成自动阶段门；GL5 的有限通知已接入，完整矩阵
 | 编号 | 优先级 / 结果 | 可复现问题与影响 | 位置 / 关闭条件 |
 | --- | --- | --- | --- |
 | A1 | **P1 / Failed** | GitLab 业务请求进入 provider 后，在首次异步会话检查期间移除实例；随后 assertRepository 调用 registry.list()，其串行锁内的 synchronize 等待旧 provider.dispose()，dispose 又等待当前请求。循环等待导致当前请求、后续跨实例发现和 runtime 卸载均挂起，不依赖外部 HTTP 或真实凭据 | `src/remote/registry.ts` 的 synchronize/drain 与 `src/remote/runtime.ts` 的 assertRepository。不得持注册表锁等待依赖该锁的请求结束；增加真实 provider 的移除/改配/卸载交错回归，证明旧请求取消、后续请求与卸载均有界完成，且旧身份不能继续写 |
-| A2 | **P2 / Failed** | A 实例 Device Flow 等待中切换到 B；select 取消旧轮询但不清除 login，旧轮询的 catch 因 epoch 变化跳过清理。B 面板保留 A 的设备码和授权链接，B 登录按钮持续禁用；取消时把 A 的 attemptId 发给 B，得到 unknown-attempt | `src/client/gitlab-remote.ts` 的 select/login/cancelLogin；UI 在登录等待时允许切换仓库。切换时清除并按原 scope 终止旧登录，或明确禁止等待期间切换；增加双实例回归，核对链接、取消 scope 与 B 的重新登录 |
+| A2 | **P2 / Failed** | A 实例 Device Flow 等待中切换到 B；select 取消旧轮询但不清除 login，旧轮询的 catch 因 epoch 变化跳过清理。B 面板保留 A 的设备码和授权链接，B 登录按钮持续禁用；取消时把 A 的 attemptId 发给 B，得到 unknown-attempt | `src/client/remote.ts` 统一控制器的 load/login/cancelLogin（原 `gitlab-remote.ts` 的 select/login/cancelLogin 已并入）；UI 在登录等待时允许切换仓库。切换时清除并按原 scope 终止旧登录，或明确禁止等待期间切换；增加双实例回归，核对链接、取消 scope 与 B 的重新登录 |
 
 可重跑的 [A1 生命周期探针](evidence/remote-platform-lifecycle-20261028.mjs)与 [A2 登录切换探针](evidence/remote-platform-login-switch-20261028.mjs)在 macOS arm64 / Node `v24.18.0` 执行。它们直接调用当前源码，使用合成实例与模拟服务，无外部网络、用户 store 或远端写入；预期不变量均失败（exit 1）。A1 的有界观察窗口结合上述等待依赖确认死锁，不是请求超时设计。既有注册表测试的空 dispose 和登录 HTTP 取消用例不能替代业务请求重入注册表的交错。运行方式为 `node --experimental-transform-types <探针相对路径>`。
 
