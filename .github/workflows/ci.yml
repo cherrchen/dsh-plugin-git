@@ -30,6 +30,7 @@ jobs:
           node-version: 22.19.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm peers check
       - run: pnpm compat:check
       - run: pnpm test --maxWorkers=4
       - name: Replay instance lifecycle acceptance (A1)

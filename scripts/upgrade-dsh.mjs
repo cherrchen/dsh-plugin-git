@@ -1,8 +1,8 @@
 /**
- * Point every DSH development dependency, plus the cordis and schemastery
- * copies that release ships, at one exact upstream version.
+ * Point every DSH development dependency at one exact upstream release,
+ * with the vendor runtime floors that host publishes.
  *
- * The script edits package.json and the schemastery override in
+ * The script edits package.json and the vendor runtime overrides in
  * pnpm-workspace.yaml. The caller installs afterwards. It does
  * not change SUPPORTED_DSH_RELEASES or peer ranges: a green matrix lane is
  * evidence, not a support promise.
@@ -21,6 +21,9 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
+
+const { hostRuntimePins, isHostRuntimePackage } = createRequire(import.meta.url)('./dsh-release-wave.cjs')
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const manifestPath = join(root, 'package.json')
@@ -58,6 +61,12 @@ const schemasteryVersion = caretFloor(
     ?? settingsView?.peerDependencies?.['@deepseek-ai/schemastery'],
   `@deepseek-ai/dsh-settings@${version} schemastery`,
 )
+const runtimePins = hostRuntimePins([
+  view(`@deepseek-ai/cordis@${cordisVersion}`),
+  view(`@deepseek-ai/dsh-app-boot@${version}`),
+  settingsView,
+  dshView,
+])
 
 /** Published only on some supported releases; never part of the peer OR range. */
 const laneOnlyPackages = [
@@ -119,8 +128,16 @@ const overrideLine = /^(\s*'@deepseek-ai\/schemastery': )\S+$/m
 if (!overrideLine.test(workspace)) {
   throw new Error('[upgrade] pnpm-workspace.yaml has no @deepseek-ai/schemastery override to repoint')
 }
-writeFileSync(workspacePath, workspace.replace(overrideLine, `$1${schemasteryVersion}`).replace(/^autoInstallPeers:.*\n?/m, ''))
+// Replace previous lane vendor overrides without retaining its Cordis companions.
+const withoutRuntimePins = workspace.split('\n').filter(line => {
+  const match = /^  '([^']+)': /u.exec(line)
+  return match === null || !isHostRuntimePackage(match[1])
+}).join('\n')
+writeFileSync(workspacePath, withoutRuntimePins.replace(/^overrides:[ \t]*$/m,
+  `overrides:\n${Object.entries(runtimePins).map(([name, pin]) => `  '${name}': ${pin}`).join('\n')}`,
+).replace(/^autoInstallPeers:.*\n?/m, ''))
 console.log(`[upgrade] DSH packages set to ${version} (${changed} manifest entries changed)`)
 console.log(`[upgrade] cordis pin: ${cordisVersion}`)
 console.log(`[upgrade] schemastery pin: ${schemasteryVersion}`)
+console.log(`[upgrade] host runtime pins: ${JSON.stringify(runtimePins)}`)
 console.log('[upgrade] next: pnpm install --no-frozen-lockfile')

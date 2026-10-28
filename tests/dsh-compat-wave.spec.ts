@@ -2,7 +2,27 @@ import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const { developmentPin, lockfileDrift, pinDshDependencies } = require('../scripts/dsh-release-wave.cjs')
+const { developmentPin, hostRuntimePins, lockfileDrift, pinDshDependencies } = require('../scripts/dsh-release-wave.cjs')
+
+describe('published host runtime pins', () => {
+  it('keeps host companions on their release floors instead of floating across Cordis versions', () => {
+    expect(hostRuntimePins([
+      { peerDependencies: { '@deepseek-ai/cordis-plugin-include': '^1.0.6' }, dependencies: { '@deepseek-ai/cosmokit': '~1.8.3', unrelated: '^9' } },
+      { peerDependencies: { '@deepseek-ai/cordis-plugin-group': '~1.0.6-alpha.1' } },
+      { dependencies: { '@deepseek-ai/cordis': '~4.0.6-alpha.1', '@deepseek-ai/cordis-plugin-include': '~1.0.11-alpha.1', '@deepseek-ai/schemastery': '3.18.6-alpha.1', '@deepseek-ai/dsh-settings': '0.2.2-alpha.2' } },
+    ])).toEqual({
+      '@deepseek-ai/cordis-plugin-include': '1.0.11-alpha.1',
+      '@deepseek-ai/cordis-plugin-group': '1.0.6-alpha.1',
+      '@deepseek-ai/cosmokit': '1.8.3',
+      '@deepseek-ai/cordis': '4.0.6-alpha.1',
+      '@deepseek-ai/schemastery': '3.18.6-alpha.1',
+    })
+  })
+
+  it('rejects ambiguous runtime declarations instead of silently selecting a different host copy', () => {
+    expect(() => hostRuntimePins([{ dependencies: { '@deepseek-ai/cordis': '^4.0.2 || ^4.0.6' } }])).toThrow('no single runtime floor')
+  })
+})
 
 describe('DSH release-wave pin', () => {
   it('rewrites every transitive DSH specifier to the pin', () => {
