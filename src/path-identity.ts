@@ -6,7 +6,8 @@ import { isAbsolute, resolve } from 'node:path'
 /**
  * Resolve one Git-reported path against an explicit base directory.
  * Relative values use `base`; absolute values stay absolute. Existing paths
- * are canonicalized so macOS `/var` and `/private/var` compare equal.
+ * are canonicalized so macOS symlink aliases and Windows 8.3/long paths
+ * compare equal.
  * @param value - Path from Git or a caller.
  * @param base - Directory that relative paths are resolved against.
  * @returns A comparable absolute path.
@@ -15,7 +16,9 @@ export function canonicalPath(value: string, base: string): string {
   const trimmed = value.trim()
   const absolute = isAbsolute(trimmed) ? trimmed : resolve(base, trimmed)
   try {
-    return realpathSync(absolute)
+    // Windows' JS realpath preserves 8.3 spellings; the native filesystem
+    // lookup resolves those aliases to the same long path Git reports.
+    return process.platform === 'win32' ? realpathSync.native(absolute) : realpathSync(absolute)
   } catch {
     return absolute
   }

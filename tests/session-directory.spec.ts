@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -108,7 +108,7 @@ describe('session directory binding', { timeout: 20_000 }, () => {
         change: { path: 'tracked.txt', status: ' M' },
       })
       expect(staged.ok).toBe(true)
-      expect(host.calls.some(call => call.argv.includes('add') && canonicalPath(call.cwd, repo) === realpathSync(repo))).toBe(true)
+      expect(host.calls.some(call => call.argv.includes('add') && canonicalPath(call.cwd, repo) === canonicalPath(repo, repo))).toBe(true)
     } finally {
       await host.dispose()
     }
@@ -150,8 +150,8 @@ describe('session directory binding', { timeout: 20_000 }, () => {
         path: linked,
       })
       expect(moved.ok).toBe(true)
-      if (moved.ok) expect(canonicalPath((moved.value as { cwd: string }).cwd, repo)).toBe(realpathSync(linked))
-      expect(entered.map(path => canonicalPath(path, repo))).toEqual([realpathSync(linked)])
+      if (moved.ok) expect(canonicalPath((moved.value as { cwd: string }).cwd, repo)).toBe(canonicalPath(linked, repo))
+      expect(entered.map(path => canonicalPath(path, repo))).toEqual([canonicalPath(linked, repo)])
       expect(host.calls.some(call => call.argv.includes('switch') || call.argv.includes('add'))).toBe(false)
       const outside = await host.call('set-directory', {
         sessionId: 'session-a',

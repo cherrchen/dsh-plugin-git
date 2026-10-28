@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -64,9 +64,9 @@ describe('portable Git service', { timeout: 20_000 }, () => {
       cancelled.abort()
       await Promise.all([
         expect(first).rejects.toMatchObject({ name: 'AbortError' }),
-        expect(independent).resolves.toBe(realpathSync(repo)),
+        expect(independent.then(path => path === null ? null : canonicalPath(path, repo))).resolves.toBe(canonicalPath(repo, repo)),
       ])
-      expect(await git.discover(repo)).toBe(realpathSync(repo))
+      expect(canonicalPath((await git.discover(repo))!, repo)).toBe(canonicalPath(repo, repo))
       expect((await git.status(repo)).branch).toBe('main')
       expect((await git.log(repo, 10, 0))[0]?.subject).toBe('initial')
     } finally {
@@ -132,7 +132,7 @@ describe('portable Git service', { timeout: 20_000 }, () => {
     expect(await git.discover(root)).toBeNull()
     const repo = repository()
     const snapshot = await git.status(repo)
-    expect(snapshot.root).toBe(realpathSync(repo))
+    expect(canonicalPath(snapshot.root, repo)).toBe(canonicalPath(repo, repo))
     expect(snapshot.branch).toBe('main')
     expect(snapshot.staged).toEqual([])
     expect(snapshot.unstaged).toEqual([])
@@ -383,15 +383,15 @@ describe('portable Git service', { timeout: 20_000 }, () => {
     const git = new GitService(runtime, { executable: 'git', maxOutputBytes: 1024 * 1024, graceMs: 1000 })
     try {
       const nested = await git.status(join(repo, 'nested'))
-      expect(nested.root).toBe(realpathSync(repo))
+      expect(canonicalPath(nested.root, repo)).toBe(canonicalPath(repo, repo))
       expect(nested.checkout?.kind).toBe('main')
       expect(nested.branch).toBe('main')
       const mainHead = nested.head
       const linkedStatus = await git.status(join(linked, 'nested'))
-      expect(linkedStatus.root).toBe(realpathSync(linked))
+      expect(canonicalPath(linkedStatus.root, repo)).toBe(canonicalPath(linked, repo))
       expect(linkedStatus.checkout?.kind).toBe('linked')
       expect(linkedStatus.branch).toBe('feature')
-      expect(linkedStatus.worktrees?.filter(entry => entry.current).map(entry => entry.path)).toEqual([realpathSync(linked)])
+      expect(linkedStatus.worktrees?.filter(entry => entry.current).map(entry => canonicalPath(entry.path, repo))).toEqual([canonicalPath(linked, repo)])
       expect(linkedStatus.worktrees?.map(entry => entry.branch).sort()).toEqual(['feature', 'main'])
       writeFileSync(join(linked, 'tracked.txt'), 'worktree\n')
       expect((await git.diff(linked, false, 'tracked.txt')).text).toContain('+worktree')
@@ -405,7 +405,7 @@ describe('portable Git service', { timeout: 20_000 }, () => {
       expect(readFileSync(join(repo, 'tracked.txt'), 'utf8')).toBe('initial\n')
       const commitCalls = calls.filter(call => call.argv.includes('commit'))
       expect(commitCalls.length).toBeGreaterThan(0)
-      expect(commitCalls.every(call => canonicalPath(call.cwd, repo) === realpathSync(linked))).toBe(true)
+      expect(commitCalls.every(call => canonicalPath(call.cwd, repo) === canonicalPath(linked, repo))).toBe(true)
       await expect(git.discover(join(repo, 'missing'))).rejects.toThrow()
       expect((await git.status(repo)).head).toBe(mainHead)
       const aborted = new AbortController()

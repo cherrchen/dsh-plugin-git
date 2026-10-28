@@ -1,11 +1,12 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { canonicalPath } from '../src/path-identity.ts'
 import { GitService, type WorktreePoolFs } from '../src/service.ts'
 
 const roots: string[] = []
@@ -66,7 +67,7 @@ describe('GitService.createWorktree', { timeout: 20_000 }, () => {
       expect(created.branch).toMatch(/^worktree-[0-9a-f-]{36}$/u)
       const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8' }).trim()
       expect(created.baseCommit).toBe(head)
-      expect(created.path).toBe(`${realpathSync(repo)}/.agents/worktrees/${created.branch}`)
+      expect(canonicalPath(created.path, repo)).toBe(canonicalPath(join(repo, '.agents', 'worktrees', created.branch), repo))
       expect(existsSync(join(created.path, 'tracked.txt'))).toBe(true)
       expect(readFileSync(join(created.path, 'tracked.txt'), 'utf8')).toBe('initial\n')
       const listed = execFileSync('git', ['worktree', 'list', '--porcelain'], { cwd: repo, encoding: 'utf8' })
@@ -87,7 +88,7 @@ describe('GitService.createWorktree', { timeout: 20_000 }, () => {
       const created = await git.createWorktree(repo, { name: 'feature/wt', from: first, directory: '.wt' })
       expect(created.branch).toBe('feature/wt')
       expect(created.baseCommit).toBe(first)
-      expect(created.path).toBe(`${realpathSync(repo)}/.wt/feature/wt`)
+      expect(canonicalPath(created.path, repo)).toBe(canonicalPath(join(repo, '.wt', 'feature', 'wt'), repo))
       // The checkout pins the older commit, not HEAD.
       const checkoutHead = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: created.path, encoding: 'utf8' }).trim()
       expect(checkoutHead).toBe(first)
@@ -95,7 +96,7 @@ describe('GitService.createWorktree', { timeout: 20_000 }, () => {
       expect(headBranch).toBe('main')
       // Surrounding whitespace is normalized before the pool path is formed.
       const padded = await git.createWorktree(repo, { name: 'padded', directory: ' .wt ' })
-      expect(padded.path).toBe(`${realpathSync(repo)}/.wt/padded`)
+      expect(canonicalPath(padded.path, repo)).toBe(canonicalPath(join(repo, '.wt', 'padded'), repo))
     } finally {
       await dispose()
     }
@@ -107,7 +108,7 @@ describe('GitService.createWorktree', { timeout: 20_000 }, () => {
     const { dispose, git } = await service()
     try {
       const created = await git.createWorktree(repo, { name: 'outside', directory: pool })
-      expect(created.path).toBe(join(pool, 'outside'))
+      expect(canonicalPath(created.path, repo)).toBe(canonicalPath(join(pool, 'outside'), repo))
       expect(existsSync(join(created.path, 'tracked.txt'))).toBe(true)
     } finally {
       await dispose()
@@ -179,7 +180,7 @@ describe('GitService.createWorktree', { timeout: 20_000 }, () => {
     const { fs, writeText } = hostFs()
     try {
       await git.createWorktree(repo, { name: 'first' }, fs)
-      const marker = join(realpathSync(repo), '.agents', 'worktrees', '.gitignore')
+      const marker = join(canonicalPath(repo, repo), '.agents', 'worktrees', '.gitignore')
       expect(readFileSync(marker, 'utf8')).toBe('*\n')
       // A second checkout into the existing pool does not rewrite the marker.
       await git.createWorktree(repo, { name: 'second' }, fs)

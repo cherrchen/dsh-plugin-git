@@ -1,10 +1,11 @@
-import { execFileSync, spawn } from 'node:child_process'
-import { accessSync, constants, existsSync, mkdtempSync, realpathSync, statSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { existsSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { delimiter, join } from 'node:path'
+import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { localSubprocess } from './harness/local-subprocess.ts'
 import { apply } from '../src/index.ts'
 import { canonicalPath } from '../src/path-identity.ts'
 import { GitClientController } from '../src/client/controller.ts'
@@ -25,60 +26,6 @@ function repository(): string {
   execFileSync('git', ['add', 'tracked.txt'], { cwd: root })
   execFileSync('git', ['commit', '-m', 'initial'], { cwd: root })
   return root
-}
-
-// Endpoint tests exercise session/RPC semantics over real git, not the upstream
-// runtime's per-spawn containment probes (a blocking systemd query on Linux CI).
-function localSubprocess() {
-  const reader = (parts: Buffer[]) => ({
-    readFrom: (from: number) => {
-      const buffer = Buffer.concat(parts).subarray(from)
-      return { text: buffer.toString('utf8'), nextOffset: from + buffer.length, lossy: false }
-    },
-  })
-  return {
-    resolveExecutable: async (command: string) => {
-      for (const directory of (process.env['PATH'] ?? '').split(delimiter)) {
-        const candidate = join(directory, command)
-        try {
-          if (!statSync(candidate).isFile()) continue
-          accessSync(candidate, constants.X_OK)
-          return candidate
-        } catch {}
-      }
-      throw new Error(`localSubprocess: ${command} was not found on PATH`)
-    },
-    spawn(spec: { argv: readonly string[]; cwd: string; env?: NodeJS.ProcessEnv; signal?: AbortSignal }) {
-      const env = { ...process.env }
-      for (const [key, value] of Object.entries(spec.env ?? {})) {
-        if (value === undefined) delete env[key]
-        else env[key] = value
-      }
-      const child = spawn(spec.argv[0]!, [...spec.argv.slice(1)], {
-        cwd: spec.cwd,
-        env,
-        stdio: ['ignore', 'pipe', 'pipe'],
-        ...(spec.signal !== undefined ? { signal: spec.signal } : {}),
-      })
-      const stdoutParts: Buffer[] = []
-      const stderrParts: Buffer[] = []
-      child.stdout?.on('data', (chunk: Buffer) => stdoutParts.push(chunk))
-      child.stderr?.on('data', (chunk: Buffer) => stderrParts.push(chunk))
-      return {
-        stdin: undefined,
-        stdout: undefined,
-        stderr: undefined,
-        collected: { stdout: reader(stdoutParts), stderr: reader(stderrParts) },
-        done: new Promise<{ exitCode: number | null; signal: NodeJS.Signals | null }>((resolve, reject) => {
-          child.once('error', reject)
-          child.once('close', (exitCode, signal) => resolve({ exitCode, signal }))
-        }),
-        terminate: () => { child.kill('SIGTERM') },
-        terminateForHostExit: () => { child.kill('SIGKILL') },
-        waitForExit: async () => true,
-      }
-    },
-  }
 }
 
 type Reply = { ok: true; value: unknown } | { ok: false; error: { message: string } }
@@ -170,7 +117,8 @@ describe('worktree endpoints', { timeout: 20_000 }, () => {
       await rebound
       expect(created).toMatchObject({ branch: 'projected', entered: true, path: cwd })
       expect(existsSync(join(cwd, 'tracked.txt'))).toBe(true)
-      expect(controller.getSnapshot()).toMatchObject({ workspacePath: cwd, creatingWorktree: false, repository: { root: cwd } })
+      expect(controller.getSnapshot()).toMatchObject({ workspacePath: cwd, creatingWorktree: false })
+      expect(canonicalPath(controller.getSnapshot().repository!.root, repo)).toBe(canonicalPath(cwd, repo))
     } finally {
       controller.dispose()
       await rebound
@@ -203,7 +151,7 @@ describe('worktree endpoints', { timeout: 20_000 }, () => {
       if (created.ok) {
         const value = created.value as { path: string; branch: string; baseCommit: string }
         expect(value.branch).toBe('wt-local')
-        expect(canonicalPath(value.path, repo)).toBe(`${realpathSync(repo)}/.agents/worktrees/wt-local`)
+        expect(canonicalPath(value.path, repo)).toBe(canonicalPath(`${canonicalPath(repo, repo)}/.agents/worktrees/wt-local`, repo))
         expect(value).not.toHaveProperty('entered')
         expect(existsSync(join(value.path, 'tracked.txt'))).toBe(true)
       }
@@ -213,7 +161,7 @@ describe('worktree endpoints', { timeout: 20_000 }, () => {
       if (custom.ok) {
         const value = custom.value as { path: string; branch: string }
         expect(value.branch).toMatch(/^worktree-/u)
-        expect(canonicalPath(value.path, repo)).toBe(`${realpathSync(repo)}/.agents/worktrees/${value.branch}`)
+        expect(canonicalPath(value.path, repo)).toBe(canonicalPath(`${canonicalPath(repo, repo)}/.agents/worktrees/${value.branch}`, repo))
       }
     } finally {
       await host.dispose()
@@ -253,9 +201,9 @@ describe('worktree endpoints', { timeout: 20_000 }, () => {
     if (created.ok) {
       const value = created.value as { path: string; entered?: boolean }
       expect(value.entered).toBe(true)
-      expect(canonicalPath(value.path, repo)).toBe(`${realpathSync(repo)}/.agents/worktrees/wt-enter`)
+      expect(canonicalPath(value.path, repo)).toBe(canonicalPath(`${canonicalPath(repo, repo)}/.agents/worktrees/wt-enter`, repo))
     }
-    expect(entered.map(path => canonicalPath(path, repo))).toEqual([`${realpathSync(repo)}/.agents/worktrees/wt-enter`])
+    expect(entered.map(path => canonicalPath(path, repo))).toEqual([canonicalPath(`${canonicalPath(repo, repo)}/.agents/worktrees/wt-enter`, repo)])
   })
 
   it('delegates creation to a mounted upstream runtime with the session agent', async () => {
