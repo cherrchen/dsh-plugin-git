@@ -20,6 +20,8 @@ import { dshDiffLabels, dshDiffSupportsContext } from '../../compat/dsh-diff.ts'
 import { gitFileComparison } from '../git-diff-adapter.ts'
 import { splitRepoPath } from '../path-display.ts'
 import css from '../GitDetailsSurface.module.css'
+import { describeLocalError, ErrorToast, useErrorToast } from '../error-feedback.tsx'
+
 
 /** Identity of one panel's diff result: repository root plus tab address. */
 const keyOf = (root: string, address: string): string => `${root}\u0000${address}`
@@ -81,6 +83,7 @@ export function GitDiffSurface({
     : fetchError === undefined || fetchError === state.error
       ? state.error
       : `${state.error}\n${fetchError}`
+  const errorToast = useErrorToast(error)
 
   const comparison = useMemo(() => payload === undefined || result?.diff === undefined
     ? undefined
@@ -98,7 +101,8 @@ export function GitDiffSurface({
         {payload === undefined && <p className={css.empty}>{t('details.missingDiff')}</p>}
         {state.workspacePath === undefined && <p className={css.empty}>{t('details.noWorkspace')}</p>}
         {state.repository === null && <p className={css.empty}>{t('details.notRepository')}</p>}
-        {error !== undefined && <p className={css.error} role="alert">{error}</p>}
+        {error !== undefined && <p className={css.empty}>{t('error.local.loadDiff')}</p>}
+      {errorToast.active && error !== undefined && <ErrorToast key={errorToast.seq} report={describeLocalError('error.local.loadDiff', error, t)} onDone={errorToast.dismiss} t={t} />}
         {untracked && <p className={css.empty}>{t('details.untrackedDiff')}</p>}
         {payload !== undefined && state.repository != null && !untracked && (
           <div className={css.diffTabBody}>

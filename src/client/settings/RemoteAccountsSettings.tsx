@@ -9,6 +9,7 @@ import { GITHUB_SCOPE, instanceHost } from '../remote/remote-view.ts'
 import { RemoteAuthControl } from '../remote/RemoteAuthControl.tsx'
 import { AccountAvatar } from '../remote/AccountAvatar.tsx'
 import { RetireGrantDialog, type RetireToastKey } from './RetireGrantDialog.tsx'
+import { ErrorToast, type GitErrorReport } from '../error-feedback.tsx'
 import css from './RemoteAccountsSettings.module.css'
 
 const sourceKeys: Record<string, GitLocaleKey> = {
@@ -70,6 +71,7 @@ export function RemoteAccountsSettings({ feature, summary = false, t }: {
   const accounts = useSyncExternalStore(feature.subscribe, feature.getAccounts)
   const [retireOpen, setRetireOpen] = useState(false)
   const [toast, setToast] = useState<{ seq: number; key: RetireToastKey }>()
+  const [failure, setFailure] = useState<{ seq: number; report: GitErrorReport }>()
   if (summary) return <p>{t('settings.accounts.summary')}</p>
   const available = capability.state === 'on' && feature.scoped.available
   return (
@@ -89,8 +91,9 @@ export function RemoteAccountsSettings({ feature, summary = false, t }: {
           })}
         </div>
         <Button variant="ghost" size="sm" className={css.retireButton} onClick={() => { setRetireOpen(true) }}>{t('settings.accounts.retireButton')}</Button>
-        <RetireGrantDialog open={retireOpen} feature={feature} onClose={() => { setRetireOpen(false) }} onDone={key => { setToast(current => ({ seq: (current?.seq ?? 0) + 1, key })) }} t={t} />
+        <RetireGrantDialog open={retireOpen} feature={feature} onClose={() => { setRetireOpen(false) }} onDone={key => { setToast(current => ({ seq: (current?.seq ?? 0) + 1, key })) }} onFailure={report => { setFailure(current => ({ seq: (current?.seq ?? 0) + 1, report })) }} t={t} />
         {toast !== undefined && <Toast key={toast.seq} text={t(toast.key)} tone="success" onDone={() => { setToast(undefined) }} />}
+        {failure !== undefined && <ErrorToast key={failure.seq} report={failure.report} onDone={() => { setFailure(undefined) }} t={t} />}
         </>
       )}
     </section>

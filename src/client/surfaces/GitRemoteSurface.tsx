@@ -17,6 +17,7 @@ import { RemoteCreateDialog } from '../remote/RemoteCreateDialog.tsx'
 import { RemoteNotices } from '../remote/RemoteNotices.tsx'
 import { RemoteLoading, RemoteListSkeleton } from '../remote/RemoteLoading.tsx'
 import { RemoteBlockedToast, RemoteOutcomeToast } from '../remote/RemoteOutcome.tsx'
+import { describeRemoteError, ErrorToast, useErrorToast } from '../error-feedback.tsx'
 import css from '../GitRemoteSurface.module.css'
 
 type Props = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'git'> & {
@@ -34,6 +35,8 @@ export function GitRemoteSurface({ gitSessions, remoteFeature, openRemoteItem, s
   const notices = useSyncExternalStore(remoteFeature.subscribe, remoteFeature.getNotices)
   useEffect(() => { const timer = setInterval(() => { void controller.pollNotices() }, 60000); return () => clearInterval(timer) }, [controller])
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
+  const errorToast = useErrorToast(state.blocked ? undefined : state.error)
+  const streamToast = useErrorToast(state.streamError)
   const [kind, setKind] = useState<'pulls' | 'issues'>(state.listKind ?? 'pulls')
   const [listState, setListState] = useState<RemoteListState>(state.listState ?? 'open')
   useEffect(() => { void controller.ensureList(kind, undefined, listState) }, [controller, kind, listState, state.repository, state.capability.state, state.capability.state === 'on' ? state.capability.generation.instanceId : undefined, state.capability.state === 'on' ? state.capability.generation.revision : undefined])
@@ -86,6 +89,7 @@ export function GitRemoteSurface({ gitSessions, remoteFeature, openRemoteItem, s
             action={state.blockedAction}
             error={state.error}
             errorDetails={state.errorDetails}
+            provider={target?.provider}
             reconciled={state.reconciled}
             seq={state.outcomeSeq}
             onAcknowledge={() => { controller.acknowledgeReconciliation() }}
@@ -124,9 +128,9 @@ export function GitRemoteSurface({ gitSessions, remoteFeature, openRemoteItem, s
           )}
           {!state.busy && !state.streaming && state.itemsNext === undefined && state.error === undefined && state.target !== undefined && state.items.length === 0 && <p className={css.empty}>{t('remote.noItems')}</p>}
         </>}
-        {state.streamError !== undefined && <p className={css.error} role="alert">{state.streamError}</p>}
-        {state.error !== undefined && !state.blocked && <p className={css.error} role="alert">{state.error}{state.errorDetails?.['reason'] === undefined ? '' : ` · ${String(state.errorDetails['reason'])}`}</p>}
-        {state.unknown && <p className={css.error} role="alert">{t('remote.unknown')}</p>}
+        {streamToast.active && state.streamError !== undefined && <ErrorToast key={`s${streamToast.seq}`} report={describeRemoteError(state.streamError, undefined, target?.provider, t)} onDone={streamToast.dismiss} t={t} />}
+        {errorToast.active && capability === undefined && state.error !== undefined && !state.blocked && <ErrorToast key={errorToast.seq} report={describeRemoteError(state.error, state.errorDetails, target?.provider, t)} onDone={errorToast.dismiss} t={t} />}
+        {state.unknown && <ErrorToast report={describeRemoteError('git/write-result-unknown', state.errorDetails, target?.provider, t)} holdMs={Infinity} onDone={() => undefined} t={t} />}
       </div>
     </div>
     <RemoteCreateDialog

@@ -5,6 +5,8 @@ import type { GitLocaleKey } from '../locales.ts'
 import { changedPathCount } from '../changed-path-count.ts'
 import { ChangeSection } from './ChangeSection.tsx'
 import css from '../GitDetailsSurface.module.css'
+import { describeLocalError, ErrorToast, useErrorToast } from '../error-feedback.tsx'
+
 
 /** Render the Changes tab with staged, unstaged, and untracked sections. */
 export function ChangesTab({ repository, controller, t, loading, error }: {
@@ -15,9 +17,11 @@ export function ChangesTab({ repository, controller, t, loading, error }: {
   error: string | undefined
 }): ReactNode {
   const clean = changedPathCount(repository) === 0
+  const errorToast = useErrorToast(error)
   return (
     <div className={css.tabBody}>
-      {error !== undefined && <p className={css.error} role="alert">{error}</p>}
+      {error !== undefined && <p className={css.empty}>{t('error.local.loadChanges')}</p>}
+      {errorToast.active && error !== undefined && <ErrorToast key={errorToast.seq} report={describeLocalError('error.local.loadChanges', error, t)} onDone={errorToast.dismiss} t={t} />}
       {clean && <p className={css.empty}>{t('details.clean')}</p>}
       <ChangeSection
         title={t('details.staged')}

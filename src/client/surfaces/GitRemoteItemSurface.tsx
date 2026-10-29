@@ -19,6 +19,7 @@ import { RemotePullActions } from '../remote/RemotePullActions.tsx'
 import { RemoteTimeline } from '../remote/RemoteTimeline.tsx'
 import { RemoteComposer, type RemoteReviewEvent } from '../remote/RemoteComposer.tsx'
 import { RemoteBlockedToast, RemoteOutcomeToast } from '../remote/RemoteOutcome.tsx'
+import { describeRemoteError, ErrorToast, useErrorToast } from '../error-feedback.tsx'
 import { RemoteAvatar } from '../remote/RemoteAvatar.tsx'
 import css from '../GitRemoteSurface.module.css'
 
@@ -45,6 +46,7 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
   const controller = remoteFeature.controllerFor(sessionId, `item:${remoteTargetKey(identity)}:${payload?.kind ?? ''}:${payload?.number ?? ''}`)
   useEffect(() => { controller.setRepository(localState.repository?.root, false) }, [controller, localState.repository?.root])
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
+  const streamToast = useErrorToast(state.streamError)
   const [checkoutName, setCheckoutName] = useState('')
   const [body, setBody] = useState('')
   const detail = state.detail
@@ -117,6 +119,7 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
               action={state.blockedAction}
               error={state.error}
               errorDetails={state.errorDetails}
+              provider={state.target?.provider}
               reconciled={state.reconciled}
               seq={state.outcomeSeq}
               onAcknowledge={() => { controller.acknowledgeReconciliation() }}
@@ -216,9 +219,8 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
             </p>
           )}
         </>}
-        {state.streamError !== undefined && <p className={css.error} role="alert">{state.streamError}</p>}
-        {state.error !== undefined && !state.blocked && <p className={css.error} role="alert">{state.error}{state.errorDetails?.['reason'] === undefined ? '' : ` · ${String(state.errorDetails['reason'])}`}</p>}
-        {state.unknown && <p className={css.error} role="alert">{t('remote.unknown')}</p>}
+        {streamToast.active && state.streamError !== undefined && <ErrorToast key={`s${streamToast.seq}`} report={describeRemoteError(state.streamError, undefined, state.target?.provider, t)} onDone={streamToast.dismiss} t={t} />}
+        {state.unknown && <ErrorToast report={describeRemoteError('git/write-result-unknown', state.errorDetails, state.target?.provider, t)} holdMs={Infinity} onDone={() => undefined} t={t} />}
       </div>
     </div>
   </div>

@@ -165,7 +165,8 @@ describe('GitChangesSurface', () => {
   it('shows discovery failures before a repository snapshot exists', () => {
     const controller = controllerOf(baseState({ repository: undefined, error: 'Git executable unavailable' }))
     render(<GitChangesSurface {...props(controller)} />)
-    expect(screen.getByRole('alert').textContent).toBe('Git executable unavailable')
+    expect(screen.getByRole('alert').textContent).toContain(en['error.local.loadChanges'])
+    expect(screen.getByRole('alert').textContent).not.toContain('Git executable unavailable')
   })
 
   it('labels a linked checkout and enters another worktree for this session', () => {
@@ -394,7 +395,8 @@ describe('GitGraphSurface', () => {
   it('shows repository discovery failures independently of history failures', () => {
     const controller = controllerOf(baseState({ repository: undefined, error: 'Git executable unavailable' }))
     render(<GitGraphSurface {...props(controller)} />)
-    expect(screen.getByRole('alert').textContent).toBe('Git executable unavailable')
+    expect(screen.getByRole('alert').textContent).toContain(en['error.local.readRepository'])
+    expect(screen.getByRole('alert').textContent).not.toContain('Git executable unavailable')
     expect(controller.loadGraph).not.toHaveBeenCalled()
   })
 
@@ -569,7 +571,8 @@ describe('GitWorktreesSurface', () => {
     expect(screen.queryByText(formatLocale(en['worktree.createDirectoryHint'], { directory: '.agents/worktrees' }))).toBeNull()
     fireEvent.change(screen.getByLabelText(en['worktree.createName']), { target: { value: 'dup' } })
     fireEvent.click(screen.getAllByRole('button', { name: en['worktree.create'] }).pop()!)
-    await waitFor(() => { expect(screen.getByText('git: worktree branch already exists: dup')).toBeTruthy() })
+    await waitFor(() => { expect(screen.getByRole('alert').textContent).toContain(en['error.local.createWorktree']) })
+    expect(screen.queryByText('git: worktree branch already exists: dup')).toBeNull()
     // The dialog stays open for a retry.
     expect(screen.getByText(en['worktree.createDialogTitle'])).toBeTruthy()
   })

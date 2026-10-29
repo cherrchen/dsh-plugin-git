@@ -6,16 +6,19 @@ import { canonicalGitLabInstance } from '../../remote/instance-url.ts'
 import { ScopedProtocolError } from '../remote-protocol.ts'
 import type { GitRemoteFeature } from '../remote.ts'
 import type { GitLocaleKey } from '../locales.ts'
+import type { GitErrorReport } from '../error-feedback.tsx'
 import css from './RemoteAccountsSettings.module.css'
 
 export type RetireToastKey = 'settings.accounts.retireDone' | 'settings.accounts.retireAlready' | 'settings.accounts.retireAbsent'
 
-export function RetireGrantDialog({ open, feature, onClose, onDone, t }: {
+export function RetireGrantDialog({ open, feature, onClose, onDone, onFailure, t }: {
   readonly open: boolean
   readonly feature: GitRemoteFeature
   readonly onClose: () => void
   /** Completed dispositions close the dialog; the owner shows a section-level toast. */
   readonly onDone: (key: RetireToastKey) => void
+  /** Operation failures stay on the confirm step but report through the owner's toast. */
+  readonly onFailure: (report: GitErrorReport) => void
   readonly t: (key: GitLocaleKey) => string
 }): ReactNode {
   const [input, setInput] = useState('')
@@ -42,7 +45,9 @@ export function RetireGrantDialog({ open, feature, onClose, onDone, t }: {
     }).catch((failure: unknown) => {
       const registered = failure instanceof ScopedProtocolError && (failure.reason === 'instance-registered' || failure.details?.['reason'] === 'instance-registered')
       if (registered) { setScope(undefined); setError('settings.accounts.retireRegistered'); return }
-      setError(failure instanceof ScopedProtocolError && (failure.reason === 'record-mismatch' || failure.details?.['reason'] === 'record-mismatch') ? 'settings.accounts.retireMismatch' : 'settings.accounts.retireFailed')
+      const key = failure instanceof ScopedProtocolError && (failure.reason === 'record-mismatch' || failure.details?.['reason'] === 'record-mismatch') ? 'settings.accounts.retireMismatch' : 'settings.accounts.retireFailed'
+      const detail = failure instanceof ScopedProtocolError ? `code: ${failure.code ?? failure.reason ?? 'git/remote-unavailable'}` : failure instanceof Error ? failure.message : String(failure)
+      onFailure({ summary: t(key), detail })
     }).finally(() => { setRunning(false) })
   }
   return (
@@ -69,7 +74,6 @@ export function RetireGrantDialog({ open, feature, onClose, onDone, t }: {
       ) : (
         <>
           <p className={css.retireBody}>{t('settings.accounts.retireConfirmPre')} <strong>{scope}</strong>{t('settings.accounts.retireConfirmPost')}</p>
-          {error !== undefined && <p className={css.retireError} role="alert">{t(error)}</p>}
           <div className={css.retireFooter}>
             <Button variant="outline" size="sm" disabled={running} onClick={() => { setScope(undefined); setError(undefined) }}>{t('settings.accounts.retireBack')}</Button>
             <Button variant="primary" size="sm" disabled={running} onClick={confirm}>{t('settings.accounts.retireDelete')}</Button>

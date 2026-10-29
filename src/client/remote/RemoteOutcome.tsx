@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { IconWarningOutlineRegular, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { RemoteWriteOutcome } from './remote-view.ts'
 import type { GitLocaleKey } from '../locales.ts'
+import { describeRemoteError } from '../error-feedback.tsx'
 
 const stepKeys: Readonly<Record<string, GitLocaleKey>> = {
   comment: 'gitlab.stepComment', approve: 'gitlab.stepApprove', 'close-pr': 'gitlab.stepClose', 'merge-pr': 'gitlab.stepMerge', 'merge-verification': 'gitlab.stepMergeVerification', 'create-pr': 'gitlab.stepCreate',
@@ -34,11 +35,12 @@ export function RemoteOutcomeToast({ outcome, action, seq, onDone, t }: {
  * transient cycle: writes stay locked until the refreshed result is
  * acknowledged or the blocking state clears elsewhere.
  */
-export function RemoteBlockedToast({ outcome, action, error, errorDetails, reconciled, seq, onAcknowledge, t }: {
+export function RemoteBlockedToast({ outcome, action, error, errorDetails, provider, reconciled, seq, onAcknowledge, t }: {
   readonly outcome: RemoteWriteOutcome | undefined
   readonly action: string | undefined
   readonly error: string | undefined
   readonly errorDetails: Readonly<Record<string, string | number | boolean>> | undefined
+  readonly provider: 'github' | 'gitlab' | undefined
   readonly reconciled: boolean
   readonly seq: number
   readonly onAcknowledge: () => void
@@ -54,15 +56,21 @@ export function RemoteBlockedToast({ outcome, action, error, errorDetails, recon
     const key = resultErrorKeys[receiptError]
     parts.push(key === undefined ? receiptError : t(key))
   }
-  if (error !== undefined) parts.push(`${error}${errorDetails?.['reason'] === undefined ? '' : ` · ${String(errorDetails['reason'])}`}`)
+  const errorReport = error === undefined ? undefined : describeRemoteError(error, errorDetails, provider, t)
+  if (errorReport !== undefined) parts.push(errorReport.summary)
   if (!reconciled) parts.push(t('gitlab.reconcileHint'))
+  const detail = errorReport === undefined ? undefined : `${errorReport.detail}${receiptError === undefined ? '' : `\nreceipt: ${receiptError}`}`
+  const actions = [
+    ...(detail === undefined ? [] : [{ prefix: t('error.copyPrefix'), label: t('error.copyDetails'), onClick: () => { void navigator.clipboard.writeText(detail).then(() => undefined, () => undefined) } }]),
+    ...(reconciled ? [{ prefix: detail === undefined ? t('error.copyPrefix') : ' ', label: t('gitlab.reconcile'), onClick: onAcknowledge }] : []),
+  ]
   return (
     <Toast
       key={`${seq}:${reconciled}`}
       icon={<IconWarningOutlineRegular />}
       holdMs={Infinity}
       text={parts.join(' ')}
-      {...(reconciled ? { actions: [{ label: t('gitlab.reconcile'), onClick: onAcknowledge }] } : {})}
+      {...(actions.length === 0 ? {} : { actions })}
       onDone={() => undefined}
     />
   )

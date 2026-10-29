@@ -6,6 +6,7 @@ import { GitIconButton } from '../details/GitIconButton.tsx'
 import { RemoteAuthSection } from './RemoteAuthSection.tsx'
 import { RemoteLoading } from './RemoteLoading.tsx'
 import { platformCopy } from './platform-copy.ts'
+import { describeRemoteError, ErrorToast, useErrorToast } from '../error-feedback.tsx'
 import css from '../GitRemoteSurface.module.css'
 import type { GitRemoteController } from '../remote.ts'
 import type { GitRemoteCapabilityOn, ScopedRemoteCapabilityOn } from '../../remote/types.ts'
@@ -29,6 +30,7 @@ export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, in
 }): ReactNode {
   const [open, setOpen] = useState(false)
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
+  const errorToast = useErrorToast(state.error)
   const scopedInstance = instance ?? (state.target?.provider === 'gitlab' ? state.target.scope.instance : undefined)
   return (
     <>
@@ -45,7 +47,6 @@ export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, in
         className={`${css.authDialog}`}
       >
         <RemoteLoading pending={state.login === undefined ? state.pending : 'authorization'} provider={gitlab ? 'gitlab' : 'github'} t={t} />
-        {state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
         <RemoteAuthSection
           capability={capability}
           viewer={viewer}
@@ -70,6 +71,7 @@ export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, in
           t={t}
         />
       </Modal>
+      {errorToast.active && state.error !== undefined && <ErrorToast key={errorToast.seq} report={describeRemoteError(state.error, state.errorDetails, gitlab ? 'gitlab' : 'github', t)} onDone={errorToast.dismiss} t={t} />}
     </>
   )
 }

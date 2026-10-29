@@ -20,13 +20,14 @@ function fixture(accounts: readonly RemoteAccountDescriptor[] = [], disposition:
   const feature = { retireGrant, getAccounts: () => accounts } as unknown as GitRemoteFeature
   const onDone = vi.fn()
   const onClose = vi.fn()
-  return { feature, retireGrant, onDone, onClose }
+  const onFailure = vi.fn()
+  return { feature, retireGrant, onDone, onClose, onFailure }
 }
 
 describe('orphan-grant settings dialog', () => {
   it('requires a separate confirmation, normalizes the scope, and reports the disposition', async () => {
     const f = fixture()
-    render(<RetireGrantDialog open feature={f.feature} onClose={f.onClose} onDone={f.onDone} t={key => en[key]} />)
+    render(<RetireGrantDialog open feature={f.feature} onClose={f.onClose} onDone={f.onDone} onFailure={f.onFailure} t={key => en[key]} />)
     fireEvent.change(screen.getByPlaceholderText('https://gitlab.example.com'), { target: { value: 'https://GIT.EXAMPLE.COM:443/' } })
     fireEvent.click(screen.getByRole('button', { name: en['settings.accounts.retireNext'] }))
     expect(f.retireGrant).not.toHaveBeenCalled()
@@ -38,7 +39,7 @@ describe('orphan-grant settings dialog', () => {
   })
   it('rejects a non-https address without calling the host', () => {
     const f = fixture()
-    render(<RetireGrantDialog open feature={f.feature} onClose={f.onClose} onDone={f.onDone} t={key => en[key]} />)
+    render(<RetireGrantDialog open feature={f.feature} onClose={f.onClose} onDone={f.onDone} onFailure={f.onFailure} t={key => en[key]} />)
     fireEvent.change(screen.getByPlaceholderText('https://gitlab.example.com'), { target: { value: 'ssh://git@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: en['settings.accounts.retireNext'] }))
     expect(screen.getByRole('alert').textContent).toBe(en['settings.accounts.retireInvalid'])
@@ -46,7 +47,7 @@ describe('orphan-grant settings dialog', () => {
   })
   it('points a registered instance back to the account list', () => {
     const f = fixture([{ provider: 'gitlab', instance: 'https://git.example.com' }])
-    render(<RetireGrantDialog open feature={f.feature} onClose={f.onClose} onDone={f.onDone} t={key => en[key]} />)
+    render(<RetireGrantDialog open feature={f.feature} onClose={f.onClose} onDone={f.onDone} onFailure={f.onFailure} t={key => en[key]} />)
     fireEvent.change(screen.getByPlaceholderText('https://gitlab.example.com'), { target: { value: 'https://git.example.com' } })
     fireEvent.click(screen.getByRole('button', { name: en['settings.accounts.retireNext'] }))
     expect(screen.getByRole('alert').textContent).toBe(en['settings.accounts.retireRegistered'])
@@ -54,7 +55,7 @@ describe('orphan-grant settings dialog', () => {
   })
   it('keeps the input when Back is chosen on the confirm step', () => {
     const f = fixture()
-    render(<RetireGrantDialog open feature={f.feature} onClose={f.onClose} onDone={f.onDone} t={key => en[key]} />)
+    render(<RetireGrantDialog open feature={f.feature} onClose={f.onClose} onDone={f.onDone} onFailure={f.onFailure} t={key => en[key]} />)
     fireEvent.change(screen.getByPlaceholderText('https://gitlab.example.com'), { target: { value: 'https://git.example.com' } })
     fireEvent.click(screen.getByRole('button', { name: en['settings.accounts.retireNext'] }))
     fireEvent.click(screen.getByRole('button', { name: en['settings.accounts.retireBack'] }))
@@ -62,12 +63,12 @@ describe('orphan-grant settings dialog', () => {
   })
   it('stays on the confirm step with an error line when the host rejects', async () => {
     const f = fixture([], 'retired', { details: { reason: 'record-mismatch' } })
-    render(<RetireGrantDialog open feature={f.feature} onClose={f.onClose} onDone={f.onDone} t={key => en[key]} />)
+    render(<RetireGrantDialog open feature={f.feature} onClose={f.onClose} onDone={f.onDone} onFailure={f.onFailure} t={key => en[key]} />)
     fireEvent.change(screen.getByPlaceholderText('https://gitlab.example.com'), { target: { value: 'https://git.example.com' } })
     fireEvent.click(screen.getByRole('button', { name: en['settings.accounts.retireNext'] }))
     fireEvent.click(screen.getByRole('button', { name: en['settings.accounts.retireDelete'] }))
-    await screen.findByRole('alert')
-    expect(screen.getByRole('alert').textContent).toBe(en['settings.accounts.retireMismatch'])
+    await waitFor(() => expect(f.onFailure).toHaveBeenCalledWith({ summary: en['settings.accounts.retireMismatch'], detail: 'code: git/remote-unavailable' }))
+    expect(screen.queryByRole('alert')).toBeNull()
     expect(f.onClose).not.toHaveBeenCalled()
     expect(f.onDone).not.toHaveBeenCalled()
   })

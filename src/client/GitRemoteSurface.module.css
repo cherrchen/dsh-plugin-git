@@ -872,13 +872,6 @@
   font-weight: 600;
 }
 
-.error {
-  margin: 0;
-  padding: 0 0 8px;
-  color: var(--dsw-alias-state-error-primary);
-  font-size: 12px;
-  white-space: pre-line;
-}
 
 .empty {
   padding: 24px 8px;

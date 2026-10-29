@@ -29,8 +29,7 @@
   color: var(--dsw-alias-label-secondary);
 }
 
-.createHint,
-.createError {
+.createHint {
   margin: 0;
   font-size: 13px;
   line-height: 19px;
@@ -40,14 +39,10 @@
   color: var(--dsw-alias-label-secondary);
 }
 
-.createError {
-  color: var(--dsw-alias-state-error-primary);
-}
-
-.menuError {
+.menuHint {
   position: absolute;
   font-size: 11px;
-  color: var(--dsw-alias-state-error-primary);
+  color: var(--dsw-alias-label-tertiary);
 }
 
 .checkoutKind {

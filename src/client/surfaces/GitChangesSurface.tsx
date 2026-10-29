@@ -15,6 +15,8 @@ import { useGitWorkspace } from '../use-git-workspace.ts'
 import { ChangesTab } from '../details/ChangesTab.tsx'
 import { CommitRegion } from '../details/CommitRegion.tsx'
 import css from '../GitDetailsSurface.module.css'
+import { describeLocalError, ErrorToast, useErrorToast } from '../error-feedback.tsx'
+
 
 /** Full composed props for the Git Changes tab body. */
 export type GitChangesSurfaceProps = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'git'>
@@ -26,6 +28,7 @@ export function GitChangesSurface({
 }: GitChangesSurfaceProps): ReactNode {
   const controller = resolveGitController({ controller: controllerProp, gitSessions, sessionId })
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
+  const errorToast = useErrorToast(state.error)
   const workspacePath = useSessions(list => effectiveWorkspacePath(list.byId[sessionId]))
 
   useGitWorkspace(controller, workspacePath)
@@ -70,7 +73,8 @@ export function GitChangesSurface({
       {state.loading && repository === undefined && <p className={css.empty}>{t('details.loading')}</p>}
       {!state.loading && workspacePath === undefined && <p className={css.empty}>{t('details.noWorkspace')}</p>}
       {!state.loading && repository === null && <p className={css.empty}>{t('details.notRepository')}</p>}
-      {repository == null && state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
+      {repository == null && state.error !== undefined && <p className={css.empty}>{t('error.local.loadChanges')}</p>}
+      {errorToast.active && state.error !== undefined && <ErrorToast key={errorToast.seq} report={describeLocalError('error.local.loadChanges', state.error, t)} onDone={errorToast.dismiss} t={t} />}
       {repository !== undefined && repository !== null && (
         <>
           <CommitRegion

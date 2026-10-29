@@ -19,6 +19,8 @@ import { effectiveWorkspacePath } from '../workspace-path.ts'
 import { useGitWorkspace } from '../use-git-workspace.ts'
 import type { GitWorktreeFeature } from '../worktree-feature.ts'
 import css from '../GitDetailsSurface.module.css'
+import { describeLocalError, ErrorToast, useErrorToast } from '../error-feedback.tsx'
+
 
 /** Full composed props for the Git Worktrees tab body. */
 export type GitWorktreesSurfaceProps = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'git'>
@@ -35,6 +37,8 @@ export function GitWorktreesSurface({
   const [name, setName] = useState('')
   const [from, setFrom] = useState('')
   const [createError, setCreateError] = useState<string>()
+  const errorToast = useErrorToast(state.error)
+  const createToast = useErrorToast(createError)
 
   useEffect(() => {
     worktreeFeature?.refresh()
@@ -134,7 +138,8 @@ export function GitWorktreesSurface({
           </div>
         </div>
       )}
-      {state.error === undefined ? null : <p className={css.error} role="alert">{state.error}</p>}
+      {state.error === undefined ? null : <p className={css.empty}>{t('error.local.loadWorktrees')}</p>}
+      {errorToast.active && state.error !== undefined && <ErrorToast key={errorToast.seq} report={describeLocalError('error.local.loadWorktrees', state.error, t)} onDone={errorToast.dismiss} t={t} />}
       <Modal
         open={creating}
         onClose={closeCreate}
@@ -181,7 +186,8 @@ export function GitWorktreesSurface({
           {mode !== 'local' || state.worktreeDirectory === undefined || state.worktreeDirectory === ''
             ? null
             : <p className={css.worktreeNote}>{formatLocale(t('worktree.createDirectoryHint'), { directory: state.worktreeDirectory })}</p>}
-          {createError === undefined ? null : <p className={css.error} role="alert">{createError}</p>}
+          {createError === undefined ? null : <p className={css.empty}>{t('error.local.createWorktree')}</p>}
+          {createToast.active && createError !== undefined && <ErrorToast key={createToast.seq} report={describeLocalError('error.local.createWorktree', createError, t)} onDone={createToast.dismiss} t={t} />}
         </div>
       </Modal>
     </div>

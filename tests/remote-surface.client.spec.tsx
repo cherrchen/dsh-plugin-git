@@ -235,7 +235,7 @@ describe('portable remote surface', () => {
     await screen.findByText('Description')
     fireEvent.click(screen.getByRole('button', { name: en['remote.close'] }))
     fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: en['remote.confirm'] }))
-    await screen.findByText(en['remote.unknown'])
+    await screen.findByText(/Couldn't confirm whether the action/)
     expect((screen.getByRole('button', { name: en['remote.comment'] }) as HTMLButtonElement).disabled).toBe(true)
   })
   it('links to the GitHub files page and renders commit and review history without fetching diffs', async () => {
