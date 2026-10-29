@@ -91,7 +91,13 @@ export class GitRemoteFeature {
       return
     }
     void this.scoped.accounts(this.owner.signal).then(list => {
-      if (this.owner.signal.aborted || sameAccounts(this.accountsList, list)) return
+      if (this.owner.signal.aborted) return
+      // Instance configuration can replace an owner without changing its list descriptor
+      // or the global GitHub generation. Revalidate visible, retained account rows too.
+      for (const account of list) if (account.provider === 'gitlab') {
+        void this.controllers.get(JSON.stringify(['account', account.provider, account.instance]))?.refreshAccount(true)
+      }
+      if (sameAccounts(this.accountsList, list)) return
       this.accountsList = list
       for (const listener of this.listeners) listener()
     }, () => {})
@@ -241,6 +247,7 @@ export class GitRemoteController {
   private active = new AbortController()
   private disposed = false
   private streamEpoch: number | undefined
+  private githubReconciliationEpoch: number | undefined
   private streamResume: ReturnType<typeof setTimeout> | undefined
   private loginTimeout: ReturnType<typeof setTimeout> | undefined
   private listKind: 'pulls' | 'issues' = 'pulls'
@@ -284,6 +291,7 @@ export class GitRemoteController {
     const scope = this.feature.scoped.available ? this.authenticationScope : undefined
     clearTimeout(this.loginTimeout); this.loginTimeout = undefined
     this.epoch++; this.active.abort(); this.active = new AbortController()
+    this.githubReconciliationEpoch = undefined
     if (this.streamResume !== undefined) { clearTimeout(this.streamResume); this.streamResume = undefined }
     this.collections.clear()
     this.state = { ...this.state, busy: false, pending: undefined, streaming: false, login: undefined }
@@ -375,7 +383,7 @@ export class GitRemoteController {
     if (expected !== undefined && !equal(expected, response.generation)) { this.patch({ confirmation: undefined, facts: undefined }); throw new ScopedProtocolError('stale-generation') }
     return response
   }
-  private async run(work: (epoch: number) => Promise<void>, pending?: RemotePending, allowBlocked = false): Promise<void> {
+  private async run(work: (epoch: number) => Promise<void>, pending?: RemotePending, allowBlocked = false, refreshFeature = true): Promise<void> {
     if (this.disposed || this.state.busy || (!allowBlocked && this.state.blocked)) return
     const epoch = this.epoch; this.patch({ busy: true, ...(pending === undefined ? {} : { pending }), ...(this.state.blocked ? {} : { error: undefined, errorDetails: undefined }) })
     try { await work(epoch) } catch (error) {
@@ -407,7 +415,7 @@ export class GitRemoteController {
           this.patch({ error: error instanceof Error ? error.message : String(error), errorDetails: undefined, unknown: error instanceof RemoteRpcError && error.code === 'git/write-result-unknown' || this.state.unknown })
         }
       }
-    } finally { if (epoch === this.epoch) { this.patch({ busy: false, pending: undefined }); this.feature.refresh() } }
+    } finally { if (epoch === this.epoch) { this.patch({ busy: false, pending: undefined }); if (refreshFeature) this.feature.refresh() } }
   }
   async load(kind: 'pulls' | 'issues' = 'pulls', selected?: RemoteTarget, state: 'open' | 'closed' | 'all' = 'open'): Promise<void> {
     if (this.disposed || this.state.busy || this.state.blocked) return
@@ -527,7 +535,9 @@ export class GitRemoteController {
       const commits = kind === 'pulls' ? await this.scopedCall<RemotePage<RemoteCommit>>('remote-commits', { number: n, pages: FIRST_PAGES }, epoch, detail.generation) : undefined
       const reviews = kind === 'pulls' ? await this.scopedCall<RemotePage<RemoteReview>>('remote-reviews', { number: n, pages: FIRST_PAGES }, epoch, detail.generation) : undefined
       const needsReconcile = this.state.blocked && reconcile
-      this.patch({ facts: facts.value, itemsNext: undefined, detail: detail.value, generation: detail.generation, comments: this.page('comments', sameDetail ? this.state.comments : [], strictPage(comments.value), entry => entry.id, true), commentsNext: strictPage(comments.value).next, inline: inline === undefined ? [] : this.page('inline', sameDetail ? this.state.inline : [], strictPage(inline.value), entry => entry.id, true), inlineNext: inline === undefined ? undefined : strictPage(inline.value).next, commits: commits === undefined ? [] : this.page('commits', sameDetail ? this.state.commits : [], strictPage(commits.value), entry => entry.sha, true), commitsNext: commits === undefined ? undefined : strictPage(commits.value).next, reviews: reviews === undefined ? [] : this.page('reviews', sameDetail ? this.state.reviews : [], strictPage(reviews.value), entry => entry.id, true), reviewsNext: reviews === undefined ? undefined : strictPage(reviews.value).next, approvals: undefined, unavailable: [], outcome: undefined, confirmation: undefined, streamError: undefined, unknown: false, ...(needsReconcile ? { reconciled: true } : {}) })
+      if (needsReconcile) this.githubReconciliationEpoch = epoch
+      this.patch({ facts: facts.value, itemsNext: undefined, detail: detail.value, generation: detail.generation, comments: this.page('comments', sameDetail ? this.state.comments : [], strictPage(comments.value), entry => entry.id, true), commentsNext: strictPage(comments.value).next, inline: inline === undefined ? [] : this.page('inline', sameDetail ? this.state.inline : [], strictPage(inline.value), entry => entry.id, true), inlineNext: inline === undefined ? undefined : strictPage(inline.value).next, commits: commits === undefined ? [] : this.page('commits', sameDetail ? this.state.commits : [], strictPage(commits.value), entry => entry.sha, true), commitsNext: commits === undefined ? undefined : strictPage(commits.value).next, reviews: reviews === undefined ? [] : this.page('reviews', sameDetail ? this.state.reviews : [], strictPage(reviews.value), entry => entry.id, true), reviewsNext: reviews === undefined ? undefined : strictPage(reviews.value).next, approvals: undefined, unavailable: [], outcome: undefined, confirmation: undefined, streamError: undefined, unknown: false, ...(needsReconcile ? { reconciled: false } : {}) })
+      this.finishGitHubReconciliation(epoch)
       this.stream(epoch)
       return
     }
@@ -576,6 +586,12 @@ export class GitRemoteController {
     const s = this.state
     return s.itemsNext !== undefined || s.commentsNext !== undefined || s.inlineNext !== undefined || s.commitsNext !== undefined || s.reviewsNext !== undefined
   }
+  /** Only a targeted refresh and its completed continuation stream can release the acknowledgement gate. */
+  private finishGitHubReconciliation(epoch: number): void {
+    if (this.githubReconciliationEpoch === epoch && this.epoch === epoch && this.state.blocked && this.state.target?.provider === 'github' && this.state.detail !== undefined && !this.hasPendingCursor()) {
+      this.patch({ reconciled: true })
+    }
+  }
   /** @returns `true` only when the loop drained every cursor; errors and superseded state return `false`. */
   private async streamLoop(epoch: number): Promise<boolean> {
     this.patch({ streaming: true, streamError: undefined })
@@ -608,7 +624,7 @@ export class GitRemoteController {
           const items = gitlab ? (page.items as readonly ScopedRemoteNote[]).map(projectGitLabNote) : page.items as readonly RemoteCommentView[]
           const reviewBlocked = this.state.blockedAction === 'review' || this.state.blockedAction === 'remote-review'
           const commentBlocked = reviewBlocked || this.state.blockedAction === 'comment' || this.state.blockedAction === 'remote-comment'
-          this.patch({ comments: this.page('comments', this.state.comments, { ...page, items }, item => item.id), commentsNext: page.next, ...(this.state.blocked && commentBlocked && page.next === undefined && (!reviewBlocked || this.state.approvals !== undefined) ? { reconciled: true } : {}) })
+          this.patch({ comments: this.page('comments', this.state.comments, { ...page, items }, item => item.id), commentsNext: page.next, ...(gitlab && this.state.blocked && commentBlocked && page.next === undefined && (!reviewBlocked || this.state.approvals !== undefined) ? { reconciled: true } : {}) })
           continue
         }
         if (s.inlineNext !== undefined && number !== undefined) {
@@ -643,6 +659,7 @@ export class GitRemoteController {
           this.patch({ reviews: this.page('reviews', this.state.reviews, page, item => item.id), reviewsNext: page.next })
           continue
         }
+        this.finishGitHubReconciliation(epoch)
         return true
       }
     } catch (error) {
@@ -731,13 +748,13 @@ export class GitRemoteController {
     }
   }
   get scopedAvailable(): boolean { return this.feature.scoped.available }
-  /** Non-interactive account read for a pinned settings row; establishes identity like a first read. */
-  async refreshAccount(): Promise<void> {
-    if (this.authScope === undefined || !this.feature.scoped.available || this.state.login !== undefined) return
+  /** Background list rediscovery refreshes only mounted rows and never triggers another capability poll. */
+  async refreshAccount(background = false): Promise<void> {
+    if (this.authScope === undefined || !this.feature.scoped.available || this.state.login !== undefined || background && this.listeners.size === 0) return
     await this.run(async epoch => {
       const cap = await this.scopedCall<ScopedRemoteCapabilityOn>('remote-account', {}, epoch)
       this.patch({ scopedCapability: cap.value, generation: cap.generation })
-    }, 'auth', true)
+    }, 'auth', true, !background)
   }
   /** Withdraw this scope's cached data after another view changed its authentication. */
   accountChanged(scope: ScopedRemoteScope): void {

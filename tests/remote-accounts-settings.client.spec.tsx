@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import type { GitRpcClient } from '../src/client/controller.ts'
 import { GitRemoteFeature } from '../src/client/remote.ts'
 import { RemoteAccountsSettings } from '../src/client/settings/RemoteAccountsSettings.tsx'
@@ -15,7 +15,7 @@ const generation = { instanceId: 'gen', revision: 1 }
 const actions = { canComment: false, canReview: false, canMerge: false, canClose: false, canCreatePr: false }
 const cap = (auth: Record<string, unknown>, viewer?: unknown) => ({ state: 'on', generation, auth, viewer, credential: { configured: true, writable: true }, actions, loginAvailable: true, automaticRefreshAvailable: false, authMethods: { deviceFlow: { supported: true } }, authSelection: { method: 'oauth', cliAvailable: false, oauthCached: false } })
 
-function fixture(options: { auth?: Record<string, unknown>; viewer?: unknown; accounts?: unknown; scopedAvailable?: boolean; fail?: boolean; accountFail?: boolean } = {}) {
+function fixture(options: { auth?: Record<string, unknown>; viewer?: unknown; accounts?: unknown; scopedAvailable?: boolean; fail?: boolean; accountFail?: boolean; account?: (request: Record<string, unknown>) => ReturnType<typeof cap> } = {}) {
   const scope = { provider: 'gitlab', instance: 'https://git.example.com' }
   const call = vi.fn(async (_channel: string, endpoint: string, payload: unknown) => {
     const request = payload as Record<string, unknown>
@@ -32,7 +32,8 @@ function fixture(options: { auth?: Record<string, unknown>; viewer?: unknown; ac
     const echo = { remoteProtocol: 2, scope: { provider: request['provider'] ?? 'gitlab', instance: instance ?? scope.instance }, generation }
     if (endpoint === 'remote-account' || endpoint === 'remote-capability') {
       if (options.accountFail) return { ok: false, error: { code: 'git/remote-unavailable' } }
-      return { ok: true, value: { ...echo, value: cap(options.auth ?? { state: 'anonymous' }, options.viewer) } }
+      const value = options.account?.(request) ?? cap(options.auth ?? { state: 'anonymous' }, options.viewer)
+      return { ok: true, value: { ...echo, generation: value.generation, value } }
     }
     return { ok: true, value: { ...echo, value: cap({ state: 'anonymous' }) } }
   })
@@ -95,6 +96,74 @@ describe('RemoteAccountsSettings', () => {
     await waitFor(() => expect(requests()).toBeGreaterThan(before))
     await waitFor(() => expect(screen.getByText('git.example.com')).toBeTruthy())
     f.feature.dispose()
+  })
+  it('refreshes an existing GitLab owner after App configuration changes without changing the account descriptor', async () => {
+    const scope = { provider: 'gitlab', instance: 'https://self.example' } as const
+    let configured = false
+    const f = fixture({ accounts: [scope], account: request => ({
+      ...cap({ state: 'anonymous' }),
+      generation: request['provider'] === 'gitlab' ? { instanceId: configured ? 'new-owner' : 'old-owner', revision: 0 } : generation,
+      loginAvailable: configured && request['provider'] === 'gitlab',
+    }) })
+    try {
+      render(<RemoteAccountsSettings feature={f.feature} t={t} />)
+      const controller = f.feature.accountControllerFor(scope)
+      await waitFor(() => expect(controller.getSnapshot().scopedCapability?.loginAvailable).toBe(false))
+      const accounts = f.feature.getAccounts()
+      configured = true
+      act(() => { f.feature.refresh() })
+      await waitFor(() => expect(controller.getSnapshot()).toMatchObject({ busy: false, generation: { instanceId: 'new-owner' }, scopedCapability: { loginAvailable: true } }))
+      expect(f.feature.getAccounts()).toBe(accounts)
+      const polls = () => f.call.mock.calls.filter(entry => entry[1] === 'remote-capability' && (entry[2] as Record<string, unknown>)['remoteProtocol'] !== 2).length
+      const before = polls()
+      // Background account reads must not feed back into another global poll / accounts read.
+      await act(async () => { await controller.refreshAccount(true) })
+      expect(polls()).toBe(before)
+    } finally { f.feature.dispose() }
+  })
+  it('revalidates retained GitLab rows on settings reentry but leaves unmounted rows idle', async () => {
+    const scope = { provider: 'gitlab', instance: 'https://self.example' } as const
+    let login = 'old-viewer'
+    const f = fixture({ accounts: [scope], account: request => request['provider'] === 'gitlab' ? cap({ state: 'authenticated', source: 'ref' }, { host: 'self.example', userId: '1', login }) : cap({ state: 'anonymous' }) })
+    try {
+      const view = render(<RemoteAccountsSettings feature={f.feature} t={t} />)
+      await screen.findByText(/@old-viewer/)
+      view.unmount()
+      const reads = () => f.call.mock.calls.filter(entry => entry[1] === 'remote-account' && (entry[2] as Record<string, unknown>)['provider'] === 'gitlab').length
+      const before = reads()
+      login = 'new-viewer'
+      await act(async () => { f.feature.loadAccounts() })
+      expect(reads()).toBe(before)
+      render(<RemoteAccountsSettings feature={f.feature} t={t} />)
+      await screen.findByText(/@new-viewer/)
+      expect(reads()).toBeGreaterThan(before)
+    } finally { f.feature.dispose() }
+  })
+  it('does not interrupt a device login when rediscovering the same account', async () => {
+    const scope = { provider: 'gitlab', instance: 'https://self.example' } as const
+    const f = fixture({ accounts: [scope] })
+    try {
+      render(<RemoteAccountsSettings feature={f.feature} t={t} />)
+      const controller = f.feature.accountControllerFor(scope)
+      await waitFor(() => expect(controller.getSnapshot().scopedCapability).toBeDefined())
+      const original = f.call.getMockImplementation()!
+      let finish!: (reply: { ok: boolean; value: unknown }) => void
+      f.call.mockImplementation(async (...args) => {
+        const [, endpoint] = args
+        const envelope = (value: unknown) => ({ ok: true, value: { remoteProtocol: 2, scope, generation, value } })
+        if (endpoint === 'remote-login') return envelope({ attemptId: 'active', userCode: 'CODE', verificationUri: `${scope.instance}/oauth/device`, expiresAt: Date.now() + 60_000 })
+        if (endpoint === 'remote-poll-login') return new Promise(resolve => { finish = resolve })
+        return original(...args)
+      })
+      await act(async () => { await controller.login() })
+      expect(controller.getSnapshot().login?.attemptId).toBe('active')
+      const before = f.call.mock.calls.filter(entry => entry[1] === 'remote-account').length
+      await act(async () => { f.feature.loadAccounts() })
+      expect(f.call.mock.calls.filter(entry => entry[1] === 'remote-account')).toHaveLength(before)
+      expect(controller.getSnapshot().login?.attemptId).toBe('active')
+      await act(async () => { await controller.cancelLogin() })
+      finish({ ok: true, value: { remoteProtocol: 2, scope, generation, value: { state: 'authenticated' } } })
+    } finally { f.feature.dispose() }
   })
   it('keeps a row whose account read runs ahead of the capability poll and re-reads after a real change', async () => {
     const scope = { provider: 'github', instance: 'https://github.com' }

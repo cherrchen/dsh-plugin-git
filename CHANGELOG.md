@@ -20,6 +20,9 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ### Fixed
 
+- GitHub scoped write reconciliation now waits for every refreshed detail page before allowing acknowledgement; failed or superseded continuations keep repeat writes locked.
+- Platform account rediscovery refreshes visible GitLab capabilities after same-URL configuration changes and on settings reentry, without interrupting device login or triggering a polling loop.
+
 - Copying error details now reports a failure when the clipboard API is unavailable or the writer throws synchronously.
 - Blocked remote-write notices now report copy success or failure while keeping their reconciliation controls available.
 - GitLab authenticated-account and author avatars now display, including Gravatar default avatars.
