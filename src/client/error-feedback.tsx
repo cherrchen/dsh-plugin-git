@@ -39,6 +39,13 @@ export function describeLocalError(summaryKey: GitLocaleKey, message: string, t:
   return { summary: t(summaryKey), detail: message }
 }
 
+/** Invoke during the click, while turning synchronous clipboard failures into rejected writes. */
+export async function copyErrorDetails(detail: string, copy?: (text: string) => Promise<void>): Promise<void> {
+  if (copy !== undefined) { await copy(detail); return }
+  if (typeof navigator === 'undefined' || typeof navigator.clipboard?.writeText !== 'function') throw new Error('clipboard-unavailable')
+  await navigator.clipboard.writeText(detail)
+}
+
 /** Warning toast with a copy-details action; a copy result replaces the banner. */
 export function ErrorToast({ report, holdMs = 6000, onDone, copy, t }: {
   readonly report: GitErrorReport
@@ -61,8 +68,7 @@ export function ErrorToast({ report, holdMs = 6000, onDone, copy, t }: {
         prefix: t('error.copyPrefix'),
         label: t('error.copyDetails'),
         onClick: () => {
-          const write = copy ?? ((text: string) => navigator.clipboard.writeText(text))
-          void Promise.resolve(write(report.detail)).then(() => { setResult('copied') }, () => { setResult('failed') })
+          void copyErrorDetails(report.detail, copy).then(() => { setResult('copied') }, () => { setResult('failed') })
         },
       }]}
       onDone={onDone}

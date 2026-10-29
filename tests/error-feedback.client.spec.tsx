@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { describeRemoteError, describeLocalError, ErrorToast, useErrorToast } from '../src/client/error-feedback.tsx'
 import { en } from '../src/client/locales.ts'
 
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.unstubAllGlobals() })
 const t = (key: Parameters<typeof describeRemoteError>[3] extends (k: infer K) => string ? K : never) => en[key]
 
 describe('describeRemoteError', () => {
@@ -52,6 +52,32 @@ describe('ErrorToast', () => {
     render(<ErrorToast report={{ summary: 'Something failed', detail: 'code: x' }} onDone={() => {}} copy={copy} t={t} />)
     fireEvent.click(screen.getByRole('button', { name: en['error.copyDetails'] }))
     expect(await screen.findByText(en['error.copyFailed'])).toBeTruthy()
+  })
+  it('reports a synchronously throwing custom writer as a copy failure', async () => {
+    const copy = vi.fn(() => { throw new Error('unavailable') })
+    render(<ErrorToast report={{ summary: 'Something failed', detail: 'code: x' }} onDone={() => {}} copy={copy} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: en['error.copyDetails'] }))
+    expect(await screen.findByText(en['error.copyFailed'])).toBeTruthy()
+  })
+  it.each([
+    ['missing clipboard', undefined],
+    ['missing writer', {}],
+    ['throwing writer', { writeText: () => { throw new Error('unavailable') } }],
+    ['rejected write', { writeText: async () => { throw new Error('denied') } }],
+  ])('reports a browser copy failure for %s', async (_label, clipboard) => {
+    vi.stubGlobal('navigator', { clipboard })
+    render(<ErrorToast report={{ summary: 'Something failed', detail: 'code: x' }} onDone={() => {}} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: en['error.copyDetails'] }))
+    expect(await screen.findByText(en['error.copyFailed'])).toBeTruthy()
+    expect(screen.queryByText(en['error.copyDone'])).toBeNull()
+  })
+  it('copies through the browser clipboard when no custom writer is supplied', async () => {
+    const writeText = vi.fn(async (_text: string) => {})
+    vi.stubGlobal('navigator', { clipboard: { writeText } })
+    render(<ErrorToast report={{ summary: 'Something failed', detail: 'code: x' }} onDone={() => {}} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: en['error.copyDetails'] }))
+    expect(await screen.findByText(en['error.copyDone'])).toBeTruthy()
+    expect(writeText).toHaveBeenCalledWith('code: x')
   })
 })
 

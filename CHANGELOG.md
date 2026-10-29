@@ -20,6 +20,7 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ### Fixed
 
+- Copying error details now reports a failure when the clipboard API is unavailable or the writer throws synchronously.
 - GitLab authenticated-account and author avatars now display, including Gravatar default avatars.
 
 ## [0.2.8] — 2026-10-25
