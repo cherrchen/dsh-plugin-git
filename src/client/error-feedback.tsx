@@ -1,7 +1,8 @@
 /** Friendly, copyable error reporting: a short localized summary in a toast, raw detail behind a copy action. */
 import { useCallback, useState } from 'react'
 import type { ReactNode } from 'react'
-import { IconWarningOutlineRegular, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconWarningOutline16 } from '../compat/dsh-icons.tsx'
+import { Toast } from '../compat/dsh-toast.tsx'
 import { platformCopy } from './remote/platform-copy.ts'
 import type { GitLocaleKey } from './locales.ts'
 
@@ -49,12 +50,12 @@ export function ErrorToast({ report, holdMs = 6000, onDone, copy, t }: {
 }): ReactNode {
   const [result, setResult] = useState<'copied' | 'failed'>()
   if (result !== undefined) {
-    return <Toast text={result === 'copied' ? t('error.copyDone') : t('error.copyFailed')} {...(result === 'copied' ? { tone: 'success' as const } : { icon: <IconWarningOutlineRegular /> })} onDone={onDone} />
+    return <Toast text={result === 'copied' ? t('error.copyDone') : t('error.copyFailed')} {...(result === 'copied' ? { tone: 'success' as const } : { icon: <IconWarningOutline16 /> })} onDone={onDone} />
   }
   return (
     <Toast
       text={report.summary}
-      icon={<IconWarningOutlineRegular />}
+      icon={<IconWarningOutline16 />}
       holdMs={holdMs}
       actions={[{
         prefix: t('error.copyPrefix'),

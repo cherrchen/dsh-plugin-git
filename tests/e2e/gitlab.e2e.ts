@@ -35,7 +35,7 @@ test('browses a scoped GitLab merge request and posts one comment with an isolat
   await expect(page.getByText('Current approvals')).toBeVisible()
   await page.getByLabel('Comment / description').fill('Isolated comment')
   await page.getByRole('button', { name: 'Post comment', exact: true }).click()
-  await expect(page.getByText('Action result: Succeeded')).toBeVisible()
+  await expect(page.getByRole('alert')).toHaveText('Comment published')
   const id = await page.getByRole('status', { name: 'Fixture ID' }).textContent()
   const info = await page.request.post('/__test/inspect', { data: { id } }).then(response => response.json())
   expect(info.calls.filter((call: string) => call === 'gitlab:POST:/gitlab/api/v4/projects/42/merge_requests/7/notes')).toHaveLength(1)

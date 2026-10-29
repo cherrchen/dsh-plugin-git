@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import { IconWarningOutlineRegular, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconWarningOutline16 } from '../../compat/dsh-icons.tsx'
+import { Toast } from '../../compat/dsh-toast.tsx'
 import type { RemoteWriteOutcome } from './remote-view.ts'
 import type { GitLocaleKey } from '../locales.ts'
 import { describeRemoteError } from '../error-feedback.tsx'
@@ -67,7 +68,7 @@ export function RemoteBlockedToast({ outcome, action, error, errorDetails, provi
   return (
     <Toast
       key={`${seq}:${reconciled}`}
-      icon={<IconWarningOutlineRegular />}
+      icon={<IconWarningOutline16 />}
       holdMs={Infinity}
       text={parts.join(' ')}
       {...(actions.length === 0 ? {} : { actions })}

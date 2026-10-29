@@ -1,7 +1,8 @@
 /** Platform-account rows on the bundle settings page; sign-in changes apply immediately and never join the form save. */
 import { useEffect, useId, useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
-import { Button, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Toast } from '../../compat/dsh-toast.tsx'
 import type { ScopedRemoteScope } from '../../remote/types.ts'
 import type { GitLocaleKey } from '../locales.ts'
 import type { GitRemoteFeature } from '../remote.ts'
