@@ -135,7 +135,7 @@ Refresh validates pages from the beginning using the Host's existing ETag / `If-
 
 Workspace rebinding, capability off and identity/generation changes clear view/filter caches and cancel old requests. Remote writes, including failures and unknown outcomes, invalidate sibling caches for the same local repository. Tab switches, cache hits and automatic validation never clear an unknown-write gate: explicit targeted refresh is still required, and writes are never replayed automatically.
 
-Controller notification polling pauses while Device Flow authorization is pending, preventing new requests on the same scoped lane from invalidating the in-flight login response. Successful authorization refreshes authentication and the list. Switching methods or logging out of OAuth during an in-flight GitLab operation cancels old work while retaining its original target scope for the authentication request; late replies cannot overwrite the new state.
+Controller notification polling pauses while Device Flow authorization is pending or background pagination is active, preventing new requests on the same scoped lane from invalidating in-flight login or continuation responses. The next poll after pagination ends can proceed normally. Successful authorization refreshes authentication and the list. Switching methods or logging out of OAuth during an in-flight GitLab operation cancels old work while retaining its original target scope for the authentication request; late replies cannot overwrite the new state.
 
 ## Guarded writes
 

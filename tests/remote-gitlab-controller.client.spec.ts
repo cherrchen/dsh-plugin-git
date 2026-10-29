@@ -178,6 +178,39 @@ describe('GitLab scoped controller', () => {
       expect(f.controller.getSnapshot()).toMatchObject({ target, items: [oldItem] })
     })
   })
+  it.each(['pulls', 'issues'] as const)('skips notification polling during %s pagination and resumes after all pages load', async kind => {
+    const envelope = (value: unknown): Reply => ({ ok: true, value: { remoteProtocol: 2, scope, generation, value } })
+    const endpoint = kind === 'pulls' ? 'remote-list-prs' : 'remote-list-issues'
+    const first = kind === 'pulls' ? pull : { id: '99', number: 7, title: 'Example issue', body: '', state: 'open' }
+    const second = { ...first, id: '100', number: 8 }, third = { ...first, id: '101', number: 9 }
+    const notice = { id: '11', projectId: '12', objectId: '99', number: 7, kind: 'review-requested', title: 'Review', state: 'pending' }
+    let finishPage!: (reply: Reply) => void
+    const f = fixture((name, payload) => {
+      if (name === endpoint) {
+        if (payload['cursor'] === undefined) return envelope({ items: [first], truncated: true, next: 'next-page' })
+        if (payload['cursor'] === 'next-page') return new Promise<Reply>(resolve => { finishPage = resolve })
+        if (payload['cursor'] === 'final-page') return envelope({ items: [third], truncated: false })
+      }
+      if (name === 'remote-notifications') return envelope({ items: [notice], truncated: false })
+      return undefined
+    })
+    f.feature.refresh()
+    await vi.waitFor(() => expect(f.feature.getSnapshot().state).toBe('on'))
+    f.controller.setRepository('/repo', false)
+    await f.controller.load(kind)
+    await vi.waitFor(() => expect(finishPage).toBeDefined())
+    expect(f.controller.getSnapshot()).toMatchObject({ capability: { state: 'on' }, busy: false, streaming: true, items: [first], itemsNext: 'next-page' })
+    const callsBeforePoll = f.call.mock.calls.length
+    await f.controller.pollNotices()
+    expect(f.call.mock.calls).toHaveLength(callsBeforePoll)
+    finishPage(envelope({ items: [second], truncated: true, next: 'final-page' }))
+    await vi.waitFor(() => expect(f.controller.getSnapshot().streaming).toBe(false))
+    expect(f.controller.getSnapshot()).toMatchObject({ items: [first, second, third], itemsNext: undefined, streamError: undefined, error: undefined })
+    expect(f.call.mock.calls.filter(args => args[1] === endpoint).map(args => (args[2] as Record<string, unknown>)['cursor'])).toEqual([undefined, 'next-page', 'final-page'])
+    await f.controller.pollNotices()
+    expect(f.call.mock.calls.filter(args => args[1] === 'remote-notifications')).toHaveLength(1)
+    expect(f.feature.getNotices()).toEqual([expect.objectContaining({ title: 'Review', kind: 'review-requested', provider: 'gitlab' })])
+  })
   it('skips notification polling during device authorization and reloads after successful login', async () => {
     const envelope = (value: unknown): Reply => ({ ok: true, value: { remoteProtocol: 2, scope, generation, value } })
     let finishLogin!: (reply: Reply) => void

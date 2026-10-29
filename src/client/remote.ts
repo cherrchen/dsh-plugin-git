@@ -656,7 +656,8 @@ export class GitRemoteController {
   }
   async pollNotices(): Promise<void> {
     const { target, generation, capability } = this.state
-    if (this.disposed || this.state.busy || this.state.login !== undefined || target === undefined || generation === undefined || capability.state !== 'on') return
+    // Continuation pages share this view's scoped lane; polling would invalidate their replies.
+    if (this.disposed || this.state.busy || this.state.streaming || this.state.login !== undefined || target === undefined || generation === undefined || capability.state !== 'on') return
     if (target.provider === 'gitlab') {
       if (this.state.blocked) return
       await this.run(async epoch => {
