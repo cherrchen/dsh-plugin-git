@@ -11,8 +11,8 @@ describe('orphan-grant confirmation', () => {
   it('requires a separate confirmation and displays the normalized scope and result', async () => {
     const retireGrant = vi.fn(async () => ({ disposition: 'retired' as const }))
     const snapshot = { pending: undefined, error: undefined }
-    const controller = { scopedAvailable: true, retireGrant, getSnapshot: () => snapshot, subscribe: () => () => {}, authAction: vi.fn(), login: vi.fn(), cancelLogin: vi.fn() } as unknown as GitRemoteController
-    render(<RemoteAuthControl capability={capability} viewer={undefined} busy={false} controller={controller} t={key => en[key]} />)
+    const controller = { scopedAvailable: true, retireGrant, getSnapshot: () => snapshot, subscribe: () => () => {}, authAction: vi.fn(), login: vi.fn(), ensureAuthCapability: vi.fn(), cancelLogin: vi.fn() } as unknown as GitRemoteController
+    render(<RemoteAuthControl capability={capability} viewer={undefined} busy={false} gitlab controller={controller} t={key => en[key]} />)
     fireEvent.click(screen.getByRole('button', { name: en['remote.auth'] }))
     expect(document.querySelector('details')?.open).toBe(false)
     fireEvent.click(screen.getByText(en['remote.advanced'], { exact: true }))
@@ -23,4 +23,13 @@ describe('orphan-grant confirmation', () => {
     await waitFor(() => expect(retireGrant).toHaveBeenCalledWith('https://git.example.com'))
     expect(await screen.findByText(en['remote.retireDone'])).toBeTruthy()
   })
+})
+
+it('hides GitLab grant maintenance on the GitHub authentication dialog', () => {
+  const snapshot = {}
+  const controller = { scopedAvailable: true, getSnapshot: () => snapshot, subscribe: () => () => {} } as unknown as GitRemoteController
+  render(<RemoteAuthControl capability={capability} viewer={undefined} busy={false} controller={controller} t={key => en[key]} />)
+  fireEvent.click(screen.getByRole('button', { name: en['remote.auth'] }))
+  expect(screen.queryByText(en['remote.advanced'])).toBeNull()
+  expect(screen.queryByLabelText(en['remote.retireUrl'])).toBeNull()
 })

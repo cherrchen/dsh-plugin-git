@@ -143,11 +143,15 @@ test('independent browser contexts and fixture stores do not share authenticatio
 
 
 test('retires an orphan GitLab grant only after reviewing its canonical URL', async ({ page }) => {
-  const dialog = await openAuth(page, 'orphan')
+  const dialog = await openAuth(page, 'gitlab-orphan')
   await expect(dialog.getByLabel('已移除的实例 URL')).toBeHidden()
-  await dialog.getByText('高级', { exact: true }).focus()
+  await dialog.locator('summary').focus()
   await page.keyboard.press('Enter')
   await dialog.getByLabel('已移除的实例 URL').fill('https://OLD.EXAMPLE:443/')
+  const box = await dialog.boundingBox()
+  expect(box!.y).toBeGreaterThanOrEqual(24)
+  expect(box!.y + box!.height).toBeLessThanOrEqual(736)
+  await page.screenshot({ path: test.info().outputPath('gitlab-advanced.png') })
   await dialog.getByRole('button', { name: '检查清除内容' }).click()
   await expect(dialog.getByText('https://old.example', { exact: true })).toBeVisible()
   const id = await page.getByRole('status', { name: 'Fixture ID' }).textContent()
@@ -158,4 +162,25 @@ test('retires an orphan GitLab grant only after reviewing its canonical URL', as
   const after = await page.request.post('/__test/inspect', { data: { id } }).then(response => response.json())
   expect(after.orphanRetired).toBe(true); expect(after.calls).toContain('remote-retire-grant')
   expect(await page.locator('body').innerText()).not.toContain('e2e-sentinel-')
+})
+
+test('keeps GitLab maintenance out of GitHub sign-in', async ({ page }) => {
+  const dialog = await openAuth(page, 'gh')
+  await expect(dialog.getByText('高级', { exact: true })).toHaveCount(0)
+})
+
+test('opens platform account settings without repository RPCs', async ({ page }) => {
+  await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort())
+  await page.goto('/?scenario=gh&view=settings')
+  const accounts = page.getByRole('region', { name: '平台账号' })
+  await expect(accounts.getByText('@fixture-user')).toBeVisible()
+  await accounts.getByRole('button', { name: '管理登录' }).first().click()
+  const dialog = page.getByRole('dialog', { name: '平台认证' })
+  await expect(dialog.getByText('@fixture-user')).toBeVisible()
+  await expect(dialog.getByRole('radio', { name: 'GitHub CLI（gh）', exact: true })).toBeChecked()
+  const id = await page.getByLabel('Fixture ID').textContent()
+  const info = await page.request.post('/__test/inspect', { data: { id } }).then(response => response.json())
+  expect(info.calls).toContain('remote-auth-status')
+  expect(info.calls).not.toContain('remote-repositories')
+  await page.screenshot({ path: test.info().outputPath('settings-accounts.png') })
 })

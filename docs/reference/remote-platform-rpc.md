@@ -169,3 +169,5 @@ v2 scoped 写入与旧通道一致：无论成功、拒绝或响应丢失，均�
 ### 插件设置中的平台账号（Current）
 
 `plugins.bundle.config` 的 Git 条目设置页提供“平台账号”，无需会话或本地仓库即可查看 GitHub 和已配置 GitLab 实例的状态，打开同一认证弹窗并切换 CLI/OAuth。认证操作立即生效，不参与下方配置表单的暂存/保存。全局 capability 的可选 `authScopes` 仅投影 provider 与规范 instance URL，不含 clientId、credentialRef 或秘密；旧 Host 缺少该扩展时保留 GitHub 入口。`remote-auth-status` 在显式打开设置或点击刷新时建立/校验当前身份并返回 capability 与安全 viewer；GitHub 复用同 generation 的 `/user` 缓存，不触发仓库权限读取；signed-out 不恢复发现。各实例使用独立认证控制器及请求 lane，认证 RPC 不携带伪造的 repository/sessionId，不触发列表或项目权限读取。GitLab 账号变化会撤回同实例各视图的旧权限与缓存，已挂载视图在新身份下重新读取原目标。
+
+认证弹窗在顶部标明当前平台与服务器地址，CLI 与浏览器登录各自成卡并说明用途。GitLab 的旧服务器登录清理仅在 GitLab 弹窗的“高级”中显示，与日常登录分隔；先解释适用条件，再输入 URL，最后核对规范地址并独立确认。

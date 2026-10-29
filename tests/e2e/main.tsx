@@ -2,6 +2,7 @@ import { useEffect, useState, useSyncExternalStore } from 'react'
 import { createRoot } from 'react-dom/client'
 import { GitRemoteFeature } from '../../src/client/remote.ts'
 import { GitSessionControllers } from '../../src/client/session-controllers.ts'
+import { RemoteAccountsSettings } from '../../src/client/settings/RemoteAccountsSettings.tsx'
 import { RemoteAuthControl } from '../../src/client/remote/RemoteAuthControl.tsx'
 import { GitRemoteSurface } from '../../src/client/surfaces/GitRemoteSurface.tsx'
 import { GitRemoteItemSurface } from '../../src/client/surfaces/GitRemoteItemSurface.tsx'
@@ -57,7 +58,7 @@ function App() {
   const state = useSyncExternalStore(list.subscribe, list.getSnapshot)
   const [navigation, setNavigation] = useState<Navigation>()
   const generation = capability.state === 'on' ? capability.generation.revision : undefined
-  useEffect(() => { void list.ensureList() }, [generation])
+  useEffect(() => { if (params.get('view') !== 'settings') void list.ensureList() }, [generation])
   const gitlab = (params.get('scenario') ?? '').startsWith('gitlab')
   const openRemoteItem = (target: RemoteTarget, kind: 'pulls' | 'issues', number: number): void => {
     const payload: GitRemoteItemPayload = target.provider === 'gitlab'
@@ -72,7 +73,7 @@ function App() {
     <output aria-label="Fixture ID">{id}</output>
     <output id="native-events" aria-label="Native events" />
     <button type="button" onClick={() => { feature.setAuthDesktop(undefined) }}>Unload native fixture</button>
-    {gitlab ? <>
+    {params.get('view') === 'settings' ? <RemoteAccountsSettings feature={feature} t={t} /> : gitlab ? <>
       <button type="button" onClick={() => { void feature.pushed(repository, 'a'.repeat(40), id, 'Fixture GitHub push', 'origin') }}>Simulate local push event</button>
       <button type="button" onClick={() => { void list.pollNotices() }}>Run notification fixture</button>
       <GitRemoteSurface {...{ gitSessions, remoteFeature: feature, openRemoteItem, sessionId: id, useSessions, t } as never} />
