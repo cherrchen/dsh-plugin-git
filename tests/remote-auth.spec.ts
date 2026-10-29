@@ -158,6 +158,17 @@ describe('GitRemoteAuth discovery', () => {
     store.resolves['GH_TOKEN'] = { value: 'fresh-token', source: 'env' }
     expect((await engine.snapshot(SIG))).toMatchObject({ state: 'authenticated', token: 'fresh-token' })
   })
+
+  it('retry clears the 401 fingerprint so a revived token can be re-adopted', async () => {
+    const store = fakeStore()
+    const { engine } = auth(store, { settings: { clientId: CLIENT } })
+    store.resolves['GH_TOKEN'] = { value: 'revived-token', source: 'env' }
+    const snap = await engine.establish(SIG)
+    engine.markInvalid(snap)
+    expect((await engine.snapshot(SIG))).toMatchObject({ state: 'invalid' })
+    const retried = await engine.retry(SIG)
+    expect(retried).toMatchObject({ state: 'authenticated', token: 'revived-token' })
+  })
 })
 
 describe('GitRemoteAuth sign-out and device flow', () => {
@@ -209,6 +220,38 @@ describe('GitRemoteAuth sign-out and device flow', () => {
     const store = fakeStore()
     const { engine } = auth(store)
     await expect(engine.startLogin(SIG)).rejects.toMatchObject({ code: 'git/unauthenticated' })
+  })
+
+  it('supersedes a stale authorizing grant whose attempt is gone but honors a live attempt', async () => {
+    const store = fakeStore()
+    const fetch = (async (url: string) => String(url).includes('device/code')
+      ? new Response(JSON.stringify({ device_code: 'dc-1', user_code: 'UCODE', verification_uri: 'https://github.com/login/device', expires_in: 900, interval: 1 }), { status: 200, headers: { 'content-type': 'application/json' } })
+      : new Promise<Response>(() => {}) as Promise<Response>) as typeof fetch
+    const { engine } = auth(store, { fetch, settings: { clientId: CLIENT } })
+    const stale: GitRemoteAuthorizingGrant = { v: 1, state: 'authorizing', revision: 'r', host: 'github.com', clientId: CLIENT, attemptId: 'dead-attempt' }
+    store.set(grantRecord(stale))
+    const start = await engine.startLogin(SIG)
+    expect(start.attemptId).not.toBe('dead-attempt')
+    expect(store.grant().grant).toMatchObject({ state: 'authorizing', attemptId: start.attemptId })
+    await expect(engine.startLogin(SIG)).rejects.toMatchObject({ code: 'git/unauthenticated' })
+  })
+
+  it('selectMethod aborts an in-flight device poll instead of blocking behind it', async () => {
+    const store = fakeStore()
+    const fetch = (async (url: string) => String(url).includes('device/code')
+      ? new Response(JSON.stringify({ device_code: 'dc-1', user_code: 'UCODE', verification_uri: 'https://github.com/login/device', expires_in: 900, interval: 1 }), { status: 200, headers: { 'content-type': 'application/json' } })
+      : new Promise<Response>(() => {}) as Promise<Response>) as typeof fetch
+    const gh = vi.fn(async () => 'gh-token')
+    const { engine } = auth(store, { fetch, discoverGh: gh, settings: { clientId: CLIENT } })
+    const start = await engine.startLogin(SIG)
+    const poll = engine.pollLogin(start.attemptId, SIG)
+    const outcome = poll.then(() => 'resolved', (e: unknown) => e)
+    await new Promise(r => setTimeout(r, 50))
+    const selected = engine.selectMethod('cli', SIG)
+    const finished = await Promise.race([selected.then(() => 'done'), new Promise(r => setTimeout(() => r('still-blocked'), 2000))])
+    expect(finished).toBe('done')
+    expect(await selected).toMatchObject({ state: 'authenticated', source: 'gh', token: 'gh-token' })
+    expect(await outcome).not.toBe('resolved')
   })
 })
 

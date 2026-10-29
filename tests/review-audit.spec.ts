@@ -125,46 +125,53 @@ describe('audit: GitLab auth method switching', () => {
     await f.engine.dispose()
   })
 
-  it('selectMethod during an in-flight device poll is blocked by the serialized chain', async () => {
+  it('selectMethod aborts an in-flight device poll instead of blocking behind it', async () => {
     const s = store()
     const discover = vi.fn(async () => 'glab-token')
-    let resolveToken: ((r: Response) => void) | undefined
     const f = fixture(s, 'https://gitlab.com', {
       discover, clientId: 'app',
       fetch: async url => {
         const u = String(url)
         if (u.endsWith('authorize_device')) return json({ device_code: 'device', user_code: 'ABCD', verification_uri: 'https://gitlab.com/oauth/device', expires_in: 900, interval: 0.001 })
-        if (u.endsWith('/oauth/token')) return new Promise<Response>(resolve => { resolveToken = resolve })
+        if (u.endsWith('/oauth/token')) return new Promise<Response>(() => {}) // never resolves until aborted
         return json({ id: 9, username: 'viewer' })
       },
     })
     const start = await f.engine.startLogin(SIG)
     const poll = f.engine.pollLogin(start.value.attemptId, SIG)
+    const pollOutcome = poll.then(() => 'resolved', (e: unknown) => e)
     // Give the poll a tick to reach its first /oauth/token request.
     await new Promise(r => setTimeout(r, 200))
     const switching = f.engine.selectMethod('cli', SIG)
-    const finished = await Promise.race([switching.then(() => 'done'), new Promise(r => setTimeout(() => r('still-blocked'), 500))])
-    // Observed: 'still-blocked' — selectMethod queues behind the in-flight poll.
-    if (finished === 'still-blocked') {
-      // Prove it was queued behind the poll: completing the token request unblocks it.
-      resolveToken?.(json({ error: 'access_denied' }, 400))
-      await expect(poll).rejects.toBeDefined()
-      await switching
-    }
+    const finished = await Promise.race([switching.then(() => 'done'), new Promise(r => setTimeout(() => r('still-blocked'), 2000))])
+    expect(finished).toBe('done')
+    await switching
+    expect(await pollOutcome).not.toBe('resolved')
     const snap = await f.engine.snapshot(SIG)
     expect(snap.state).toBe('authenticated')
     expect(snap.token).toBe('glab-token')
     await f.engine.dispose()
   })
 
-  it('a stale authorizing record blocks every subsequent login with login-already-running', async () => {
+  it('a stale authorizing record is superseded by the next login', async () => {
     const s = store()
     const f = fixture(s, 'https://gitlab.com', { clientId: 'app', fetch: async url => String(url).endsWith('authorize_device') ? json({ device_code: 'd', user_code: 'ABCD', verification_uri: 'https://gitlab.com/oauth/device', expires_in: 900, interval: 1 }) : json({ id: 9, username: 'viewer' }) })
     // Simulate a host crash mid-login: the persisted grant is stuck in 'authorizing'.
     s.records.set(gitLabGrantKey(f.instance.instance), { kind: 'grant', payload: { v: 2, provider: 'gitlab', instance: f.instance.instance, revision: 'r1', state: 'authorizing', clientId: 'app', attemptId: 'dead-attempt' } })
     const snap = await f.engine.snapshot(SIG)
     expect(snap.state).toBe('invalid')
+    const start = await f.engine.startLogin(SIG)
+    expect(start.value.attemptId).not.toBe('dead-attempt')
+    expect(s.records.get(gitLabGrantKey(f.instance.instance))?.payload).toMatchObject({ state: 'authorizing', attemptId: start.value.attemptId })
+    await f.engine.dispose()
+  })
+
+  it('a live authorizing attempt still blocks a second login', async () => {
+    const s = store()
+    const f = fixture(s, 'https://gitlab.com', { clientId: 'app', fetch: async url => String(url).endsWith('authorize_device') ? json({ device_code: 'd', user_code: 'ABCD', verification_uri: 'https://gitlab.com/oauth/device', expires_in: 900, interval: 1 }) : json({ id: 9, username: 'viewer' }) })
+    const first = await f.engine.startLogin(SIG)
     await expect(f.engine.startLogin(SIG)).rejects.toMatchObject({ details: { reason: 'login-already-running' } })
+    await f.engine.cancelLogin(first.value.attemptId)
     await f.engine.dispose()
   })
 })

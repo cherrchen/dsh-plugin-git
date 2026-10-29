@@ -193,6 +193,8 @@ export class GitLabAuth {
   }
   selectMethod(method: unknown, signal: AbortSignal): Promise<ScopedRemoteResult<ScopedRemoteCapabilityOn>> {
     const selected = authMethod(method)
+    // A method switch must not queue behind an in-flight device poll for the whole expiry window.
+    for (const login of this.logins.values()) login.controller.abort()
     return this.run(async inner => {
       if (selected === 'cli' && this.deps.discoverGlab === undefined) throw remoteAuthError('cli-unavailable')
       await this.selectionStore().write(selected)
@@ -330,7 +332,12 @@ export class GitLabAuth {
       const attemptId = this.uuid()
       const committed = await this.modify(current => {
         if (current !== undefined && (current.state === 'authorizing' || current.state === 'authenticated' || current.state === 'refreshing') && current.clientId !== clientId) throw remoteAuthError('record-mismatch')
-        return current?.state === 'authorizing' ? undefined : { ...this.base(), state: 'authorizing', clientId, attemptId }
+        if (current?.state === 'authorizing') {
+          // An authorizing record whose attempt died (restart/cancel) is stale; only a live attempt blocks login.
+          const live = this.logins.get(current.attemptId)
+          if (live !== undefined && !live.controller.signal.aborted) return undefined
+        }
+        return { ...this.base(), state: 'authorizing', clientId, attemptId }
       })
       if (committed?.state !== 'authorizing' || committed.attemptId !== attemptId) throw remoteAuthError('login-already-running')
       this.setState('unauthenticated')

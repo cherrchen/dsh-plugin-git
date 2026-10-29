@@ -151,6 +151,8 @@ export class GitRemoteAuth {
   }
   selectMethod(method: unknown, signal: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<GitRemoteSnapshot> {
     const selected = authMethod(method)
+    // A method switch must not queue behind an in-flight device poll for the whole expiry window.
+    for (const login of this.logins.values()) login.controller.abort()
     return this.serialize(async inner => {
       if (selected === 'cli' && this.discoverGh === undefined) throw remoteAuthError('cli-unavailable')
       await this.selection.write(selected)
@@ -163,7 +165,7 @@ export class GitRemoteAuth {
     return this.serialize(async inner => {
       const selected = await this.selectedMethod()
       await this.modify(async () => ({ ...this.authBase(this.settings.clientId ?? 'unconfigured'), state: 'signed-out' }))
-      this.context = { authState: 'signed-out' }; this.bump()
+      this.invalidFingerprint = undefined; this.context = { authState: 'signed-out' }; this.bump()
       if (selected === 'cli') { this.context = { authState: 'unauthenticated' }; await this.establishCurrent(inner) }
     }, signal, capture)
   }
@@ -260,7 +262,7 @@ export class GitRemoteAuth {
   }
 
   retry(signal: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<GitRemoteSnapshot> {
-    return this.serialize(async inner => { this.markState('unauthenticated'); this.ghToken = undefined; return this.establishCurrent(inner) }, signal, capture)
+    return this.serialize(async inner => { this.markState('unauthenticated'); this.ghToken = undefined; this.invalidFingerprint = undefined; return this.establishCurrent(inner) }, signal, capture)
   }
 
   establish(signal: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<GitRemoteSnapshot> {
@@ -340,7 +342,11 @@ export class GitRemoteAuth {
       this.selectionRevision = preferred.revision
       const attemptId = this.uuid()
       const committed = await this.modify(async (current) => {
-        if (current?.state === 'authorizing') return undefined
+        if (current?.state === 'authorizing') {
+          // An authorizing record whose attempt died (restart/cancel) is stale; only a live attempt blocks login.
+          const live = this.logins.get(current.attemptId)
+          if (live !== undefined && !live.controller.signal.aborted) return undefined
+        }
         return { ...this.authBase(clientId), state: 'authorizing', attemptId }
       })
       if (committed?.state !== 'authorizing' || committed.attemptId !== attemptId) {
@@ -458,7 +464,7 @@ export class GitRemoteAuth {
       const grant = await this.readGrant()
       const clientId = grant?.clientId ?? this.settings.clientId ?? 'unconfigured'
       await this.modify(async () => ({ ...this.authBase(clientId), state: 'signed-out' }))
-      this.context = { authState: 'signed-out' }
+      this.invalidFingerprint = undefined; this.context = { authState: 'signed-out' }
       this.bump()
     }, signal, capture)
   }
@@ -468,6 +474,7 @@ export class GitRemoteAuth {
       await this.selection.write('auto')
       await this.credentials.deleteRecord(GIT_REMOTE_GRANT_RECORD_KEY)
       this.oauthCached = false
+      this.invalidFingerprint = undefined
       this.context = { authState: 'unauthenticated' }
       this.ghToken = undefined
       this.bump()
