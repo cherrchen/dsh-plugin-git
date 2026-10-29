@@ -45,7 +45,7 @@ Remote 加载与平台认证弹窗复用已发现 remote 的 provider；完整�
 
 GitLab 的 `remote-notifications` 只读取已认证 viewer、已核验项目范围内 pending 且结构化 `action_name:review_requested` 的 MR todo；项目 id/path、target 项目/id/iid、状态与安全网页链接均单独校验。续页复用绑定实例、项目、viewer、generation、查询和会话的不透明游标；不会标记 todo 完成，也不从自然语言或审批快照伪造 changes-requested。Client 按实例、项目、账号、generation、对象与状态/时间去重，仅对已加载的本人 MR 逐个复查状态；本地 push 建议只针对已验证的本地 origin/upstream：显式 push 使用 origin；sync 前后读取的 Git push remote 与分支一致且属于允许集合时才投影可选 `pushedRemote`，无法证明时不猜测。通知停留在所属 GitLab 视图，原生通知是可卸载增强；范围和请求失败均不代表所有账号事件已覆盖。
 
-`remote-retire-grant` 只接受 `{remoteProtocol:2,provider:'gitlab',instance}`；完整规范化后由 Host 推导本插件 key。未登记 scope 可纯存储清理，已登记时拒绝；锁内验证 v2 绑定并用新 revision 替换为无秘密 retired signed-out 标记。回执 `{remoteProtocol:2,scope,generation:null,value:{disposition}}` 的 disposition 为 `retired`、`already-retired` 或 `absent`；不依赖枚举、不发网络、不解析外部 ref、不撤销服务端 token。普通 `remote-clear-grant` 仍删除活动实例的本地 grant 并恢复发现。Client 认证弹窗的“高级”折叠区提供输入旧 URL、展示规范 scope、再次确认的清理入口。
+`remote-retire-grant` 只接受 `{remoteProtocol:2,provider:'gitlab',instance}`；完整规范化后由 Host 推导本插件 key。未登记 scope 可纯存储清理，已登记时拒绝；锁内验证 v2 绑定并用新 revision 替换为无秘密 retired signed-out 标记。回执 `{remoteProtocol:2,scope,generation:null,value:{disposition}}` 的 disposition 为 `retired`、`already-retired` 或 `absent`；不依赖枚举、不发网络、不解析外部 ref、不撤销服务端 token。普通 `remote-clear-grant` 仍删除活动实例的本地 grant 并恢复发现。插件设置页“平台账号”分区在账号卡片下方提供两步清理入口：输入旧实例 URL、展示规范 scope、再次确认后删除。
 
 GitHub scoped 读写通过旧 owner 的显式适配层，写入另须 `expectedInstance:'https://github.com'`，并按 scope、仓库、generation、viewer 和 requestId 隔离去重及内容指纹。v2 仓库/对象 facts 单独提供 operationSupport、支持的方法/事件集；合并方法取仓库的 `allow_merge_commit` / `allow_squash_merge`，缺证据时禁用并在写前复核。Issue 远端写入不支持，动作同时为 false。v2 写回执包含 outcome/steps，checkout 和 issue-branch 可回部分完成。既有 GitHub v1 行为不依赖 v2。
 
@@ -113,7 +113,7 @@ API token 仅发往 `https://api.github.com`，带 `X-GitHub-Api-Version:2022-11
 
 Remote 列表、详情与认证弹窗通过顶部状态条区分查找远端、连接已识别平台、读取列表/讨论、认证连接、等待用户授权及提交操作。网络等待超过 8 秒显示慢响应提示；等待 Device Flow 用户授权不标为慢网。首次列表加载使用骨架占位，不提前显示“没有远端”或筛选结果为空。列表及详情关联集合首批仅请求一页，其余由现有游标机制后台补齐，并显示补页状态。刷新或切换筛选时保留已有条目及其原始 PR/Issue 类型，可继续打开详情；写入仍受 busy/unknown 门禁保护。请求失败后移除加载反馈、显示错误，并恢复显式刷新入口。所有文案提供中英文，动画遵守 reduced-motion 偏好。
 
-认证弹窗使用同一套 GitHub/GitLab 状态卡、CLI/OAuth radio 和设备码流程；标题、来源与授权提示随平台变化，未知来源只显示本地化 fallback。选中态只由 capability 派生，CLI 已认证不隐藏 OAuth；`loginAvailable`、存储可写和 Device Flow support 共同决定 OAuth 是否启用，缺 App、只读或已知不支持时保留禁用选项并解释原因，unknown 时提示可显式尝试。支持 `authSelection` 的 Host 使用 `remote-select-auth` 切换、展示已保存 OAuth 提示，并仅对本地 OAuth 授权提供“退出 OAuth”；没有该字段的旧 Host 保留原认证端点兼容路径（切 CLI 时可能清除旧 grant）。GitLab 通知覆盖范围与登录状态无关，说明保留在弹窗；孤儿 GitLab 授权清理全部收进默认折叠、可键盘展开的“高级”，仍要求规范 URL 的独立二次确认。
+认证弹窗以“{平台} 账号”为标题，主体是身份卡（头像、`@login`、连接状态或登录反馈）加“连接方式”两张说明卡（CLI 与 OAuth 各自一条可用性/说明文案），GitLab 弹窗底部另附 GitLab-only 说明（登录仅用于 GitLab 内容、通知覆盖范围），GitHub 弹窗不显示这些说明。标题、来源与授权提示随平台变化，未知来源省略来源标签。选中态只由 capability 派生，CLI 已认证不隐藏 OAuth；`loginAvailable`、存储可写和 Device Flow support 共同决定 OAuth 是否启用，缺 App、只读或已知不支持时保留禁用选项并解释原因，unknown 时提示可显式尝试。支持 `authSelection` 的 Host 使用 `remote-select-auth` 切换、展示已保存 OAuth 提示，并仅对本地 OAuth 授权提供“退出 OAuth”；没有该字段的旧 Host 保留原认证端点兼容路径（切 CLI 时可能清除旧 grant）。设备码登录卡片在 OAuth 选项下方就地展开；孤儿 GitLab 授权清理已移至插件设置页“平台账号”分区，仍要求规范 URL 的独立二次确认。
 
 用户选择 OAuth 后，Host 自动获取设备码；控制器保留当前 attempt，调用现有轮询，每个 attempt 只自动打开浏览器一次。GitLab 优先使用 Host/Client 双重校验的 `verificationUriComplete`（origin、部署前缀、精确路径、唯一且匹配用户码的 query）；旧 Host 没有该字段时回退普通链接。GitHub 只使用官方普通验证页，用户可点击“复制设备码”后粘贴确认。复制失败不得显示成功；打开失败、没有 Desktop 或增强卸载时，保留手工外链与可复制的码。`shell.openExternal` 和 `clipboard.writeText` 仅通过可卸载 Desktop 子 fiber 的结构回调提供；HTTP/轮询留在 Host，浏览器在当前 Client 设备打开，支持远程 Host。
 

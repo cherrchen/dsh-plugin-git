@@ -43,26 +43,27 @@ describe('authentication status card', () => {
     }
   })
   it.each([
-    [{ state: 'authenticated', source: 'ref' }, 'remote.authSourceRef'],
-    [{ state: 'authenticated', source: 'git-credential' }, 'remote.authSourceGitCredential'],
-    [{ state: 'authenticated' }, 'remote.authSourceUnknown'],
-    [{ state: 'authenticated', source: 'future-provider' }, 'remote.authSourceUnknown'],
+    [{ state: 'authenticated', source: 'ref' }, 'settings.accounts.sourceRef'],
+    [{ state: 'authenticated', source: 'git-credential' }, 'settings.accounts.sourceGitCredential'],
+    [{ state: 'authenticated', source: 'gh' }, 'settings.accounts.sourceGh'],
+    [{ state: 'authenticated', source: 'grant' }, 'settings.accounts.sourceOauth'],
   ] as const)('shows %j with a localized source subline', (auth, label) => {
     const { view } = mount(auth as GitRemoteCapabilityOn['auth'])
-    expect(screen.getByText(en[label], { exact: true })).not.toBeNull()
+    expect(screen.getByText(`Connected to GitHub · ${en[label]}`, { exact: true })).not.toBeNull()
     expect(view.container.textContent).not.toContain('future-provider')
   })
-  it('shows no source subline for gh/grant sources or non-authenticated states', () => {
+  it('omits the source label when it is unknown or the state is not authenticated', () => {
     for (const auth of [
-      { state: 'authenticated', source: 'gh' },
-      { state: 'authenticated', source: 'grant' },
+      { state: 'authenticated' },
+      { state: 'authenticated', source: 'future-provider' },
       { state: 'anonymous' },
       { state: 'signed-out' },
     ] as GitRemoteCapabilityOn['auth'][]) {
       const { view } = mount(auth)
-      for (const key of ['remote.authSourceRef', 'remote.authSourceGitCredential', 'remote.authSourceUnknown'] as const) {
+      for (const key of ['settings.accounts.sourceRef', 'settings.accounts.sourceGitCredential'] as const) {
         expect(view.container.textContent).not.toContain(en[key])
       }
+      expect(view.container.textContent).not.toContain('future-provider')
       view.unmount()
     }
   })

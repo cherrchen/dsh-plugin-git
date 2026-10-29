@@ -23,6 +23,9 @@
   --dsw-alias-label-error: #c53e3e;
   --dsw-alias-settings-card-stroke: #d5d9dd;
   --dsw-alias-settings-card-fill: #fff;
+  --dsw-alias-button-primary-fill: #2f5fdd;
+  --dsw-alias-button-primary-hover: #254bb8;
+  --dsw-alias-label-primary-foreground: #fff;
   --dsw-radius-panel: 24px;
   --dsw-radius-sm: 8px;
   --dsw-radius-md: 10px;
@@ -55,6 +58,9 @@
   --dsw-alias-label-error: #e06060;
   --dsw-alias-settings-card-stroke: #353a40;
   --dsw-alias-settings-card-fill: #1f2226;
+  --dsw-alias-button-primary-fill: #4a7dff;
+  --dsw-alias-button-primary-hover: #648fff;
+  --dsw-alias-label-primary-foreground: #0e1526;
 }
 body { margin: 0; padding: 40px; background: #fafafa; }
 :root[data-theme='dark'] body { background: #121417; }

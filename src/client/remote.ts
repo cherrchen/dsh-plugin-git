@@ -95,6 +95,7 @@ export class GitRemoteFeature {
       for (const listener of this.listeners) listener()
     }, () => {})
   }
+  retireGrant(instance: string, signal?: AbortSignal): Promise<{ disposition: 'retired' | 'already-retired' | 'absent' }> { return this.scoped.retire(instance, signal ?? this.owner.signal) }
   invalidate(repository: string | undefined): void {
     for (const controller of this.controllers.values()) {
       if (controller.getSnapshot().repository === repository) controller.invalidate()
@@ -723,7 +724,6 @@ export class GitRemoteController {
     }
   }
   get scopedAvailable(): boolean { return this.feature.scoped.available }
-  retireGrant(instance: string): Promise<{ disposition: 'retired' | 'already-retired' | 'absent' }> { return this.feature.scoped.retire(instance, this.active.signal) }
   /** Non-interactive account read for a pinned settings row; establishes identity like a first read. */
   async refreshAccount(): Promise<void> {
     if (this.authScope === undefined || !this.feature.scoped.available || this.state.login !== undefined) return

@@ -12,6 +12,7 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ### Changed
 
+- The platform authentication dialog is redesigned as "{platform} account" with an identity card and described method cards; the removed-instance grant cleanup moves from the dialog's Advanced fold to the settings "Platform accounts" section.
 - Extend DSH compatibility to `0.2.1-rc.4` and `0.2.2-alpha.2`, including the optional credentials seam. Accept their host Cordis/schemastery copies while retaining all earlier supported releases and the `0.2.0-rc.2` development pin. See the [compatibility assessment](docs/reference/dsh-compatibility.md).
 - Validate unlisted candidates in the isolated local matrix; resolve online lanes from clean dependency trees and check peers to prevent stale Cordis companion packages. Use Node 24.9 for the 0.2.2 alpha CI lane and repair the development lockfile's include peer resolution.
 

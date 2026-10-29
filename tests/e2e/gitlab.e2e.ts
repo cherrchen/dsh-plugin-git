@@ -10,15 +10,19 @@ async function openGitLab(page: Page, scenario = 'gitlab', lang = 'en') {
 test('keeps GitLab copy and both authentication methods together with notification coverage in the dialog', async ({ page }) => {
   for (const lang of ['en', 'zh']) {
     await openGitLab(page, 'gitlab', lang)
-    const coverage = lang === 'en' ? 'Notifications cover review-requested to-dos and state changes of your loaded merge requests. Changes-requested notifications are unavailable.' : '通知仅覆盖审阅请求待办及已加载的本人合并请求状态变化；修改请求通知不可用。'
+    const coverage = lang === 'en' ? 'Notifications cover merge requests awaiting your review and state changes of loaded merge requests you opened' : '通知仅包含待你审阅的合并请求，以及已加载的你创建的合并请求的状态变化'
+    const apiHint = lang === 'en' ? 'This sign-in is only used for GitLab content; git fetch and push keep using your local Git credentials' : '这里的登录只用于读取和操作 GitLab 内容；git fetch/push 仍使用本机的 Git 凭据'
     await expect(page.getByText(coverage)).toHaveCount(0)
     const title = lang === 'en' ? 'Platform authentication' : '平台认证'
+    const dialogTitle = lang === 'en' ? 'GitLab account' : 'GitLab 账号'
     await page.getByRole('button', { name: title, exact: true }).first().click()
-    const dialog = page.getByRole('dialog', { name: title })
-    await expect(dialog.getByText(lang === 'en' ? 'Connected to GitLab' : '已连接 GitLab', { exact: true })).toBeVisible()
+    const dialog = page.getByRole('dialog', { name: dialogTitle })
+    await expect(dialog.getByText(lang === 'en' ? /Connected to GitLab/ : /已连接 GitLab/)).toBeVisible()
     await expect(dialog.getByRole('radio', { name: lang === 'en' ? 'GitLab CLI (glab)' : 'GitLab CLI（glab）' })).toBeVisible()
     await expect(dialog.getByRole('radio', { name: lang === 'en' ? 'GitLab OAuth (device login)' : 'GitLab OAuth（设备码登录）' })).toBeDisabled()
     await expect(dialog.getByText(coverage)).toBeVisible()
+    await expect(dialog.getByText(apiHint)).toBeVisible()
+    for (const item of await dialog.getByRole('radio').all()) expect(await item.getAttribute('aria-describedby')).not.toBeNull()
     expect(await dialog.innerText()).not.toContain('GitHub')
     await page.screenshot({ path: test.info().outputPath(`gitlab-auth-${lang}.png`), animations: 'disabled' })
   }

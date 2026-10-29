@@ -120,47 +120,130 @@
   line-height: 16px;
 }
 
-/* Platform authentication: status line, transport hint, and action row. */
-.authSection {
+/* Platform authentication: identity card and method options. */
+.authBody {
   display: grid;
-  gap: 6px;
-  margin-bottom: 12px;
-  padding: 8px;
-  border-radius: 8px;
-  background: var(--dsw-alias-interactive-bg-hover);
+  gap: 16px;
 }
 
-.authStatus {
+.idCard {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 0.5px solid var(--dsw-alias-settings-card-stroke, var(--dsw-alias-border-l4, var(--dsw-alias-border-l2)));
+  border-radius: var(--dsw-radius-xl, 12px);
+  background: var(--dsw-alias-settings-card-fill, var(--dsw-alias-bg-layer-3, transparent));
 }
 
-.authIdentity {
+.idText {
   display: flex;
   min-width: 0;
   flex: 1;
-  align-items: center;
+  flex-direction: column;
+}
+
+.idName {
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.idStatus {
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+}
+
+.idStatusError {
+  color: var(--dsw-alias-label-error, var(--dsw-alias-state-error-primary));
+}
+
+.methodsTitle {
+  margin: 0 0 8px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.authOptions {
+  display: grid;
   gap: 8px;
 }
 
-.authIdentityText {
+.authOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l3, var(--dsw-alias-border-l2));
+  border-radius: var(--dsw-radius-md, 8px);
+  cursor: pointer;
+}
+
+.authOption:hover:not(.authOptionDisabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.authOptionChecked {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.authOptionDisabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.authOption:has(input:focus-visible) {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 4px;
+}
+
+.authOption input {
+  flex: none;
+  margin-top: 2px;
+}
+
+.authOptionText {
   display: flex;
   min-width: 0;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px 6px;
+  flex-direction: column;
+}
+
+.authOptionTitle {
   color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.authOptionDesc {
+  color: var(--dsw-alias-label-tertiary);
   font-size: 12px;
   line-height: 18px;
 }
 
-.authLogin {
-  overflow: hidden;
+/* Nested inside the OAuth option while a device login runs: no card-in-card border. */
+.authOption .loginCard {
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+}
+
+.authNotes {
+  display: grid;
+  gap: 4px;
   color: var(--dsw-alias-label-tertiary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.authNotes p {
+  margin: 0;
 }
 
 /* Device-flow prompt while a login attempt is pending. */
@@ -685,43 +768,6 @@
 }
 
 /* Authentication dialog: status card and per-method reconnect rows. */
-.authCard {
-  display: grid;
-  gap: 4px;
-  padding: 8px;
-  border: 0.5px solid var(--dsw-alias-border-l2);
-  border-radius: 8px;
-  background: var(--dsw-alias-bg-base);
-}
-
-.authMethods {
-  margin: 0;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.authChoices {
-  display: grid;
-  gap: 6px;
-}
-
-.radioRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--dsw-alias-label-primary);
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.radioHint {
-  padding-left: 24px;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 11px;
-  line-height: 16px;
-}
-
 .methodHint {
   color: var(--dsw-alias-label-secondary);
   font-size: 11px;
@@ -930,12 +976,3 @@
     animation: none;
   }
 }
-
-.authAdvanced { margin-top: 20px; padding-top: 16px; border-top: 0.5px solid var(--dsw-alias-border-l2); }
-.authAdvanced > summary { cursor: pointer; color: var(--dsw-alias-label-secondary); font-size: 12px; }
-.authAdvanced > summary:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 4px; }
-.retireSection { display: grid; gap: 8px; margin-top: 12px; }
-.retireSection p { margin: 0; overflow-wrap: anywhere; }
-.retireInput { display: grid; gap: 4px; }
-.retireInput input { min-width: 0; width: 100%; }
-

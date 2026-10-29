@@ -5,7 +5,7 @@ async function openLogin(page: Page, provider: string, options = '') {
   await page.goto(`/?scenario=${provider === 'GitLab' ? 'gitlab-oauth' : 'anonymous'}&lang=en&desktop=${options.includes('desktop=fail') ? 'fail' : 'mock'}${options.replace('&desktop=fail', '')}`)
   if (provider === 'GitLab') await expect(page.getByRole('button', { name: /Fixture merge request/ })).toBeVisible()
   await page.getByRole('button', { name: 'Platform authentication', exact: true }).click()
-  const dialog = page.getByRole('dialog', { name: 'Platform authentication' })
+  const dialog = page.getByRole('dialog', { name: `${provider} account` })
   await expect(dialog.getByRole('radio', { name: `${provider} OAuth (device login)` })).toBeEnabled()
   return dialog
 }
@@ -30,7 +30,7 @@ for (const provider of ['GitHub', 'GitLab']) {
     await page.request.post('/__test/approve', { data: { id } })
     await expect(dialog.getByRole('radio', { name: `${provider} OAuth (device login)` })).toBeChecked()
     await expect(dialog.getByText('E2E-CODE', { exact: true })).toHaveCount(0)
-    await expect(dialog.getByText('OAuth connected.', { exact: true })).toBeVisible()
+    await expect(dialog.getByText('OAuth connected.')).toBeVisible()
     expect(await dialog.innerText()).not.toContain('e2e-sentinel-')
   })
   for (const outcome of ['denied', 'expired']) {
@@ -64,7 +64,7 @@ for (const method of ['cli', 'oauth']) {
     await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort())
     await page.goto('/?scenario=gitlab-com-signed-out&lang=en&desktop=mock')
     await page.getByRole('button', { name: 'Platform authentication', exact: true }).click()
-    const dialog = page.getByRole('dialog', { name: 'Platform authentication' })
+    const dialog = page.getByRole('dialog', { name: 'GitLab account' })
     await expect(dialog.getByText('Disconnected', { exact: true })).toBeVisible()
     await expect(dialog.getByRole('alert')).toHaveCount(0)
     const radio = dialog.getByRole('radio', { name: method === 'cli' ? 'GitLab CLI (glab)' : 'GitLab OAuth (device login)', exact: true })
@@ -87,7 +87,7 @@ test('GitLab: OAuth escapes a CLI cooldown, while returning to CLI retains its c
   await page.goto('/?scenario=gitlab-com-rate-limit&lang=en')
   await expect(page.getByRole('button', { name: /Fixture merge request/ })).toBeVisible()
   await page.getByRole('button', { name: 'Platform authentication', exact: true }).click()
-  const dialog = page.getByRole('dialog', { name: 'Platform authentication' })
+  const dialog = page.getByRole('dialog', { name: 'GitLab account' })
   const oauth = dialog.getByRole('radio', { name: 'GitLab OAuth (device login)', exact: true })
   const cli = dialog.getByRole('radio', { name: 'GitLab CLI (glab)', exact: true })
   await expect(oauth).toBeChecked()

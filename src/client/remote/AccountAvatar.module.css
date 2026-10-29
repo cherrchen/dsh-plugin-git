@@ -1,0 +1,9 @@
+.fallback {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--dsw-alias-label-tertiary);
+  background: var(--dsw-alias-bg-skeleton, var(--dsw-alias-background-secondary));
+}

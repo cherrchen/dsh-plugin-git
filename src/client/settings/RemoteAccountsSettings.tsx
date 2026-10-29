@@ -1,14 +1,14 @@
 /** Platform-account rows on the bundle settings page; sign-in changes apply immediately and never join the form save. */
-import { useEffect, useId, useSyncExternalStore } from 'react'
+import { useEffect, useId, useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
-import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Toast } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ScopedRemoteScope } from '../../remote/types.ts'
 import type { GitLocaleKey } from '../locales.ts'
 import type { GitRemoteFeature } from '../remote.ts'
-import { GITHUB_SCOPE } from '../remote/remote-view.ts'
+import { GITHUB_SCOPE, instanceHost } from '../remote/remote-view.ts'
 import { RemoteAuthControl } from '../remote/RemoteAuthControl.tsx'
-import { RemoteAvatar } from '../remote/RemoteAvatar.tsx'
-import { IconUserOutline16 } from '../../compat/dsh-icons.tsx'
+import { AccountAvatar } from '../remote/AccountAvatar.tsx'
+import { RetireGrantDialog, type RetireToastKey } from './RetireGrantDialog.tsx'
 import css from './RemoteAccountsSettings.module.css'
 
 const sourceKeys: Record<string, GitLocaleKey> = {
@@ -17,13 +17,6 @@ const sourceKeys: Record<string, GitLocaleKey> = {
   grant: 'settings.accounts.sourceOauth',
   ref: 'settings.accounts.sourceRef',
   'git-credential': 'settings.accounts.sourceGitCredential',
-}
-
-function displayHost(instance: string): string {
-  try {
-    const url = new URL(instance)
-    return url.host + (url.pathname === '/' ? '' : url.pathname.replace(/\/+$/, ''))
-  } catch { return instance }
 }
 
 function AccountRow({ feature, scope, name, hostPrefix, t }: {
@@ -54,16 +47,14 @@ function AccountRow({ feature, scope, name, hostPrefix, t }: {
   if (hostPrefix !== undefined) status = `${hostPrefix} · ${status}`
   return (
     <div className={css.row} role="listitem">
-      {authenticated && viewer !== undefined
-        ? <RemoteAvatar login={viewer.login} url={viewer.avatarUrl} size={32} />
-        : <span className={css.fallback} aria-hidden="true"><IconUserOutline16 size={16} /></span>}
+      <AccountAvatar viewer={authenticated ? viewer : undefined} size={32} />
       <div className={css.copy}>
         <span className={css.name}>{name}</span>
         <span className={`${css.status} ${statusError ? css.statusError : ''}`}>{status}</span>
       </div>
       {cap === undefined
         ? <Button variant="outline" size="sm" className={css.action} disabled={state.busy || state.error === undefined} onClick={() => { void controller.refreshAccount() }}>{state.error === undefined ? t('settings.accounts.connect') : t('settings.accounts.retry')}</Button>
-        : <RemoteAuthControl capability={cap} viewer={viewer} busy={state.busy} gitlab={scope.provider === 'gitlab'} controller={controller} triggerLabel={authenticated ? t('settings.accounts.manage') : t('settings.accounts.connect')} t={t} />}
+        : <RemoteAuthControl capability={cap} viewer={viewer} busy={state.busy} gitlab={scope.provider === 'gitlab'} instance={scope.provider === 'gitlab' ? scope.instance : undefined} controller={controller} triggerLabel={authenticated ? t('settings.accounts.manage') : t('settings.accounts.connect')} t={t} />}
     </div>
   )
 }
@@ -77,6 +68,8 @@ export function RemoteAccountsSettings({ feature, summary = false, t }: {
   const heading = useId()
   const capability = useSyncExternalStore(feature.subscribe, feature.getSnapshot)
   const accounts = useSyncExternalStore(feature.subscribe, feature.getAccounts)
+  const [retireOpen, setRetireOpen] = useState(false)
+  const [toast, setToast] = useState<{ seq: number; key: RetireToastKey }>()
   if (summary) return <p>{t('settings.accounts.summary')}</p>
   const available = capability.state === 'on' && feature.scoped.available
   return (
@@ -86,14 +79,19 @@ export function RemoteAccountsSettings({ feature, summary = false, t }: {
         <p className={css.description}>{t('settings.accounts.description')}</p>
       </div>
       {!available ? <p className={css.unavailable}>{t('settings.accounts.unavailable')}</p> : (
+        <>
         <div className={css.card} role="list">
           <AccountRow feature={feature} scope={GITHUB_SCOPE} name="GitHub" t={t} />
           {(accounts ?? []).filter(account => account.provider === 'gitlab').map(account => {
-            const host = displayHost(account.instance)
+            const host = instanceHost(account.instance)
             const name = account.label ?? (account.instance === 'https://gitlab.com' ? 'GitLab.com' : host)
             return <AccountRow key={account.instance} feature={feature} scope={{ provider: 'gitlab', instance: account.instance }} name={name} {...(name.toLowerCase() === host.toLowerCase() ? {} : { hostPrefix: host })} t={t} />
           })}
         </div>
+        <Button variant="ghost" size="sm" className={css.retireButton} onClick={() => { setRetireOpen(true) }}>{t('settings.accounts.retireButton')}</Button>
+        <RetireGrantDialog open={retireOpen} feature={feature} onClose={() => { setRetireOpen(false) }} onDone={key => { setToast(current => ({ seq: (current?.seq ?? 0) + 1, key })) }} t={t} />
+        {toast !== undefined && <Toast key={toast.seq} text={t(toast.key)} tone="success" onDone={() => { setToast(undefined) }} />}
+        </>
       )}
     </section>
   )

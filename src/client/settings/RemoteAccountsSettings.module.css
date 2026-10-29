@@ -93,3 +93,42 @@
 .action {
   flex: none;
 }
+
+.retireButton {
+  margin-top: 8px;
+  /* Align the text edge with the card's left edge; the ghost variant pads inline by 10px. */
+  margin-inline-start: -10px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.retireBody {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.retireField {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.retireLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.retireError {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--dsw-alias-label-error, var(--dsw-alias-state-error-primary));
+}
+
+.retireFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 16px;
+}

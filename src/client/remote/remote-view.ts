@@ -116,3 +116,11 @@ export function projectGitLabDiscussion(discussion: ScopedRemoteDiscussion): Rem
     }
   })
 }
+
+/** `git.example.test/gitlab` for a configured instance URL; falls back to the raw value when unparseable. */
+export function instanceHost(instance: string): string {
+  try {
+    const url = new URL(instance)
+    return url.host + (url.pathname === '/' ? '' : url.pathname.replace(/\/+$/, ''))
+  } catch { return instance }
+}
