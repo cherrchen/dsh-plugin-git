@@ -30,8 +30,9 @@ function AccountRow({ feature, scope, name, hostPrefix, t }: {
 }): ReactNode {
   const controller = feature.accountControllerFor(scope)
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
-  useEffect(() => { void controller.refreshAccount() }, [controller])
   const cap = state.scopedCapability
+  const checking = cap === undefined && state.error === undefined && state.login === undefined && !state.busy
+  useEffect(() => { if (checking) void controller.refreshAccount() }, [controller, checking])
   const auth = cap?.auth
   const authenticated = auth?.state === 'authenticated'
   const viewer = cap?.viewer

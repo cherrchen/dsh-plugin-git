@@ -259,7 +259,12 @@ export class GitRemoteController {
     this.unsubscribe = feature.subscribe(() => {
       const capability = feature.getSnapshot()
       const gitlab = this.authenticationScope?.provider === 'gitlab'
-      if (capability.state === 'off' || (gitlab && !feature.scoped.available) || (!gitlab && this.state.generation !== undefined && capability.state === 'on' && !equal(this.state.generation, capability.generation))) {
+      const generation = this.state.generation
+      // A scoped read can legitimately run ahead of the unscoped snapshot (remote-account may
+      // capture a revision the next capability poll has not re-read); only a foreign or older
+      // generation means this view holds data from a superseded identity.
+      const stale = generation !== undefined && capability.state === 'on' && (generation.instanceId !== capability.generation.instanceId || generation.revision < capability.generation.revision)
+      if (capability.state === 'off' || (gitlab && !feature.scoped.available) || (!gitlab && stale)) {
         const feedback = this.state.login === undefined ? this.state.loginStatus : undefined
         this.clear(this.state.repository)
         if (capability.state === 'on' && feedback !== undefined && !['requesting', 'waiting', 'verifying'].includes(feedback) && (feedback !== 'connected' || capability.auth.state === 'authenticated')) this.state = { ...this.state, loginStatus: feedback }

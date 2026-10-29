@@ -96,6 +96,42 @@ describe('RemoteAccountsSettings', () => {
     await waitFor(() => expect(screen.getByText('git.example.com')).toBeTruthy())
     f.feature.dispose()
   })
+  it('keeps a row whose account read runs ahead of the capability poll and re-reads after a real change', async () => {
+    const scope = { provider: 'github', instance: 'https://github.com' }
+    const viewer = { host: 'github.com', userId: '42', login: 'octocat', avatarUrl: 'https://avatars.githubusercontent.com/u/42' }
+    let capabilityRevision = 1, accountRevision = 2
+    const call = vi.fn(async (_channel: string, endpoint: string, payload: unknown) => {
+      const request = payload as Record<string, unknown>
+      if (endpoint === 'remote-capability' && request['remoteProtocol'] !== 2) {
+        return { ok: true, value: { state: 'on', remoteProtocol: 2, generation: { ...generation, revision: capabilityRevision }, auth: { state: 'anonymous' }, credential: { configured: false, writable: true }, actions, loginAvailable: false } }
+      }
+      if (endpoint === 'remote-accounts') return { ok: true, value: { remoteProtocol: 2, value: { accounts: [scope] } } }
+      if (endpoint === 'remote-account') {
+        // The account read established the credential and bumped the auth revision, so its
+        // envelope is legitimately newer than the unscoped capability snapshot.
+        const accountGeneration = { ...generation, revision: accountRevision }
+        return { ok: true, value: { remoteProtocol: 2, scope, generation: accountGeneration, value: { ...cap({ state: 'authenticated', source: 'grant' }, viewer), generation: accountGeneration } } }
+      }
+      return { ok: false, error: { code: 'git/remote-unavailable' } }
+    })
+    const feature = new GitRemoteFeature({ call } as unknown as GitRpcClient)
+    feature.scoped.observeCapability({ state: 'on', remoteProtocol: 2 })
+    feature.refresh()
+    render(<RemoteAccountsSettings feature={feature} t={t} />)
+    await waitFor(() => expect(screen.getByText('@octocat · OAuth')).toBeTruthy())
+    // A poll still reporting the older unscoped revision must not wipe the fresher row.
+    feature.refresh()
+    await waitFor(() => expect(call.mock.calls.filter(entry => entry[1] === 'remote-capability').length).toBeGreaterThanOrEqual(2))
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(screen.getByText('@octocat · OAuth')).toBeTruthy()
+    // A genuinely newer identity (the poll moved past what the row holds) clears it, and the
+    // row re-reads itself instead of sticking on Checking.
+    capabilityRevision = 3; accountRevision = 3
+    feature.refresh()
+    await waitFor(() => expect(call.mock.calls.filter(entry => entry[1] === 'remote-account').length).toBeGreaterThanOrEqual(2))
+    await waitFor(() => expect(screen.getByText('@octocat · OAuth')).toBeTruthy())
+    feature.dispose()
+  })
   it('shows the invalid credential status and the unavailable line when the seam is off', async () => {
     const f = fixture({ auth: { state: 'invalid' } })
     render(<RemoteAccountsSettings feature={f.feature} t={t} />)
