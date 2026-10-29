@@ -49,6 +49,8 @@ GitLab 的 `remote-notifications` 只读取已认证 viewer、已核验项目范
 
 GitHub scoped 读写通过旧 owner 的显式适配层，写入另须 `expectedInstance:'https://github.com'`，并按 scope、仓库、generation、viewer 和 requestId 隔离去重及内容指纹。v2 仓库/对象 facts 单独提供 operationSupport、支持的方法/事件集；合并方法取仓库的 `allow_merge_commit` / `allow_squash_merge`，缺证据时禁用并在写前复核。Issue 远端写入不支持，动作同时为 false。v2 写回执包含 outcome/steps，checkout 和 issue-branch 可回部分完成。既有 GitHub v1 行为不依赖 v2。
 
+GitHub 详情页在 v1 写入时仍显式传递当前对象的 `number`，Review 与 checkout 同时携带当前 `expectedHeadSha`。GitHub 的 v1/v2 `remote-review` 对 `COMMENT`、`APPROVE`、`REQUEST_CHANGES` 均要求该 SHA；GitLab 仅 `APPROVE` Review 携带 SHA。GitLab 的 `reviewPermissions.APPROVE` 检查只约束 GitLab；GitHub 未返回该可选字段时，审批仍依据动作支持、支持事件集和 `actions.canReview` 判断，再由 Host 校验。
+
 ## 配置与认证
 
 `src/remote/settings.ts` 是配置解析/验证真源，schema 位于 `src/index.ts`。字段均为可选 volatile：

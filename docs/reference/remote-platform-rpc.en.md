@@ -49,6 +49,8 @@ GitLab `remote-notifications` reads only pending, structured `action_name:review
 
 GitHub scoped reads/writes use an explicit adapter over the existing owner. Writes additionally require `expectedInstance:'https://github.com'` and deduplicate by scope, repository, generation, viewer and requestId plus a content fingerprint. v2 repository/object facts separately expose operationSupport and supported method/event sets. Merge methods derive from the repository’s `allow_merge_commit` / `allow_squash_merge`, remain disabled without evidence, and are rechecked before writing. Remote Issue writes are unsupported and their actions are false. v2 write receipts include outcome/steps, with partial outcomes for checkout and issue-branch. Existing GitHub v1 behavior does not depend on v2.
 
+The GitHub detail surface still explicitly supplies the current object's `number` for v1 writes, plus the current `expectedHeadSha` for reviews and checkout. GitHub v1/v2 `remote-review` requires that SHA for `COMMENT`, `APPROVE` and `REQUEST_CHANGES`; GitLab supplies it only for `APPROVE` reviews. The `reviewPermissions.APPROVE` check applies only to GitLab. When GitHub omits that optional field, approval remains gated by operation support, the supported event set and `actions.canReview`, followed by Host validation.
+
 ## Configuration and authentication
 
 Configuration parsing/validation lives in src/remote/settings.ts and its schema in src/index.ts. All fields are optional volatile values:

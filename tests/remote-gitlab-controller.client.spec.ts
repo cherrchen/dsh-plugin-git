@@ -42,6 +42,16 @@ async function ready(controller: ReturnType<typeof fixture>['controller']) {
   expect(controller.getSnapshot().detail?.number).toBe(7)
 }
 describe('GitLab scoped controller', () => {
+  it.each(['COMMENT', 'APPROVE'] as const)('keeps the GitLab %s head-SHA requirement specific to the event', async event => {
+    const f = fixture()
+    await ready(f.controller)
+    await f.controller.write('remote-review', { event, body: 'Review body' })
+    const writes = f.call.mock.calls.filter(args => args[1] === 'remote-review')
+    expect(writes).toHaveLength(1)
+    expect(writes[0]?.[2]).toMatchObject({ number: 7, objectKind: 'pull', event, body: 'Review body' })
+    if (event === 'APPROVE') expect(writes[0]?.[2]).toMatchObject({ expectedHeadSha: sha })
+    else expect(writes[0]?.[2]).not.toHaveProperty('expectedHeadSha')
+  })
   it.each(['cli', 'oauth'] as const)('recovers %s authentication from a persisted signed-out marker after Host restart', async method => {
     let signedOut = true, known = false, selected = 'auto', source = 'glab'
     const envelope = (value: unknown): Reply => ({ ok: true, value: { remoteProtocol: 2, scope, generation, value } })

@@ -1081,13 +1081,13 @@ export class GitRemoteController {
     if (endpoint === 'remote-comment' && (!pull || !facts.operationSupport.comment.supported || !acceptedAction(facts.actions.canComment))) return
     if (endpoint === 'remote-review') {
       const event = values['event']
-      if (!pull || (event !== 'COMMENT' && event !== 'APPROVE' && event !== 'REQUEST_CHANGES') || !facts.operationSupport.review.supported || !(facts.supportedReviewEvents as readonly string[]).includes(String(event)) || !acceptedAction(facts.actions.canReview) || (event === 'APPROVE' && facts.reviewPermissions?.APPROVE !== true && facts.reviewPermissions?.APPROVE !== 'unknown')) return
+      if (!pull || (event !== 'COMMENT' && event !== 'APPROVE' && event !== 'REQUEST_CHANGES') || !facts.operationSupport.review.supported || !(facts.supportedReviewEvents as readonly string[]).includes(String(event)) || !acceptedAction(facts.actions.canReview) || (target.provider === 'gitlab' && event === 'APPROVE' && facts.reviewPermissions?.APPROVE !== true && facts.reviewPermissions?.APPROVE !== 'unknown')) return
     }
     if (endpoint === 'remote-checkout-pr' && (!pull || detail.head.sha === null)) return
     if (endpoint === 'remote-issue-branch' && pull) return
     await this.run(async epoch => {
       const objectKind = pull ? 'pull' : 'issue'
-      const result = await this.mutation(endpoint, { ...values, ...expected, number: detail.number, ...(target.provider === 'gitlab' ? { objectKind } : { object: { kind: objectKind, number: detail.number } }), ...(pull && (endpoint === 'remote-checkout-pr' || endpoint === 'remote-review' && values['event'] === 'APPROVE') && detail.head.sha !== null ? { expectedHeadSha: detail.head.sha } : {}) }, epoch, this.state.generation, endpoint, detail.number)
+      const result = await this.mutation(endpoint, { ...values, ...expected, number: detail.number, ...(target.provider === 'gitlab' ? { objectKind } : { object: { kind: objectKind, number: detail.number } }), ...(pull && (endpoint === 'remote-checkout-pr' || endpoint === 'remote-review' && (target.provider === 'github' || values['event'] === 'APPROVE')) && detail.head.sha !== null ? { expectedHeadSha: detail.head.sha } : {}) }, epoch, this.state.generation, endpoint, detail.number)
       const outcome = result.value
       const blocked = outcome.outcome === 'partial' || outcome.outcome === 'unknown' || endpoint === 'remote-review' && values['event'] === 'APPROVE'
       const receipt = isRecord(outcome.receipt) ? outcome.receipt : undefined

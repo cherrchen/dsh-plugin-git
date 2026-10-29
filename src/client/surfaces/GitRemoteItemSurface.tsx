@@ -60,7 +60,7 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
   const writable = state.facts?.viewer !== undefined && !state.busy && !state.unknown && !state.blocked && !locked
   const labels = useMemo(() => remoteMarkdownLabels(t), [t])
   const write = (endpoint: string, values: Record<string, unknown> = {}): Promise<boolean> => {
-    return controller.write(endpoint, values).then(() => {
+    return controller.write(endpoint, remoteFeature.scoped.available ? values : { number: detail?.number, expectedHeadSha: pr?.head.sha, ...values }).then(() => {
       const snapshot = controller.getSnapshot()
       if (snapshot.error !== undefined) return false
       if (endpoint === 'remote-checkout-pr' || endpoint === 'remote-issue-branch') void local.refresh()

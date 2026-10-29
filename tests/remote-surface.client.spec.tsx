@@ -54,6 +54,25 @@ function mountItem(unknown = false) {
   render(<GitRemoteItemSurface {...props} />)
   return { call }
 }
+function githubScopedFixture() {
+  const scope = { provider: 'github', instance: 'https://github.com' } as const
+  const viewer = { host: 'github.com', userId: '1', login: 'alice' }
+  const actions = { canComment: 'unknown', canReview: 'unknown', canMerge: 'unknown', canClose: 'unknown', canCreatePr: 'unknown' }
+  return fixture(false, (endpoint, raw) => {
+    const request = raw as { remoteProtocol?: number; object?: unknown }
+    const capability = { state: 'on', remoteProtocol: 2, generation, viewer, auth: { state: 'authenticated' }, credential: { configured: true, writable: true }, actions, loginAvailable: false }
+    if (request.remoteProtocol !== 2) return endpoint === 'remote-capability' ? { ok: true, value: capability } : undefined
+    if (endpoint === 'remote-repositories') return { ok: true, value: { remoteProtocol: 2, value: { state: 'supported', remotes: [{ name: 'origin', identity: { ...repo, scope } }] } } }
+    // Match GitHubScopedProvider: GitHub advertises all review events without GitLab reviewPermissions.
+    const facts = { actionScope: { path: 'owner/repo', ...(request.object === undefined ? {} : { object: request.object }) }, viewer, permissions: {}, actions,
+      operationSupport: Object.fromEntries(['comment', 'inline-comment', 'review', 'close-pr', 'merge-pr', 'create-pr'].map(action => [action, { supported: true }])),
+      supportedMergeMethods: ['merge', 'squash'], supportedReviewEvents: ['COMMENT', 'APPROVE', 'REQUEST_CHANGES'] }
+    const page = { items: [], truncated: false }
+    const values: Record<string, unknown> = { 'remote-capability': capability, 'remote-repository': facts, 'remote-list-prs': { items: [pull], truncated: false }, 'remote-pr': pull,
+      'remote-comments': page, 'remote-commits': page, 'remote-reviews': page, 'remote-review': { outcome: 'succeeded', steps: [{ kind: 'review', state: 'succeeded' }] } }
+    return { ok: true, value: { remoteProtocol: 2, scope, generation, value: values[endpoint] } }
+  })
+}
 function gitlabFixture(action: 'approve' | 'close' | 'merge', outcome: 'succeeded' | 'partial' | 'unknown') {
   const scope = { provider: 'gitlab', instance: 'https://git.example.com' } as const
   const target = { ...scope, path: 'team/repo', scope }
@@ -82,6 +101,48 @@ function gitlabFixture(action: 'approve' | 'close' | 'merge', outcome: 'succeede
   return { ...f, navigation, controller, endpointForAction }
 }
 describe('portable remote surface', () => {
+  it.each([
+    ['remote-comment', 'remote.comment', undefined],
+    ['remote-review', 'remote.reviewComment', 'COMMENT'],
+    ['remote-review', 'remote.approve', 'APPROVE'],
+    ['remote-review', 'remote.requestChanges', 'REQUEST_CHANGES'],
+    ['remote-checkout-pr', 'remote.checkout', undefined],
+    ['remote-issue-branch', 'remote.issueBranch', undefined],
+  ] as const)('preserves object context for legacy GitHub %s (%s)', async (endpoint, label, event) => {
+    const issue = endpoint === 'remote-issue-branch'
+    const { base, call } = fixture(false, name => {
+      if (name === 'remote-issue') return { ok: true, value: { generation, value: { number: 2, title: 'Example issue', body: 'Issue body', state: 'open', rawState: 'open', author: null } } }
+      if (name === 'remote-list-issues') return { ok: true, value: { generation, value: { items: [], truncated: false } } }
+      return undefined
+    })
+    const navigation = { address: `dsh-resource://git-remote/owner/repo/${issue ? 'issues/2' : 'pulls/1'}`, revision: 0 }
+    render(<GitRemoteItemSurface {...{ ...base, useTabInfo: () => ({ tab: { navigation } }) } as unknown as ComponentProps<typeof GitRemoteItemSurface>} />)
+    await screen.findByText(issue ? 'Issue body' : 'Description')
+    if (!issue) fireEvent.change(screen.getByRole('textbox', { name: en['remote.body'] }), { target: { value: 'Review body' } })
+    await waitFor(() => expect((screen.getByRole('button', { name: en[label], exact: true }) as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(screen.getByRole('button', { name: en[label], exact: true }))
+    await waitFor(() => expect(call.mock.calls.filter(args => args[1] === endpoint)).toHaveLength(1))
+    const request = call.mock.calls.find(args => args[1] === endpoint)?.[2]
+    expect(request).toMatchObject({ number: issue ? 2 : 1, expectedGeneration: generation, expectedViewer: { host: 'github.com', userId: '1' } })
+    expect(request).not.toHaveProperty('remoteProtocol')
+    if (endpoint === 'remote-review' || endpoint === 'remote-checkout-pr') expect(request).toMatchObject({ expectedHeadSha: sha })
+    if (event !== undefined) expect(request).toMatchObject({ event, body: 'Review body' })
+    if (endpoint === 'remote-comment') expect(request).toMatchObject({ body: 'Review body' })
+  })
+  it.each([
+    ['COMMENT', 'remote.reviewComment'], ['APPROVE', 'remote.approve'], ['REQUEST_CHANGES', 'remote.requestChanges'],
+  ] as const)('submits GitHub v2 %s with the displayed head and no GitLab permission facts', async (event, label) => {
+    const { base, call } = githubScopedFixture()
+    const navigation = { address: 'dsh-resource://git-remote/owner/repo/pulls/1', revision: 0 }
+    render(<GitRemoteItemSurface {...{ ...base, useTabInfo: () => ({ tab: { navigation } }) } as unknown as ComponentProps<typeof GitRemoteItemSurface>} />)
+    await screen.findByText('Description')
+    fireEvent.change(screen.getByRole('textbox', { name: en['remote.body'] }), { target: { value: 'Review body' } })
+    await waitFor(() => expect((screen.getByRole('button', { name: en[label], exact: true }) as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(screen.getByRole('button', { name: en[label], exact: true }))
+    await waitFor(() => expect(call.mock.calls.filter(args => args[1] === 'remote-review')).toHaveLength(1))
+    expect(call.mock.calls.find(args => args[1] === 'remote-review')?.[2]).toMatchObject({ remoteProtocol: 2, provider: 'github', instance: 'https://github.com',
+      object: { kind: 'pull', number: 1 }, number: 1, expectedHeadSha: sha, expectedGeneration: generation, expectedViewer: { host: 'github.com', userId: '1' }, event, body: 'Review body' })
+  })
   it.each([
     ['approve', 'succeeded'], ['close', 'succeeded'], ['merge', 'succeeded'], ['approve', 'partial'], ['approve', 'unknown'],
   ] as const)('keeps retained GitLab %s reconciliation accessible after remount for %s outcomes', async (action, outcome) => {
