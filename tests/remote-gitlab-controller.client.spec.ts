@@ -42,6 +42,85 @@ async function ready(controller: ReturnType<typeof fixture>['controller']) {
   expect(controller.getSnapshot().detail?.number).toBe(7)
 }
 describe('GitLab scoped controller', () => {
+  describe.each(['pulls', 'issues'] as const)('%s target changes', kind => {
+    it.each(['pagination', 'failure'] as const)('clears the previous target rows before %s on an uncached target', async mode => {
+      const other = { ...target, path: 'group/other' }
+      const oldItem = kind === 'pulls' ? pull : { number: 7, title: 'Old issue', state: 'open' }
+      const newItem = { ...oldItem, number: 8, title: 'New repository item' }
+      const envelope = (value: unknown): Reply => ({ ok: true, value: { remoteProtocol: 2, scope, generation, value } })
+      let finishList!: (reply: Reply) => void, finishPage!: (reply: Reply) => void
+      const f = fixture((endpoint, payload) => {
+        if (endpoint === 'remote-repositories') return { ok: true, value: { remoteProtocol: 2, value: { state: 'supported', remotes: [{ name: 'origin', identity: target }, { name: 'upstream', identity: other }] } } }
+        if (endpoint === 'remote-repository') return envelope({ actionScope: { path: payload['path'], projectId: '12' }, viewer, actions })
+        if (endpoint === (kind === 'pulls' ? 'remote-list-prs' : 'remote-list-issues')) {
+          if (payload['path'] === target.path) return envelope({ items: [oldItem], truncated: false })
+          return new Promise<Reply>(resolve => { if (payload['cursor'] === undefined) finishList = resolve; else finishPage = resolve })
+        }
+        return undefined
+      })
+      f.controller.setRepository('/repo', false)
+      await f.controller.load(kind, target)
+      expect(f.controller.getSnapshot().items.map(item => item.number)).toEqual([7])
+      const switching = f.controller.load(kind, other)
+      await vi.waitFor(() => expect(finishList).toBeDefined())
+      expect(f.controller.getSnapshot()).toMatchObject({ target: other, items: [], itemsNext: undefined })
+      if (mode === 'failure') {
+        finishList({ ok: false, error: { code: 'git/remote-unavailable', details: { reason: 'fixture-failure' } } })
+        await switching
+        expect(f.controller.getSnapshot()).toMatchObject({ items: [], error: 'git/remote-unavailable' })
+      } else {
+        finishList(envelope({ items: [newItem], truncated: true, next: 'next-page' }))
+        await switching
+        await vi.waitFor(() => expect(finishPage).toBeDefined())
+        expect(f.controller.getSnapshot().items.map(item => item.number)).toEqual([8])
+        finishPage(envelope({ items: [], truncated: false }))
+        await vi.waitFor(() => expect(f.controller.getSnapshot().streaming).toBe(false))
+        expect(f.controller.getSnapshot().items.map(item => item.number)).toEqual([8])
+      }
+      await f.controller.ensureList(kind, target)
+      expect(f.controller.getSnapshot()).toMatchObject({ target, items: [oldItem] })
+    })
+  })
+  it('skips notification polling during device authorization and reloads after successful login', async () => {
+    const envelope = (value: unknown): Reply => ({ ok: true, value: { remoteProtocol: 2, scope, generation, value } })
+    let finishLogin!: (reply: Reply) => void
+    const f = fixture(endpoint => {
+      if (endpoint === 'remote-capability') return envelope({ state: 'on', generation, viewer, auth: { state: 'authenticated' }, actions, loginAvailable: true })
+      if (endpoint === 'remote-login') return envelope({ attemptId: 'attempt', userCode: 'CODE', verificationUri: `${scope.instance}/oauth/device` })
+      if (endpoint === 'remote-poll-login') return new Promise<Reply>(resolve => { finishLogin = resolve })
+      return undefined
+    })
+    await ready(f.controller)
+    await f.controller.login()
+    expect(f.controller.getSnapshot()).toMatchObject({ busy: false, login: { attemptId: 'attempt' } })
+    const callsBeforePoll = f.call.mock.calls.length
+    await f.controller.pollNotices()
+    expect(f.call.mock.calls).toHaveLength(callsBeforePoll)
+    finishLogin(envelope({ state: 'authenticated' }))
+    await vi.waitFor(() => expect(f.call.mock.calls.some(call => call[1] === 'remote-retry-auth')).toBe(true))
+    await vi.waitFor(() => expect(f.controller.getSnapshot()).toMatchObject({ busy: false, login: undefined, error: undefined, items: [pull] }))
+  })
+  it.each(['remote-pr', 'remote-comment'] as const)('signs out of the original scope while %s is in flight and ignores its late response', async endpoint => {
+    let pending = false, finish!: (reply: Reply) => void, signedOut = false
+    const envelope = (value: unknown): Reply => ({ ok: true, value: { remoteProtocol: 2, scope, generation, value } })
+    const f = fixture(name => {
+      if (name === endpoint && pending) return new Promise<Reply>(resolve => { finish = resolve })
+      if (name === 'remote-sign-out') { signedOut = true; return envelope(null) }
+      if (name === 'remote-capability' && signedOut) return envelope({ state: 'on', generation, auth: { state: 'signed-out' }, actions, loginAvailable: true })
+      return undefined
+    })
+    await ready(f.controller)
+    pending = true
+    const operation = endpoint === 'remote-pr' ? f.controller.open(7, 'pulls') : f.controller.write(endpoint, { body: 'Comment' })
+    await vi.waitFor(() => expect(finish).toBeDefined())
+    expect(f.controller.getSnapshot().busy).toBe(true)
+    await f.controller.authAction('remote-sign-out')
+    expect(f.call.mock.calls.filter(call => call[1] === 'remote-sign-out').map(call => call[2])).toEqual([expect.objectContaining({ remoteProtocol: 2, provider: 'gitlab', instance: scope.instance, path: target.path, projectId: '12', repository: '/repo', sessionId: 'session' })])
+    expect(f.controller.getSnapshot()).toMatchObject({ target, scopedCapability: { auth: { state: 'signed-out' } }, busy: false, detail: undefined, items: [], error: undefined })
+    finish(envelope(endpoint === 'remote-pr' ? pull : { outcome: 'succeeded', steps: [] }))
+    await operation
+    expect(f.controller.getSnapshot()).toMatchObject({ scopedCapability: { auth: { state: 'signed-out' } }, busy: false, detail: undefined, items: [], error: undefined })
+  })
   it('keeps a new login usable while old cancellation on the same instance is still pending', async () => {
     const other = { ...target, path: 'group/other' }
     let releaseCancel!: (reply: Reply) => void, finishLogin!: (reply: Reply) => void, attempt = 0

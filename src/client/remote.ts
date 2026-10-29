@@ -351,7 +351,8 @@ export class GitRemoteController {
       target = remotes[0]?.identity
     }
     target ??= remotes[0]?.identity
-    if (!sameRemoteTarget(this.state.target, target) || this.state.target === undefined) this.patch({ remotes, unresolved, discovery: discovered.state, target, detail: undefined, facts: undefined, scopedCapability: undefined, outcome: undefined, confirmation: undefined, pending: 'repository' })
+    // Rows and cursors belong to the previous target, even before the new list resolves.
+    if (!sameRemoteTarget(this.state.target, target) || this.state.target === undefined) this.patch({ remotes, unresolved, discovery: discovered.state, target, generation: undefined, listKind: undefined, listState: undefined, items: [], itemsNext: undefined, detail: undefined, comments: [], commentsNext: undefined, inline: [], inlineNext: undefined, commits: [], commitsNext: undefined, reviews: [], reviewsNext: undefined, approvals: undefined, unavailable: [], facts: undefined, scopedCapability: undefined, outcome: undefined, confirmation: undefined, streamError: undefined, pending: 'repository' })
     else this.patch({ remotes, unresolved, discovery: discovered.state, pending: 'repository' })
     if (target === undefined) return
     await this.loadListScoped(epoch, kind, state)
@@ -556,7 +557,7 @@ export class GitRemoteController {
   }
   async pollNotices(): Promise<void> {
     const { target, generation, capability } = this.state
-    if (this.disposed || this.state.busy || target === undefined || generation === undefined || capability.state !== 'on') return
+    if (this.disposed || this.state.busy || this.state.login !== undefined || target === undefined || generation === undefined || capability.state !== 'on') return
     if (target.provider === 'gitlab') {
       if (this.state.blocked) return
       await this.run(async epoch => {
@@ -627,7 +628,8 @@ export class GitRemoteController {
   retireGrant(instance: string): Promise<{ disposition: 'retired' | 'already-retired' | 'absent' }> { return this.feature.scoped.retire(instance, this.active.signal) }
   async authAction(...endpoints: string[]): Promise<void> {
     const gitlab = this.state.target?.provider === 'gitlab' && this.feature.scoped.available
-    if (endpoints[0] === 'remote-sign-out' && this.state.busy) { this.clear(this.state.repository); this.patch({}) }
+    // The scoped branch cancels work below while retaining the sign-out target.
+    if (!gitlab && endpoints[0] === 'remote-sign-out' && this.state.busy) { this.clear(this.state.repository); this.patch({}) }
     if (gitlab) {
       if (this.state.blocked && endpoints[0] === 'remote-retry-auth') return
       if (endpoints[0] !== 'remote-retry-auth' && this.state.target?.provider === 'gitlab') this.notifications.clearInstance(this.state.target.scope.instance)
