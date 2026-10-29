@@ -1,6 +1,6 @@
 import { useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
-import { Button, Input, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
 import { canonicalGitLabInstance } from '../../remote/instance-url.ts'
 import { ScopedProtocolError } from '../remote-protocol.ts'
 import { IconUserOutline16 } from '../../compat/dsh-icons.tsx'
@@ -48,9 +48,7 @@ export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, co
         title={t('remote.auth')}
         closeLabel={t('branch.cancel')}
         className={`${css.authDialog}`}
-        contentClassName={`${css.authDialogContent}`}
       >
-        <p className={css.authInstance}>{gitlab ? `GitLab · ${controller.authInstance ?? viewer?.host ?? ''}` : 'GitHub · github.com'}</p>
         <RemoteLoading pending={state.login === undefined ? state.pending : 'authorization'} provider={gitlab ? 'gitlab' : 'github'} t={t} />
         {state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
         {state.login === undefined && state.loginStatus !== undefined && state.loginStatus !== 'requesting' && <p className={css.note} role="status">{t(loginFeedback[state.loginStatus])}</p>}
@@ -76,24 +74,23 @@ export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, co
           t={t}
         />
         {gitlab && <p className={css.note}>{t('gitlab.noticeLimit')}</p>}
-        {gitlab && controller.scopedAvailable && (
+        {controller.scopedAvailable && (
           <details className={css.authAdvanced}>
-            <summary><span>{t('remote.advanced')}</span><span className={css.advancedHint}>{t('remote.advancedHint')}</span></summary>
+            <summary>{t('remote.advanced')}</summary>
             <section className={css.retireSection} aria-label={t('remote.retireTitle')}>
               <strong>{t('remote.retireTitle')}</strong>
               <p className={css.methodHint}>{t('remote.retireHint')}</p>
               <label className={css.retireInput}>
                 <span>{t('remote.retireUrl')}</span>
-                <Input type="url" autoComplete="off" spellCheck={false} value={retireInput} disabled={retiring} onChange={event => { setRetireInput(event.target.value); setRetireScope(undefined); setRetireResult(undefined) }} placeholder="https://git.example.com" />
+                <input value={retireInput} disabled={retiring} onChange={event => { setRetireInput(event.target.value); setRetireScope(undefined); setRetireResult(undefined) }} placeholder="https://git.example.com" />
               </label>
               {retireScope === undefined ? (
                 <Button variant="ghost" size="sm" disabled={retiring || !retireInput} onClick={() => {
                   try { setRetireScope(canonicalGitLabInstance(retireInput)); setRetireResult(undefined) } catch { setRetireResult('remote.retireInvalid') }
                 }}>{t('remote.retirePrepare')}</Button>
               ) : (
-                <div className={css.retireConfirmation}>
+                <div>
                   <p>{t('remote.retireConfirmHint')} <strong>{retireScope}</strong></p>
-                  <div className={css.retireActions}>
                   <Button variant="ghost" size="sm" disabled={retiring} onClick={() => {
                     setRetiring(true)
                     void controller.retireGrant(retireScope).then(result => {
@@ -104,7 +101,6 @@ export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, co
                     }).finally(() => { setRetiring(false) })
                   }}>{t('remote.retireConfirm')}</Button>
                   <Button variant="ghost" size="sm" disabled={retiring} onClick={() => { setRetireScope(undefined) }}>{t('branch.cancel')}</Button>
-                  </div>
                 </div>
               )}
               {retireResult !== undefined && <p role="status">{t(retireResult)}</p>}

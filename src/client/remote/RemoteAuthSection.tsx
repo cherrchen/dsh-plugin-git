@@ -98,7 +98,6 @@ export function RemoteAuthSection({ capability, viewer, busy, login, loginBrowse
       </div>
       <div className={css.authChoices} role="radiogroup" aria-label={t('remote.authMethods')}>
         <span className={css.authMethods}>{t('remote.authMethods')}</span>
-        <div className={css.authMethod}>
         <label className={css.radioRow}>
           <input
             type="radio"
@@ -114,10 +113,7 @@ export function RemoteAuthSection({ capability, viewer, busy, login, loginBrowse
           <span>{t(gitlab ? 'remote.authSourceGlab' : 'remote.authSourceGh')}</span>
         </label>
         {!cliAvailable && <span className={css.radioHint}>{t('remote.cliUnavailable')}</span>}
-        <span className={css.radioHint}>{t(gitlab ? 'remote.glabMethodHint' : 'remote.ghMethodHint')}</span>
         {!authenticated && login === undefined && <span className={css.radioHint}>{t(gitlab ? 'remote.glabLoginHint' : 'remote.ghLoginHint')}</span>}
-        </div>
-        <div className={css.authMethod}>
         <label className={css.radioRow}>
           <input
             type="radio"
@@ -133,10 +129,8 @@ export function RemoteAuthSection({ capability, viewer, busy, login, loginBrowse
           />
           <span>{copy('remote.authSourceOAuth')}</span>
         </label>
-        <span className={css.radioHint}>{copy('remote.oauthMethodHint')}</span>
         {cachedOAuth && login === undefined && <span className={css.radioHint}>{t('remote.oauthSaved')}</span>}
         {login === undefined && oauthHint !== undefined && <span id={`${group}-oauth-hint`} className={css.radioHint}>{t(oauthHint)}</span>}
-        </div>
         {login !== undefined && (
           <RemoteLoginCard login={login} browser={loginBrowser} copied={loginCopy} onCopy={onCopyLogin} onOpen={onOpenLogin} onCancel={() => { onCancelLogin(login.attemptId) }} t={copy} />
         )}

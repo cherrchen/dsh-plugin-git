@@ -18,7 +18,7 @@ import type { SubprocessRuntime } from '@deepseek-ai/dsh-subprocess'
 
 const fixtures = new Map<string, Fixture>()
 const CLIENT = 'isolated-e2e-client'
-const scenarios = ['gh', 'ref', 'oauth', 'anonymous', 'orphan', 'gitlab-orphan', 'gitlab', 'gitlab-approval-unknown', 'gitlab-oauth', 'gitlab-com-signed-out', 'gitlab-com-rate-limit']
+const scenarios = ['gh', 'ref', 'oauth', 'anonymous', 'orphan', 'gitlab', 'gitlab-approval-unknown', 'gitlab-oauth', 'gitlab-com-signed-out', 'gitlab-com-rate-limit']
 const ORPHAN = 'https://old.example'
 const GITLAB = 'https://git.example.test/gitlab'
 const SHA = 'a'.repeat(40)
@@ -46,7 +46,7 @@ class Fixture {
     execFileSync('git', ['init', '-b', 'main'], { cwd: this.root, env: this.env, stdio: 'ignore' })
     execFileSync('git', ['remote', 'add', 'origin', scenario.startsWith('gitlab') ? `${this.instance}/group/sub/repo.git` : 'https://github.com/fixture/repo.git'], { cwd: this.root, env: this.env })
     if (scenario === 'oauth') this.records.set('dsh-plugin-git/github-com', grantRecord({ v: 1, state: 'authenticated', revision: randomUUID(), host: 'github.com', clientId: CLIENT, accessToken: this.token('oauth') }))
-    if ((scenario === 'orphan' || scenario === 'gitlab-orphan')) this.records.set(gitLabGrantKey(ORPHAN), { kind: 'grant', payload: { v: 2, provider: 'gitlab', instance: ORPHAN, revision: randomUUID(), state: 'authenticated', clientId: 'fixture-app', accessToken: this.token('orphan'), refreshToken: this.token('refresh'), expiresAt: 1000 } })
+    if (scenario === 'orphan') this.records.set(gitLabGrantKey(ORPHAN), { kind: 'grant', payload: { v: 2, provider: 'gitlab', instance: ORPHAN, revision: randomUUID(), state: 'authenticated', clientId: 'fixture-app', accessToken: this.token('orphan'), refreshToken: this.token('refresh'), expiresAt: 1000 } })
     if (scenario === 'gitlab-com-rate-limit') this.records.set(gitLabGrantKey(this.instance), { kind: 'grant', payload: { v: 2, provider: 'gitlab', instance: this.instance, revision: randomUUID(), state: 'authenticated', clientId: CLIENT, accessToken: this.token('gitlab'), expiresAt: Date.now() + 3_600_000 } })
     if (scenario === 'gitlab-com-signed-out') this.records.set(gitLabGrantKey(this.instance), { kind: 'grant', payload: { v: 2, provider: 'gitlab', instance: this.instance, revision: randomUUID(), state: 'signed-out' } })
     const credentials: GitRemoteCredentialService = {

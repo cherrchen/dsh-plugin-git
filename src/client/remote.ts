@@ -700,7 +700,6 @@ export class GitRemoteController {
       if (error instanceof ScopedProtocolError && (error.reason === 'stale-response' || error.reason === 'stale-generation' || invalidProtocol(error) || error.code === 'git/remote-identity-mismatch' || error.code === 'git/unauthenticated' || error.code === 'git/signed-out' || removedInstance(error))) throw error
     }
   }
-  get authInstance(): string | undefined { return this.authenticationScope?.instance }
   get scopedAvailable(): boolean { return this.feature.scoped.available }
   retireGrant(instance: string): Promise<{ disposition: 'retired' | 'already-retired' | 'absent' }> { return this.feature.scoped.retire(instance, this.active.signal) }
   async refreshAccount(): Promise<void> {
