@@ -44,7 +44,6 @@ class GitLabScopedProvider implements ScopedRemoteProvider {
       if (['remote-select-auth', 'remote-oauth-logout', 'remote-login', 'remote-poll-login', 'remote-cancel-login', 'remote-sign-out', 'remote-clear-grant', 'remote-retry-auth'].includes(endpoint) && ['credentialRef', 'ref', 'key', 'clientId', 'accessToken', 'refreshToken'].some(key => Object.hasOwn(request, key))) throw unavailable('invalid-request')
       let result
       switch (endpoint) {
-        case 'remote-auth-status': await this.auth.establish(signal); result = await this.auth.capability(signal); break
         case 'remote-capability': result = await this.auth.capability(signal); break
         case 'remote-login': result = await this.auth.startLogin(signal); break
         case 'remote-poll-login': result = await this.auth.pollLogin(attemptId(request), signal); break

@@ -16,7 +16,7 @@ function fixture() {
 }
 describe('scoped Host protocol', () => {
   it('announces v2 on the existing GitHub capability while retaining v1 shape', async () => {
-    const f = fixture(); expect(await f.runtime.capability()).toMatchObject({ state: 'on', remoteProtocol: 2, authScopes: [{ provider: 'github', instance: 'https://github.com' }, { provider: 'gitlab', instance: 'https://git.example.com/gitlab' }, { provider: 'gitlab', instance: 'https://gitlab.com' }], auth: { state: 'unauthenticated' } }); expect(f.subprocess.spawn).not.toHaveBeenCalled(); await f.runtime.dispose()
+    const f = fixture(); expect(await f.runtime.capability()).toMatchObject({ state: 'on', remoteProtocol: 2, auth: { state: 'unauthenticated' } }); expect(f.subprocess.spawn).not.toHaveBeenCalled(); await f.runtime.dispose()
   })
   it('echoes a canonical scope with matching capability generations without network or subprocess', async () => {
     const f = fixture(), fetch = vi.spyOn(globalThis, 'fetch')
@@ -24,19 +24,6 @@ describe('scoped Host protocol', () => {
     expect(answer).toMatchObject({ remoteProtocol: 2, scope: { provider: 'gitlab', instance: 'https://git.example.com/gitlab' }, value: { state: 'on', actions: { canComment: false } } })
     expect(answer.generation).toEqual(answer.value.generation); expect(answer.generation.instanceId).not.toBe(answer.scope.instance)
     expect(fetch).not.toHaveBeenCalled(); expect(f.subprocess.spawn).not.toHaveBeenCalled(); fetch.mockRestore(); await f.runtime.dispose()
-  })
-  it.each(['github', 'gitlab'] as const)('reads %s account status without repository access or secret output', async provider => {
-    const f = fixture()
-    const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ id: 9, login: 'viewer', username: 'viewer', avatar_url: 'https://avatars.githubusercontent.com/u/9' }), { status: 200, headers: { 'content-type': 'application/json' } }))
-    vi.mocked(f.credentials.resolve).mockResolvedValue({ value: 'private-token', source: 'fixture' })
-    try {
-      const answer = await f.runtime.handle('remote-auth-status', { remoteProtocol: 2, provider, instance: provider === 'github' ? 'https://github.com' : 'https://gitlab.com' }, signal, async () => { throw Error('no session') }) as any
-      expect(answer.value).toMatchObject({ state: 'on', auth: { state: 'authenticated' }, viewer: { login: 'viewer' } })
-      expect(answer.generation).toEqual(answer.value.generation)
-      expect(JSON.stringify(answer)).not.toContain('private-token')
-      expect(f.service.remoteCommand).not.toHaveBeenCalled()
-      expect(fetch.mock.calls.every(([url]) => String(url).endsWith('/user'))).toBe(true)
-    } finally { fetch.mockRestore(); await f.runtime.dispose() }
   })
   it('rejects missing, unknown and wrong scope, wrong protocol, and unimplemented business before side effects', async () => {
     const f = fixture(), fetch = vi.spyOn(globalThis, 'fetch')

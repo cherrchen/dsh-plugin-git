@@ -14,10 +14,6 @@ export class GitHubScopedProvider {
       const cap = await this.auth.capability()
       return { generation: cap.generation, value: this.project(cap) }
     }
-    if (endpoint === 'remote-auth-status' && legacy !== undefined) {
-      const result = await legacy(endpoint, request) as { generation: GitRemoteGeneration; value: Awaited<ReturnType<GitRemoteAuth['capability']>> }
-      return { generation: result.generation, value: this.project(result.value) }
-    }
     if (!['remote-select-auth', 'remote-oauth-logout', 'remote-login', 'remote-poll-login', 'remote-cancel-login', 'remote-sign-out', 'remote-clear-grant', 'remote-retry-auth', 'remote-use-git-credential'].includes(endpoint)) {
       if (legacy === undefined) throw new GitRemoteError('git/remote-unavailable', 'git-remote: scoped operation not implemented', { reason: 'not-implemented' })
       return this.business(endpoint, request, legacy)

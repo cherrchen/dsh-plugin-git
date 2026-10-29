@@ -1,6 +1,0 @@
-.root { display: flex; flex-direction: column; gap: 12px; padding: 16px 0; color: var(--dsw-alias-label-primary); }
-.root h3 { margin: 0; font-size: 14px; font-weight: 600; }
-.hint { margin: 0; font-size: 12px; line-height: 1.6; color: var(--dsw-alias-label-secondary); }
-.account { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--dsw-alias-border-l4); }
-.identity { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: 4px; font-size: 13px; }
-.instance, .status { overflow-wrap: anywhere; font-size: 12px; color: var(--dsw-alias-label-secondary); }

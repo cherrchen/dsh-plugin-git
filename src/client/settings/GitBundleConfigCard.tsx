@@ -13,8 +13,6 @@ import type { CommitMessageSettingsCardController } from './commit-message-card-
 import { CommitMessageSettingsCard } from './CommitMessageSettingsCard.tsx'
 import type { WorktreeSettingsCardController } from './worktree-card-controller.ts'
 import { WorktreeSettingsCard } from './WorktreeSettingsCard.tsx'
-import type { GitRemoteFeature } from '../remote.ts'
-import { RemoteAccountsSettings } from './RemoteAccountsSettings.tsx'
 import css from './CommitMessageSettingsCard.module.css'
 
 /** Props the renderer binds for the bundle-level settings card. */
@@ -23,7 +21,6 @@ export type GitBundleConfigCardProps =
   & {
     commitMessage: CommitMessageSettingsCardController
     worktrees: WorktreeSettingsCardController
-    remoteFeature?: GitRemoteFeature
     /** Plugin-manager view: `summary` renders one line per section; `page` renders the shared form. */
     view?: 'summary' | 'page'
   }
@@ -62,14 +59,12 @@ const PageForm: ComponentType<GitSettingsFormProps> = NativeSettingsForm ?? Loca
  * @param props - injected section controllers, locale copy, and the host view.
  * @returns The two section summaries, the legacy cards, or one shared form.
  */
-export function GitBundleConfigCard({ commitMessage, worktrees, remoteFeature, view, t }: GitBundleConfigCardProps): ReactNode {
-  const accounts = remoteFeature === undefined ? null : <RemoteAccountsSettings feature={remoteFeature} t={t} summary={view === 'summary'} />
+export function GitBundleConfigCard({ commitMessage, worktrees, view, t }: GitBundleConfigCardProps): ReactNode {
   const commit = useSyncExternalStore(commitMessage.subscribe, commitMessage.getSnapshot)
   const worktree = useSyncExternalStore(worktrees.subscribe, worktrees.getSnapshot)
   if (view === 'summary') {
     return (
       <>
-        {accounts}
         <CommitMessageSettingsCard controller={commitMessage} t={t} view="summary" />
         <WorktreeSettingsCard controller={worktrees} t={t} view="summary" />
       </>
@@ -95,8 +90,6 @@ export function GitBundleConfigCard({ commitMessage, worktrees, remoteFeature, v
       saving: t('settings.saving'),
     }
     return (
-      <>
-      {accounts}
       <PageForm
         labels={labels}
         state={shell}
@@ -117,12 +110,10 @@ export function GitBundleConfigCard({ commitMessage, worktrees, remoteFeature, v
         <CommitMessageSettingsCard controller={commitMessage} t={t} view="page" />
         <WorktreeSettingsCard controller={worktrees} t={t} view="page" />
       </PageForm>
-      </>
     )
   }
   return (
     <>
-      {accounts}
       <CommitMessageSettingsCard controller={commitMessage} t={t} />
       <WorktreeSettingsCard controller={worktrees} t={t} />
     </>

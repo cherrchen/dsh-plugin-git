@@ -21,8 +21,7 @@ const loginFeedback: Record<RemoteLoginStatus, GitLocaleKey> = {
 }
 
 /** Toolbar entry to the platform-authentication dialog; the controller owns the login-attempt state. */
-export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, controller, label, t }: {
-  readonly label?: string
+export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, controller, t }: {
   readonly capability: GitRemoteCapabilityOn | ScopedRemoteCapabilityOn
   readonly viewer: GitRemoteViewer | undefined
   readonly busy: boolean
@@ -39,9 +38,9 @@ export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, co
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
   return (
     <>
-      {label === undefined ? <GitIconButton label={t('remote.auth')} onClick={() => { setOpen(true); if (gitlab) void controller.ensureAuthCapability() }}>
+      <GitIconButton label={t('remote.auth')} onClick={() => { setOpen(true); if (gitlab) void controller.ensureAuthCapability() }}>
         <IconUserOutline16 size={14} />
-      </GitIconButton> : <Button variant="ghost" size="sm" onClick={() => { setOpen(true); if (gitlab) void controller.ensureAuthCapability() }}>{label}</Button>}
+      </GitIconButton>
       <Modal
         open={open}
         onClose={() => { setOpen(false) }}
