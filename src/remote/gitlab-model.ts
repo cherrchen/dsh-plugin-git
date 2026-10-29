@@ -111,8 +111,16 @@ export function gitLabNote(value: unknown, instance: string, discussionId?: stri
     ...(typeof note['resolvable'] === 'boolean' ? { resolvable: note['resolvable'] } : {}), ...(typeof note['resolved'] === 'boolean' ? { resolved: note['resolved'] } : {}),
     ...(note['position'] == null ? {} : { position: position(note['position']) }), ...(createdAt === undefined ? {} : { createdAt }), ...(url === undefined ? {} : { url }) }
 }
-export function gitLabDiscussion(value: unknown, instance: string): ScopedRemoteDiscussion {
-  const data = object(value), discussionId = str(data['id'], 256)
+/** The notes API also echoes discussion members (DiffNote/DiscussionNote and resolvable notes); those are served by `remote-discussions`, so `remote-comments` keeps only individual notes. */
+export function gitLabIndividualNote(value: unknown, instance: string): ScopedRemoteNote | null {
+  const note = object(value)
+  if (note['type'] === 'DiffNote' || note['type'] === 'DiscussionNote' || note['resolvable'] === true) return null
+  return gitLabNote(value, instance)
+}
+export function gitLabDiscussion(value: unknown, instance: string): ScopedRemoteDiscussion | null {
+  const data = object(value)
+  if (data['individual_note'] === true) return null
+  const discussionId = str(data['id'], 256)
   if (!discussionId || /[\x00-\x20\x7f]/u.test(discussionId) || !Array.isArray(data['notes'])) return invalid()
   const notes = data['notes'].map((raw: unknown) => gitLabNote(raw, instance, discussionId))
   return { id: discussionId, notes }

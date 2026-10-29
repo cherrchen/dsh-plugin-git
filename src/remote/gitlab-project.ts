@@ -5,7 +5,7 @@ import { GitRemoteError } from './errors.ts'
 import { GitRemoteGit, type RemoteCheckoutReceipt, type RemoteGitRun } from './git.ts'
 import { gitLabPrivateRef } from './gitlab-git.ts'
 import { GitRemoteHttpError, gitLabContinuation, type GitRemoteHttp, type GitRemoteHttpResponse } from './http.ts'
-import { gitLabApprovals, gitLabCommit, gitLabDiscussion, gitLabFile, gitLabIssue, gitLabNote, gitLabPull, gitLabWebUrl } from './gitlab-model.ts'
+import { gitLabApprovals, gitLabCommit, gitLabDiscussion, gitLabFile, gitLabIndividualNote, gitLabIssue, gitLabPull, gitLabWebUrl } from './gitlab-model.ts'
 import { gitLabRepositoryFacts } from './gitlab-facts.ts'
 import { GitLabCursorStore, type GitLabCursorBinding } from './gitlab-read-boundaries.ts'
 import type { GitLabInstance } from './instances.ts'
@@ -276,7 +276,8 @@ export class GitLabProjectReader {
     if (typeof number !== 'number' || !Number.isSafeInteger(number) || number < 1 || (objectKind !== 'pull' && objectKind !== 'issue') || (kind === 'comments' && request['inline'] === true)) throw invalid('invalid-object')
     return this.operation(request, signal, context, JSON.stringify([kind, objectKind, number]), async op => {
       const initial = `${this.instance.prefix}/api/v4/projects/${op.projectId}/${objectKind === 'pull' ? 'merge_requests' : 'issues'}/${number}/${kind === 'comments' ? 'notes' : kind}?per_page=50&page=1`
-      return this.page<ScopedRemoteCommit | ScopedRemoteNote | ScopedRemoteDiscussion>(op, request, initial, JSON.stringify([kind, objectKind, number]), raw => kind === 'commits' ? gitLabCommit(raw, this.instance.instance) : kind === 'comments' ? gitLabNote(raw, this.instance.instance) : gitLabDiscussion(raw, this.instance.instance))
+      const projected = await this.page<ScopedRemoteCommit | ScopedRemoteNote | ScopedRemoteDiscussion | null>(op, request, initial, JSON.stringify([kind, objectKind, number]), raw => kind === 'commits' ? gitLabCommit(raw, this.instance.instance) : kind === 'comments' ? gitLabIndividualNote(raw, this.instance.instance) : gitLabDiscussion(raw, this.instance.instance))
+      return { ...projected, items: projected.items.filter((item): item is ScopedRemoteCommit | ScopedRemoteNote | ScopedRemoteDiscussion => item !== null) }
     })
   }
   approvals(request: Record<string, unknown>, signal: AbortSignal, context: ScopedRequestContext | undefined): Promise<ScopedRemoteResult<ScopedRemoteApprovalFacts>> {
