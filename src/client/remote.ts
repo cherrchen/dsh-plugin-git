@@ -333,8 +333,21 @@ export class GitRemoteController {
           const details = this.state.blocked && !changedIdentity ? { ...this.state.errorDetails, ...scoped.details } : scoped.details
           const blocked = changedIdentity ? false : this.state.blocked || scoped.code === 'git/write-result-unknown'
           const keepReconciliationTarget = invalidScope && blocked && !changedIdentity
+          const recoverAuth = this.state.target?.provider === 'gitlab' && (scoped.code === 'git/signed-out' || scoped.code === 'git/unauthenticated')
           if (changedIdentity || invalidScope) void this.cancel()
           this.patch({ error: scoped.code ?? scoped.reason ?? 'git/remote-unavailable', errorDetails: details, blocked, blockedAction: changedIdentity ? undefined : scoped.code === 'git/write-result-unknown' ? String(scoped.details?.['action'] ?? 'unknown') : this.state.blockedAction, reconciled: false, confirmation: undefined, ...((changedIdentity || invalidScope) ? { facts: undefined, scopedCapability: undefined, detail: keepReconciliationTarget ? this.state.detail : undefined, generation: undefined, items: [], itemsNext: undefined, comments: [], commentsNext: undefined, inline: [], inlineNext: undefined, commits: [], commitsNext: undefined, reviews: [], reviewsNext: undefined, approvals: undefined, unavailable: [] } : {}) })
+          if (recoverAuth) {
+            // Authentication metadata remains readable after protected repository reads fail.
+            // Use the new lane after cancellation, never the failed request's generation.
+            const recoveryEpoch = this.epoch
+            this.patch({ busy: true, pending: 'auth' })
+            try {
+              const cap = await this.scopedCall<ScopedRemoteCapabilityOn>('remote-capability', {}, recoveryEpoch)
+              if (cap.value.state === 'on' && cap.value.auth !== undefined) this.patch({ scopedCapability: cap.value, generation: cap.generation,
+                ...(scoped.code === 'git/signed-out' && cap.value.auth.state === 'signed-out' ? { error: undefined, errorDetails: undefined } : {}) })
+            } catch { /* Keep the original error; explicit authentication can retry metadata discovery. */ }
+            finally { if (recoveryEpoch === this.epoch) { this.patch({ busy: false, pending: undefined }); this.feature.refresh() } }
+          }
         } else {
           this.patch({ error: error instanceof Error ? error.message : String(error), errorDetails: undefined, unknown: error instanceof RemoteRpcError && error.code === 'git/write-result-unknown' || this.state.unknown })
         }
@@ -392,6 +405,11 @@ export class GitRemoteController {
   private async loadListScoped(epoch: number, kind: 'pulls' | 'issues', filter: 'open' | 'closed' | 'all', reconcile = false): Promise<void> {
     const initialCapability = await this.scopedCall<ScopedRemoteCapabilityOn>('remote-capability', {}, epoch)
     this.patch({ scopedCapability: initialCapability.value, generation: initialCapability.generation })
+    if (initialCapability.value.auth.state === 'signed-out') {
+      this.patch({ facts: undefined, detail: undefined, items: [], itemsNext: undefined, comments: [], commentsNext: undefined, inline: [], inlineNext: undefined,
+        commits: [], commitsNext: undefined, reviews: [], reviewsNext: undefined, approvals: undefined, unavailable: [], confirmation: undefined, error: undefined, errorDetails: undefined })
+      return
+    }
     const facts = await this.scopedCall<ScopedRemoteRepositoryFacts>('remote-repository', {}, epoch)
     this.validateFacts(facts.value)
     const rawTarget = this.state.target!
@@ -658,6 +676,17 @@ export class GitRemoteController {
   }
   get scopedAvailable(): boolean { return this.feature.scoped.available }
   retireGrant(instance: string): Promise<{ disposition: 'retired' | 'already-retired' | 'absent' }> { return this.feature.scoped.retire(instance, this.active.signal) }
+  async ensureAuthCapability(): Promise<boolean> {
+    if (this.state.target?.provider !== 'gitlab' || this.state.scopedCapability !== undefined) return true
+    let restored = false
+    await this.run(async epoch => {
+      const cap = await this.scopedCall<ScopedRemoteCapabilityOn>('remote-capability', {}, epoch)
+      if (cap.value.state !== 'on' || cap.value.auth === undefined) throw new Error('invalid-auth-capability')
+      this.patch({ scopedCapability: cap.value, generation: cap.generation })
+      restored = true
+    }, 'auth', true)
+    return restored
+  }
   async authAction(...endpoints: string[]): Promise<void> {
     this.patch({ loginStatus: undefined, loginBrowser: undefined, loginCopy: undefined })
     const gitlab = this.state.target?.provider === 'gitlab' && this.feature.scoped.available
@@ -681,6 +710,7 @@ export class GitRemoteController {
     }, 'auth')
   }
   async selectAuthMethod(method: 'cli' | 'oauth'): Promise<void> {
+    if (!await this.ensureAuthCapability()) return
     if (this.state.busy || this.state.login !== undefined || this.disposed) return
     const gitlab = this.state.target?.provider === 'gitlab' && this.feature.scoped.available
     const capability = gitlab ? this.state.scopedCapability : this.state.capability.state === 'on' ? this.state.capability : undefined
@@ -693,7 +723,8 @@ export class GitRemoteController {
     await this.changeAuthMethod('remote-select-auth', method)
   }
   async logoutOAuth(): Promise<void> {
-    const capability = this.state.scopedCapability ?? (this.state.capability.state === 'on' ? this.state.capability : undefined)
+    if (!await this.ensureAuthCapability()) return
+    const capability = this.state.target?.provider === 'gitlab' ? this.state.scopedCapability : this.state.capability.state === 'on' ? this.state.capability : undefined
     if (capability?.authSelection === undefined) { await this.authAction('remote-sign-out'); return }
     await this.changeAuthMethod('remote-oauth-logout')
   }
@@ -748,6 +779,7 @@ export class GitRemoteController {
   }
   async login(): Promise<void> {
     if (this.state.login !== undefined || this.state.busy || this.disposed) return
+    if (!await this.ensureAuthCapability()) return
     const target = this.state.target, gitlab = target?.provider === 'gitlab' && this.feature.scoped.available
     const capability = gitlab ? this.state.scopedCapability : this.state.capability.state === 'on' ? this.state.capability : undefined
     if (capability?.loginAvailable !== true) return

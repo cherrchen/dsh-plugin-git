@@ -38,7 +38,7 @@ export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, co
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
   return (
     <>
-      <GitIconButton label={t('remote.auth')} onClick={() => { setOpen(true) }}>
+      <GitIconButton label={t('remote.auth')} onClick={() => { setOpen(true); if (gitlab) void controller.ensureAuthCapability() }}>
         <IconUserOutline16 size={14} />
       </GitIconButton>
       <Modal
@@ -54,7 +54,7 @@ export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, co
         <RemoteAuthSection
           capability={capability}
           viewer={viewer}
-          busy={busy}
+          busy={busy || gitlab && state.scopedCapability === undefined}
           login={state.login}
           loginBrowser={state.loginBrowser}
           loginCopy={state.loginCopy}

@@ -42,6 +42,50 @@ async function ready(controller: ReturnType<typeof fixture>['controller']) {
   expect(controller.getSnapshot().detail?.number).toBe(7)
 }
 describe('GitLab scoped controller', () => {
+  it.each(['cli', 'oauth'] as const)('recovers %s authentication from a persisted signed-out marker after Host restart', async method => {
+    let signedOut = true, known = false, selected = 'auto', source = 'glab'
+    const envelope = (value: unknown): Reply => ({ ok: true, value: { remoteProtocol: 2, scope, generation, value } })
+    const cap = () => ({ state: 'on', generation, auth: { state: signedOut ? known ? 'signed-out' : 'unauthenticated' : 'authenticated', ...(signedOut ? {} : { source }) },
+      credential: { configured: true, writable: true }, actions, loginAvailable: true, automaticRefreshAvailable: false,
+      authMethods: { deviceFlow: { supported: true } }, authSelection: { method: selected, cliAvailable: true, oauthCached: !signedOut && source === 'grant' } })
+    const f = fixture((endpoint, payload) => {
+      if (endpoint === 'remote-capability' && payload['remoteProtocol'] === 2) return envelope(cap())
+      if (endpoint === 'remote-repository' && signedOut) { known = true; return { ok: false, error: { code: 'git/signed-out' } } }
+      if (endpoint === 'remote-select-auth') { selected = String(payload['method']); if (selected === 'cli') signedOut = false; return envelope(cap()) }
+      if (endpoint === 'remote-login') return envelope({ attemptId: 'retry', userCode: 'RETRY-CODE', verificationUri: `${scope.instance}/oauth/device`, expiresAt: Date.now() + 30_000, intervalMs: 1 })
+      if (endpoint === 'remote-poll-login') { signedOut = false; source = 'grant'; return envelope({ state: 'authenticated' }) }
+      return undefined
+    })
+    f.controller.setRepository('/repo')
+    await vi.waitFor(() => expect(f.controller.getSnapshot()).toMatchObject({ busy: false, scopedCapability: { auth: { state: 'signed-out' } }, error: undefined }))
+    expect(f.controller.getSnapshot().facts).toBeUndefined()
+    expect(f.call.mock.calls.some(args => args[1] === 'remote-login')).toBe(false)
+    await f.controller.refresh()
+    expect(f.call.mock.calls.filter(args => args[1] === 'remote-repository')).toHaveLength(1)
+    await f.controller.selectAuthMethod(method)
+    await vi.waitFor(() => expect(f.controller.getSnapshot()).toMatchObject({ busy: false, error: undefined, scopedCapability: { auth: { state: 'authenticated', source: method === 'cli' ? 'glab' : 'grant' } }, items: [pull] }))
+    expect(f.call.mock.calls.some(args => args[1] === 'remote-clear-grant')).toBe(false)
+  })
+  it('retries instance authentication metadata after recovery failed instead of using the global GitHub capability', async () => {
+    let signedOut = true, known = false, failed = false
+    const envelope = (value: unknown): Reply => ({ ok: true, value: { remoteProtocol: 2, scope, generation, value } })
+    const f = fixture((endpoint) => {
+      if (endpoint === 'remote-capability') {
+        if (known && !failed) { failed = true; return { ok: false, error: { code: 'git/remote-unavailable' } } }
+        return envelope({ state: 'on', generation, auth: { state: signedOut ? known ? 'signed-out' : 'unauthenticated' : 'authenticated', ...(signedOut ? {} : { source: 'glab' }) },
+          credential: { configured: true, writable: true }, actions, loginAvailable: true, authSelection: { method: 'auto', cliAvailable: true, oauthCached: false }, authMethods: { deviceFlow: { supported: true } } })
+      }
+      if (endpoint === 'remote-repository' && signedOut) { known = true; return { ok: false, error: { code: 'git/signed-out' } } }
+      if (endpoint === 'remote-select-auth') { signedOut = false; return envelope({ state: 'on', generation, auth: { state: 'authenticated', source: 'glab' } }) }
+      return undefined
+    })
+    f.controller.setRepository('/repo')
+    await vi.waitFor(() => expect(f.controller.getSnapshot()).toMatchObject({ busy: false, error: 'git/signed-out', scopedCapability: undefined }))
+    await f.controller.selectAuthMethod('cli')
+    expect(f.controller.getSnapshot()).toMatchObject({ error: undefined, items: [pull] })
+    expect(f.call.mock.calls.filter(args => args[1] === 'remote-select-auth')).toHaveLength(1)
+    expect(f.call.mock.calls.some(args => args[1] === 'remote-clear-grant')).toBe(false)
+  })
   it('executes clear-grant before retry when switching an OAuth grant back to CLI discovery', async () => {
     const f = fixture()
     await ready(f.controller)

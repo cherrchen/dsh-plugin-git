@@ -41,6 +41,7 @@ DSH 其余 17 个精确 release 继续由 [兼容矩阵](../../.github/workflows
 - 设备码登录从匿名到 OAuth 的完整内部流程，以及取消授权；
 - 浏览器 RPC 响应与页面不出现令牌正文；
 - 独立浏览器上下文和凭据存储之间的身份隔离；
+- GitLab.com 的持久退出标记在首次仓库读取时被发现后，保留正确认证入口且不显示原始错误码；分别用模拟 glab 和 Device Flow 恢复认证并读取列表；
 - GitLab 实例前缀、MR 读取、普通评论、审批结果未知后的对账、受限通知与模拟本地 push 建议。
 
 缺失 / 未知渠道和无效认证状态的展示另由 `tests/remote-auth-section.client.spec.tsx` 覆盖；认证变更遇到旧 capability 读取在途的回归位于 `tests/remote-client.spec.ts`。

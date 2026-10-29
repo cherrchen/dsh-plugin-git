@@ -18,13 +18,14 @@ import type { SubprocessRuntime } from '@deepseek-ai/dsh-subprocess'
 
 const fixtures = new Map<string, Fixture>()
 const CLIENT = 'isolated-e2e-client'
-const scenarios = ['gh', 'ref', 'oauth', 'anonymous', 'orphan', 'gitlab', 'gitlab-approval-unknown', 'gitlab-oauth']
+const scenarios = ['gh', 'ref', 'oauth', 'anonymous', 'orphan', 'gitlab', 'gitlab-approval-unknown', 'gitlab-oauth', 'gitlab-com-signed-out']
 const ORPHAN = 'https://old.example'
 const GITLAB = 'https://git.example.test/gitlab'
 const SHA = 'a'.repeat(40)
 const json = (body: unknown) => new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } })
 
 class Fixture {
+  readonly instance: string
   readonly id = randomUUID()
   readonly root = mkdtempSync(join(tmpdir(), 'dsh-git-auth-e2e-'))
   runtime: GitRemoteRuntime
@@ -41,10 +42,12 @@ class Fixture {
     GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: '',
   }
   constructor(readonly scenario: string, readonly outcome = 'success') {
+    this.instance = scenario === 'gitlab-com-signed-out' ? 'https://gitlab.com' : GITLAB
     execFileSync('git', ['init', '-b', 'main'], { cwd: this.root, env: this.env, stdio: 'ignore' })
-    execFileSync('git', ['remote', 'add', 'origin', scenario.startsWith('gitlab') ? `${GITLAB}/group/sub/repo.git` : 'https://github.com/fixture/repo.git'], { cwd: this.root, env: this.env })
+    execFileSync('git', ['remote', 'add', 'origin', scenario.startsWith('gitlab') ? `${this.instance}/group/sub/repo.git` : 'https://github.com/fixture/repo.git'], { cwd: this.root, env: this.env })
     if (scenario === 'oauth') this.records.set('dsh-plugin-git/github-com', grantRecord({ v: 1, state: 'authenticated', revision: randomUUID(), host: 'github.com', clientId: CLIENT, accessToken: this.token('oauth') }))
     if (scenario === 'orphan') this.records.set(gitLabGrantKey(ORPHAN), { kind: 'grant', payload: { v: 2, provider: 'gitlab', instance: ORPHAN, revision: randomUUID(), state: 'authenticated', clientId: 'fixture-app', accessToken: this.token('orphan'), refreshToken: this.token('refresh'), expiresAt: 1000 } })
+    if (scenario === 'gitlab-com-signed-out') this.records.set(gitLabGrantKey(this.instance), { kind: 'grant', payload: { v: 2, provider: 'gitlab', instance: this.instance, revision: randomUUID(), state: 'signed-out' } })
     const credentials: GitRemoteCredentialService = {
       readRecord: async key => this.records.get(key),
       modifyRecord: (key, mutate) => {
@@ -58,11 +61,11 @@ class Fixture {
     }
     const reader = (read: () => string) => ({ readFrom: (from: number) => ({ text: read().slice(from), nextOffset: read().length, lossy: false }) })
     const subprocess: GitRemoteSubprocess = {
-      resolveExecutable: async command => command === 'gh' ? '/e2e/gh' : 'git',
+      resolveExecutable: async command => command === 'gh' || command === 'glab' ? `/e2e/${command}` : 'git',
       spawn: spec => {
         let stdout = ''; let stderr = ''
         // Only the external credential providers are substituted; Git repository reads run for real.
-        const probe = spec.argv[0] === '/e2e/gh' ? 'gh' : spec.argv.includes('credential') && spec.argv.includes('fill') ? 'helper' : undefined
+        const probe = spec.argv[0] === '/e2e/gh' ? 'gh' : spec.argv[0] === '/e2e/glab' ? 'glab' : spec.argv.includes('credential') && spec.argv.includes('fill') ? 'helper' : undefined
         const done = probe === undefined ? new Promise<{ exitCode: number | null; signal: string | null }>((resolve, reject) => {
           execFile('git', [...spec.argv.slice(1)], { cwd: spec.cwd, env: { ...this.env, ...spec.env }, signal: spec.signal, encoding: 'utf8', maxBuffer: 1_048_576 }, (error, out, err) => {
             stdout = out; stderr = err
@@ -71,14 +74,14 @@ class Fixture {
           })
         }) : Promise.resolve().then(() => {
           this.calls.push(`probe:${probe}`)
-          stdout = probe === 'gh' ? (scenario === 'gh' ? this.token('gh') : '') : `protocol=https\nhost=github.com\npassword=${this.token('helper')}\n`
+          stdout = probe === 'glab' ? this.token('gitlab') : probe === 'gh' ? (scenario === 'gh' ? this.token('gh') : '') : `protocol=https\nhost=github.com\npassword=${this.token('helper')}\n`
           return { exitCode: 0, signal: null }
         })
         return { collected: { stdout: reader(() => stdout), stderr: reader(() => stderr) }, done }
       },
     }
     const service = new GitService(subprocess as SubprocessRuntime, { executable: 'git', maxOutputBytes: 1_048_576, graceMs: 1000 })
-    this.createRuntime = () => new GitRemoteRuntime(credentials, subprocess, service, { clientId: CLIENT, ...(scenario.startsWith('gitlab') ? { instances: [{ url: GITLAB, credentialRef: 'OFFICE', ...(scenario === 'gitlab-oauth' ? { clientId: CLIENT } : {}) }] } : {}) })
+    this.createRuntime = () => new GitRemoteRuntime(credentials, subprocess, service, { clientId: CLIENT, ...(scenario.startsWith('gitlab') ? { instances: [{ url: this.instance, credentialRef: 'OFFICE', ...(['gitlab-oauth', 'gitlab-com-signed-out'].includes(scenario) ? { clientId: CLIENT } : {}) }] } : {}) })
     this.runtime = this.createRuntime()
   }
   async restart() { await this.runtime.dispose(); this.runtime = this.createRuntime() }
@@ -96,13 +99,14 @@ const originalFetch = globalThis.fetch
 // The production transport keeps its pinned GitHub origins. Every outbound request is intercepted here.
 globalThis.fetch = async (input, init) => {
   const url = new URL(String(input))
-  if (url.origin === 'https://git.example.test') {
+  if (url.origin === 'https://git.example.test' || url.origin === 'https://gitlab.com') {
+    const path = url.origin === 'https://gitlab.com' ? `/gitlab${url.pathname}` : url.pathname
     const form = new URLSearchParams(String(init?.body))
-    if (url.pathname === '/gitlab/oauth/authorize_device' && form.get('client_id') === CLIENT) {
+    if (path === '/gitlab/oauth/authorize_device' && form.get('client_id') === CLIENT) {
       const fixture = [...fixtures.values()].at(-1)!
-      return json({ device_code: fixture.id, user_code: 'E2E-CODE', verification_uri: `${GITLAB}/oauth/device`, verification_uri_complete: `${GITLAB}/oauth/device?user_code=E2E-CODE`, expires_in: 60, interval: 0.05 })
+      return json({ device_code: fixture.id, user_code: 'E2E-CODE', verification_uri: `${fixture.instance}/oauth/device`, verification_uri_complete: `${fixture.instance}/oauth/device?user_code=E2E-CODE`, expires_in: 60, interval: 0.05 })
     }
-    if (url.pathname === '/gitlab/oauth/token') {
+    if (path === '/gitlab/oauth/token') {
       const fixture = fixtures.get(form.get('device_code') ?? '')
       if (fixture === undefined) throw new Error('E2E unknown GitLab login')
       if (fixture.outcome === 'denied') return json({ error: 'access_denied' })
@@ -112,10 +116,10 @@ globalThis.fetch = async (input, init) => {
     const authorization = new Headers(init?.headers).get('authorization') ?? ''
     const fixture = [...fixtures.values()].find(value => authorization === `Bearer ${value.token('gitlab')}`)
     if (fixture === undefined) throw new Error('E2E blocked an unrecognized GitLab credential')
-    const path = url.pathname, method = init?.method ?? 'GET'
+    const method = init?.method ?? 'GET'
     fixture.calls.push(`gitlab:${method}:${path}`)
     const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'x-next-page': '' } })
-    const mr = { id: 123, iid: 7, title: 'Fixture merge request', description: '**Safe** description', state: 'opened', author: null, source_project_id: 42, target_project_id: 42, source_branch: 'topic', target_branch: 'main', sha: SHA, draft: false, detailed_merge_status: 'mergeable', squash_on_merge: false, user: { can_merge: true }, diff_refs: { base_sha: SHA, start_sha: SHA, head_sha: SHA }, web_url: `${GITLAB}/group/sub/repo/-/merge_requests/7` }
+    const mr = { id: 123, iid: 7, title: 'Fixture merge request', description: '**Safe** description', state: 'opened', author: null, source_project_id: 42, target_project_id: 42, source_branch: 'topic', target_branch: 'main', sha: SHA, draft: false, detailed_merge_status: 'mergeable', squash_on_merge: false, user: { can_merge: true }, diff_refs: { base_sha: SHA, start_sha: SHA, head_sha: SHA }, web_url: `${fixture.instance}/group/sub/repo/-/merge_requests/7` }
     if (path === '/gitlab/api/v4/user') return response({ id: 9, username: 'fixture-gitlab-user' })
     if (path === '/gitlab/api/v4/metadata') return response({ version: 'fixture' })
     if (path === '/gitlab/api/v4/projects/group%2Fsub%2Frepo') return response({ id: 42, path_with_namespace: 'group/sub/repo', merge_requests_access_level: 'enabled', merge_method: 'merge', squash_option: 'default_off' })
@@ -126,7 +130,7 @@ globalThis.fetch = async (input, init) => {
     if (path === '/gitlab/api/v4/projects/42/merge_requests/7/approvals') return response({ project_id: 42, iid: 7, approved_by: [], approved: false, user_can_approve: true, user_has_approved: false })
     if (path === '/gitlab/api/v4/projects/42/merge_requests/7/notes' && method === 'GET') return response(fixture.notes.map((body, index) => ({ id: 600 + index, body, author: { id: 9, username: 'fixture-gitlab-user' }, system: false })))
     if (path === '/gitlab/api/v4/projects/42/merge_requests/7/notes' && method === 'POST') { const body = JSON.parse(String(init?.body)) as { body: string }; fixture.notes.push(body.body); return response({ id: 600 + fixture.notes.length - 1 }, 201) }
-    if (path === '/gitlab/api/v4/todos' && method === 'GET') return response([{ id: 11, action_name: 'review_requested', state: 'pending', project: { id: 42, path_with_namespace: 'group/sub/repo' }, target_type: 'MergeRequest', target: { id: 123, iid: 7, project_id: 42, target_project_id: 42, title: 'Fixture review', state: 'opened' }, target_url: `${GITLAB}/group/sub/repo/-/merge_requests/7`, updated_at: '2026-10-27T00:00:00Z' }])
+    if (path === '/gitlab/api/v4/todos' && method === 'GET') return response([{ id: 11, action_name: 'review_requested', state: 'pending', project: { id: 42, path_with_namespace: 'group/sub/repo' }, target_type: 'MergeRequest', target: { id: 123, iid: 7, project_id: 42, target_project_id: 42, title: 'Fixture review', state: 'opened' }, target_url: `${fixture.instance}/group/sub/repo/-/merge_requests/7`, updated_at: '2026-10-27T00:00:00Z' }])
     if (path === '/gitlab/api/v4/projects/42/merge_requests/7/approve' && method === 'POST') {
       if (fixture.scenario === 'gitlab-approval-unknown') throw new Error('Fixture lost the approval response after send')
       return response({ id: 123, iid: 7, project_id: 42 })

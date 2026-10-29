@@ -58,3 +58,26 @@ for (const provider of ['GitHub', 'GitLab']) {
     await expect(dialog.getByRole('radio', { name: `${provider} OAuth (device login)` })).not.toBeChecked()
   })
 }
+
+for (const method of ['cli', 'oauth']) {
+  test(`GitLab: restores ${method} from a persisted signed-out marker without a blocking error`, async ({ page }) => {
+    await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort())
+    await page.goto('/?scenario=gitlab-com-signed-out&lang=en&desktop=mock')
+    await page.getByRole('button', { name: 'Platform authentication', exact: true }).click()
+    const dialog = page.getByRole('dialog', { name: 'Platform authentication' })
+    await expect(dialog.getByText('Disconnected', { exact: true })).toBeVisible()
+    await expect(dialog.getByRole('alert')).toHaveCount(0)
+    const radio = dialog.getByRole('radio', { name: method === 'cli' ? 'GitLab CLI (glab)' : 'GitLab OAuth (device login)', exact: true })
+    await expect(radio).toBeEnabled()
+    await radio.click()
+    if (method === 'oauth') {
+      await expect(dialog.getByText('E2E-CODE', { exact: true })).toBeVisible()
+      const id = await page.getByLabel('Fixture ID').textContent()
+      await page.request.post('/__test/approve', { data: { id } })
+    }
+    await expect(radio).toBeChecked()
+    await expect(dialog.getByRole('alert')).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('button', { name: /Fixture merge request/ })).toBeVisible()
+  })
+}
