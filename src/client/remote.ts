@@ -11,6 +11,7 @@ import type { RemoteLoginStatus } from './remote/remote-view.ts'
 
 const OFF: GitRemoteCapability = { state: 'off', reason: 'implementation-pending', auth: { state: 'off' } }
 const equal = (a: GitRemoteGeneration | undefined, b: GitRemoteGeneration | undefined) => a !== undefined && b !== undefined && a.instanceId === b.instanceId && a.revision === b.revision
+const sameAccounts = (a: readonly RemoteAccountDescriptor[] | undefined, b: readonly RemoteAccountDescriptor[]) => a !== undefined && a.length === b.length && a.every((item, index) => { const next = b[index]!; return item.provider === next.provider && item.instance === next.instance && item.label === next.label })
 /** Upstream pages fetched by the first request of a progressive list; continuations take one page each. */
 const FIRST_PAGES = 1
 /** Re-entering a view within this window needs no network validation. */
@@ -90,7 +91,7 @@ export class GitRemoteFeature {
       return
     }
     void this.scoped.accounts(this.owner.signal).then(list => {
-      if (this.owner.signal.aborted) return
+      if (this.owner.signal.aborted || sameAccounts(this.accountsList, list)) return
       this.accountsList = list
       for (const listener of this.listeners) listener()
     }, () => {})

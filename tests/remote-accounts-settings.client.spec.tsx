@@ -75,6 +75,27 @@ describe('RemoteAccountsSettings', () => {
     await waitFor(() => expect(f.call.mock.calls.filter(call => call[1] === 'remote-account').length).toBeGreaterThan(before))
     f.feature.dispose()
   })
+  it('re-discovers instances on capability polls even when the GitHub generation is unchanged', async () => {
+    const options: { accounts?: unknown } = { accounts: [
+      { provider: 'github', instance: 'https://github.com' },
+      { provider: 'gitlab', instance: 'https://gitlab.com' },
+    ] }
+    const f = fixture(options)
+    render(<RemoteAccountsSettings feature={f.feature} t={t} />)
+    await waitFor(() => expect(screen.getByText('GitLab.com')).toBeTruthy())
+    const requests = () => f.call.mock.calls.filter(call => call[1] === 'remote-accounts').length
+    const before = requests()
+    // The registry reconciles a new instance without changing the unscoped GitHub generation.
+    options.accounts = [
+      { provider: 'github', instance: 'https://github.com' },
+      { provider: 'gitlab', instance: 'https://gitlab.com' },
+      { provider: 'gitlab', instance: 'https://git.example.com' },
+    ]
+    f.feature.refresh()
+    await waitFor(() => expect(requests()).toBeGreaterThan(before))
+    await waitFor(() => expect(screen.getByText('git.example.com')).toBeTruthy())
+    f.feature.dispose()
+  })
   it('shows the invalid credential status and the unavailable line when the seam is off', async () => {
     const f = fixture({ auth: { state: 'invalid' } })
     render(<RemoteAccountsSettings feature={f.feature} t={t} />)

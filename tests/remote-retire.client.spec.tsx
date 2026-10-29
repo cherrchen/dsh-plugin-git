@@ -82,6 +82,7 @@ describe('orphan-grant settings dialog', () => {
       subscribe: () => () => {},
       getSnapshot: () => capOn,
       getAccounts: () => accounts,
+      loadAccounts: vi.fn(),
       scoped: { available: true },
       retireGrant,
       accountControllerFor: () => controller,

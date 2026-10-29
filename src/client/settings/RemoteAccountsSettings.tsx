@@ -70,6 +70,9 @@ export function RemoteAccountsSettings({ feature, summary = false, t }: {
   const heading = useId()
   const capability = useSyncExternalStore(feature.subscribe, feature.getSnapshot)
   const accounts = useSyncExternalStore(feature.subscribe, feature.getAccounts)
+  // The registry reconciles GitLab instance config without touching the GitHub generation, so the
+  // generation-keyed accounts load cannot see it; rediscover on entry and each capability poll while open.
+  useEffect(() => { if (!summary) feature.loadAccounts() }, [feature, capability, summary])
   const [retireOpen, setRetireOpen] = useState(false)
   const [toast, setToast] = useState<{ seq: number; key: RetireToastKey }>()
   const [failure, setFailure] = useState<{ seq: number; report: GitErrorReport }>()
