@@ -161,3 +161,5 @@ Codes: git/remote-unavailable, git/unauthenticated, git/signed-out, git/insuffic
 Automated evidence lives in tests/remote-*.spec.ts and tests/remote-surface.client.spec.tsx. The [plan log](../plans/active/remote-platform-integration.en.md#progress-and-validation-log) records real OAuth/SSO, remote-write, platform-manual and full-release-matrix status. Mocks and the development pin cannot substitute for those checks.
 
 Authentication switches, retries, and completed OAuth login from a GitLab detail view reload the original MR/Issue and its object permissions under the new identity, preserving the navigation target; logout withdraws the previous identity’s data.
+
+v2 scoped mutations, like the legacy channel, invalidate all session, list-filter, and detail caches for the same local repository on success, rejection, or response loss; targeted reconciliation gates for unknown outcomes remain in place.

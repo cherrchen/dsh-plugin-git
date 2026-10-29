@@ -107,6 +107,28 @@ describe('GitLab scoped controller', () => {
     expect(f.call.mock.calls.some(args => args[1] === 'remote-pr')).toBe(true)
     expect(f.call.mock.calls.some(args => args[1] === 'remote-list-prs')).toBe(false)
   })
+  it.each(['succeeded', 'rejected', 'unknown'] as const)('invalidates sibling list caches after a %s scoped write', async outcome => {
+    const f = fixture(endpoint => endpoint === 'remote-comment' ? outcome === 'rejected'
+      ? { ok: false, error: { code: 'git/insufficient-scope' } }
+      : outcome === 'unknown' ? Promise.reject(new Error('lost response'))
+      : { ok: true, value: { remoteProtocol: 2, scope, generation, value: { outcome: 'succeeded', steps: [] } } } : undefined)
+    f.feature.refresh()
+    await vi.waitFor(() => expect(f.feature.getSnapshot().state).toBe('on'))
+    const list = f.feature.controllerFor('another-session', 'list')
+    list.setRepository('/repo', false)
+    await list.ensureList()
+    await list.ensureList('issues')
+    await list.ensureList('pulls')
+    await ready(f.controller)
+    await f.controller.write('remote-comment', { body: 'hello' })
+    const count = (endpoint: string) => f.call.mock.calls.filter(args => args[1] === endpoint).length
+    const before = count('remote-list-prs'), issuesBefore = count('remote-list-issues')
+    await list.ensureList()
+    await list.ensureList('issues')
+    expect(count('remote-list-prs')).toBe(before + 1)
+    expect(count('remote-list-issues')).toBe(issuesBefore + 1)
+    expect(f.controller.getSnapshot().blocked).toBe(outcome === 'unknown')
+  })
   describe.each(['pulls', 'issues'] as const)('%s target changes', kind => {
     it.each(['pagination', 'failure'] as const)('clears the previous target rows before %s on an uncached target', async mode => {
       const other = { ...target, path: 'group/other' }

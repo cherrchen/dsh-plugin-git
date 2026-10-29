@@ -161,3 +161,5 @@ checkout 抓取到含 base repo hash 的私有 ref，核验 API head SHA；同�
 自动化证据分布在 `tests/remote-*.spec.ts` 与 `tests/remote-surface.client.spec.tsx`。真实 OAuth/SSO、远端写入、平台手工验收和完整 release 矩阵的执行状态以[计划日志](../plans/active/remote-platform-integration.md#进度与验证日志)为准；mock 与开发 pin 通过不能代替这些验收。
 
 GitLab 详情中的认证切换、重试与 OAuth 授权完成后，在新身份下重新读取原 MR/Issue 及对象权限，保留详情导航目标；退出时撤回旧身份数据。
+
+v2 scoped 写入与旧通道一致：无论成功、拒绝或响应丢失，均使同一本地仓库下所有会话、列表筛选和详情缓存失效；保留未知结果的定向核对门禁。

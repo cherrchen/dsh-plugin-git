@@ -927,6 +927,7 @@ export class GitRemoteController {
     throw new ScopedProtocolError('invalid-response')
   }
   private async mutation(endpoint: string, payload: Record<string, unknown>, epoch: number, generation: GitRemoteGeneration | undefined, action: string, number?: number): Promise<{ generation: GitRemoteGeneration; value: RemoteWriteOutcome }> {
+    const repository = this.state.repository
     try {
       const result = await this.scopedCall<unknown>(endpoint, payload, epoch, generation)
       const value = this.normalizeOutcome(endpoint, result.value)
@@ -940,6 +941,8 @@ export class GitRemoteController {
       }
       const reason = error instanceof ScopedProtocolError && invalidProtocol(error) ? error.reason : 'write-response-lost'
       throw new ScopedProtocolError(reason, 'git/write-result-unknown', { action, ...(number === undefined ? {} : { number }) })
+    } finally {
+      this.feature.invalidate(repository)
     }
   }
   private confirmationIdentity(): string | undefined {
