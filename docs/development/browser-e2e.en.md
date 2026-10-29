@@ -41,6 +41,7 @@ The browser cases cover:
 - The complete internal anonymous-to-OAuth device-login flow and cancellation;
 - Absence of token bodies from browser RPC responses and page content;
 - Authentication isolation between separate browser contexts and credential stores;
+- Switching from simulated CLI rate limiting back to saved OAuth restores the list without device reauthorization; repeated switches preserve the CLI cooldown without another server request;
 - GitLab.com startup with a persisted signed-out marker preserves instance authentication controls without raw errors; simulated glab and Device Flow each restore authentication and repository lists;
 - GitLab instance prefixes, MR reads, comments, reconciliation after an unknown approval, limited notices and simulated local-push suggestions.
 

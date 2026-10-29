@@ -559,7 +559,7 @@ Desktop 宿主现有源码可见 `shell.openExternal(url): Promise<void>` 和 `c
 - [x] O2 公开 ID：维护者于 2026-10-29 提供 GitHub/GitLab.com 应用 ID，唯一登记于 [`oauth-apps.json`](../../../oauth-apps.json)，普通 Host 构建自动嵌入；真实应用能力及自建实例的注册、权限与 Device Flow 可用性仍属 O6 验收。应用注册表单可能要求填写 Redirect URI，不代表本流程需要运行回调服务器。
 - [x] O3：Host 与 Client 双重 URL 校验、可选字段向后兼容、倒计时及 query 与当前用户码绑定；RPC、日志与 argv 不泄露秘密。
 - [x] O4/O5（隔离）：GitHub CLI → OAuth → CLI E2E，GitLab glab 来源的组件选项及旧 Host 清 grant → retry 兼容回归；两平台的成功、拒绝、过期、取消及打开浏览器失败均有隔离 E2E。Mock Desktop 验证 URL/打开次数和卸载后的手工继续，CI 不连接真实 OAuth。
-- [x] O6 自动化：`pnpm test --maxWorkers=4`（73 文件 911 项）、`pnpm test:e2e`（24 项）、构建、artifact（公开 ID 接入后 7 项）、兼容性、文档与空白检查。另用临时产物构建验证公开 ID 嵌入、环境覆盖/显式禁用及构建标记替换；Client 产物不含发行应用 ID。
+- [x] O6 自动化：`pnpm test --maxWorkers=4`（73 文件 912 项）、`pnpm test:e2e`（25 项）、构建、artifact（公开 ID 接入后 7 项）、兼容性、文档与空白检查。另用临时产物构建验证公开 ID 嵌入、环境覆盖/显式禁用及构建标记替换；Client 产物不含发行应用 ID。
 - [ ] O6 真实平台：真实 GitHub/GitLab 应用登录与 glab 身份、macOS/Windows 浏览器及凭据存储体验。真实公开应用 ID 已配置；未操作真实账号授权或凭据，未实测部分保持未验证。
 
 实施优先 O1，再完成不依赖真实应用 ID 的 O3–O5；O2 的维护者注册可同期准备，缺 ID 不阻塞隔离实现，但阻塞“普通用户开箱即用”的真实验收。当前已实现高级折叠、登录契约/URL 校验、控制器拥有的浏览器打开/复制/生命周期、本地化结果和构建期发行 ID（`DSH_GIT_GITHUB_CLIENT_ID`、`DSH_GIT_GITLAB_CLIENT_ID`）；显式空配置禁用发行默认，自建实例不继承公共平台应用。初期按用户要求先完成代码与隔离测试；维护者现已提供公开 ID 并纳入普通构建，真实应用 Device Flow、账号 OAuth、系统原生体验和发布仍未验证。O4/O5 路径已有 mock 自动化覆盖，真实 glab 身份与平台验收另行保留。
@@ -569,6 +569,8 @@ Desktop 宿主现有源码可见 `shell.openExternal(url): Promise<void>` 和 `c
 CLI/OAuth 的选择现在与 OAuth grant 分开持久化；切到 CLI 保留授权，切回 OAuth 先复用缓存，新增仅 OAuth 退出并保留 CLI 登录。协议和存储边界以 [RPC 参考](../../reference/remote-platform-rpc.md#配置与认证) 为准。隔离测试覆盖两平台引擎重建、缓存复用、过期与畸形偏好拒绝、GitLab 校验期间其他 owner 切换方式、设备登录不因自身偏好更新而被取消；浏览器重建 Host 后再次切换，以及 CLI 活跃时仅退出 OAuth。真实平台/系统存储验收仍未执行。
 
 认证恢复补充：修复持久 signed-out 被当成持续错误并清空 GitLab 认证入口的问题；保留退出状态和仓库事实撤回，通过实例 capability 恢复显式认证。控制器覆盖 CLI/OAuth 恢复及 capability 暂时失败后的重试，浏览器使用 GitLab.com 的模拟 glab/设备流程分别验证。
+
+限流隔离补充：GitLab 实例读取器原先共用的限流截止时间、失败次数与服务端轮询间隔现按凭据摘要保存，覆盖读取和写入；切回旧凭据仍保留原期限。单元及隔离浏览器回归覆盖 CLI 限流 → 已保存 OAuth 恢复 → CLI 仍受限，不需要重新授权或重复发送受限请求。
 
 ## 验证
 

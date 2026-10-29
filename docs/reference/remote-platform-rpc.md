@@ -115,6 +115,8 @@ Remote 列表、详情与认证弹窗通过顶部状态条区分查找远端、�
 
 用户选择 OAuth 后，Host 自动获取设备码；控制器保留当前 attempt，调用现有轮询，每个 attempt 只自动打开浏览器一次。GitLab 优先使用 Host/Client 双重校验的 `verificationUriComplete`（origin、部署前缀、精确路径、唯一且匹配用户码的 query）；旧 Host 没有该字段时回退普通链接。GitHub 只使用官方普通验证页，用户可点击“复制设备码”后粘贴确认。复制失败不得显示成功；打开失败、没有 Desktop 或增强卸载时，保留手工外链与可复制的码。`shell.openExternal` 和 `clipboard.writeText` 仅通过可卸载 Desktop 子 fiber 的结构回调提供；HTTP/轮询留在 Host，浏览器在当前 Client 设备打开，支持远程 Host。
 
+GitLab 的限流/退避与服务端轮询间隔按实例内的凭据摘要隔离，读、审批策略及写入共用该凭据的预算。CLI/OAuth 切换不能把旧凭据的 `blockedUntil` 带给另一凭据；切回原凭据或仅重建认证 generation 仍保留其原有限流期限。预算仅在 Host 实例生命周期中保留，Map 键为摘要、不保存原始 token，也不通过 RPC 返回；响应/分页/游标缓存仍按既有 generation 规则隔离。切换后新凭据若也收到服务端限流，仍遵守它自己的 Retry-After/reset 与退避，写请求不会自动重放。
+
 GitLab 读取遇到 `git/signed-out` 或 `git/unauthenticated` 时仍撤回仓库、viewer 与动作事实，并取消旧请求；随后通过新请求通道读取同一实例的认证 capability，以恢复认证入口。已确认的 signed-out 显示为正常退出状态，不把原始错误码持续留在页面；已知退出时不继续读取受保护的仓库/列表。能力读取暂时失败后，打开弹窗或显式认证可重试该实例的 capability，不能用全局 GitHub capability 决定 GitLab 登录入口。整个恢复过程不清除退出标记、不自动登录；只有用户显式选择 CLI/OAuth 才继续认证。
 
 等待期间禁切认证方法，显示服务端有效期倒计时；不将打开浏览器视为授权成功，收到授权后重新核验账号并刷新对应实例数据。取消、过期、拒绝与网络失败给本地化结果并允许用户重试；不自动创建下一轮登录。关弹窗不取消，重开恢复同一 attempt；实例/工作区/账号变更、卸载或显式取消会丢弃旧结果并清理所属 attempt，迟到响应不能污染新账号。认证完成后立即刷新 capability；旧读取在途时追加一次读取。token、fingerprint、`device_code` 不进入 UI；展示/复制的是 `userCode`。隔离测试边界见[浏览器 E2E](../development/browser-e2e.md)。

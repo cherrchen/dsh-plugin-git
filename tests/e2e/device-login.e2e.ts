@@ -81,3 +81,29 @@ for (const method of ['cli', 'oauth']) {
     await expect(page.getByRole('button', { name: /Fixture merge request/ })).toBeVisible()
   })
 }
+
+test('GitLab: OAuth escapes a CLI cooldown, while returning to CLI retains its cooldown', async ({ page }) => {
+  await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort())
+  await page.goto('/?scenario=gitlab-com-rate-limit&lang=en')
+  await expect(page.getByRole('button', { name: /Fixture merge request/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Platform authentication', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Platform authentication' })
+  const oauth = dialog.getByRole('radio', { name: 'GitLab OAuth (device login)', exact: true })
+  const cli = dialog.getByRole('radio', { name: 'GitLab CLI (glab)', exact: true })
+  await expect(oauth).toBeChecked()
+  for (let i = 0; i < 2; i++) {
+    await cli.click()
+    await expect(dialog.getByRole('alert')).toHaveText('git/rate-limited')
+    await expect(cli).toBeChecked()
+    await oauth.click()
+    await expect(oauth).toBeChecked()
+    await expect(dialog.getByRole('alert')).toHaveCount(0)
+    await expect(dialog.getByText('E2E-CODE', { exact: true })).toHaveCount(0)
+  }
+  const id = await page.getByLabel('Fixture ID').textContent()
+  const info = await page.request.post('/__test/inspect', { data: { id } }).then(response => response.json())
+  expect(info.calls.filter((call: string) => call === 'quota:glab')).toHaveLength(1)
+  expect(info.calls).not.toContain('remote-login')
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button', { name: /Fixture merge request/ })).toBeVisible()
+})
