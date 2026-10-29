@@ -21,13 +21,16 @@ const loginFeedback: Record<RemoteLoginStatus, GitLocaleKey> = {
 }
 
 /** Toolbar entry to the platform-authentication dialog; the controller owns the login-attempt state. */
-export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, controller, t }: {
+export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, controller, triggerLabel, triggerVariant = 'outline', t }: {
   readonly capability: GitRemoteCapabilityOn | ScopedRemoteCapabilityOn
   readonly viewer: GitRemoteViewer | undefined
   readonly busy: boolean
   /** Scoped GitLab target: labels and retry semantics follow the instance. */
   readonly gitlab?: boolean
   readonly controller: GitRemoteController
+  /** Text trigger replaces the toolbar icon button (settings account rows). */
+  readonly triggerLabel?: string
+  readonly triggerVariant?: 'outline' | 'ghost' | 'primary' | 'toolbar'
   readonly t: (key: GitLocaleKey) => string
 }): ReactNode {
   const [open, setOpen] = useState(false)
@@ -38,9 +41,11 @@ export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, co
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
   return (
     <>
-      <GitIconButton label={t('remote.auth')} onClick={() => { setOpen(true); if (gitlab) void controller.ensureAuthCapability() }}>
-        <IconUserOutline16 size={14} />
-      </GitIconButton>
+      {triggerLabel === undefined
+        ? <GitIconButton label={t('remote.auth')} onClick={() => { setOpen(true); if (gitlab) void controller.ensureAuthCapability() }}>
+          <IconUserOutline16 size={14} />
+        </GitIconButton>
+        : <Button variant={triggerVariant} size="sm" disabled={busy} onClick={() => { setOpen(true); if (gitlab) void controller.ensureAuthCapability() }}>{triggerLabel}</Button>}
       <Modal
         open={open}
         onClose={() => { setOpen(false) }}

@@ -273,5 +273,6 @@ export function apply(ctx: ClientContext): void {
       mount: mountWorktreeSettings,
     },
     bundleComponent: GitBundleConfigCard,
+    bundleInject: () => ({ remoteFeature }),
   })
 }

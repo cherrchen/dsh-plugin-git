@@ -6,6 +6,8 @@ import type { GitRpcClient } from './controller.ts'
 export class ScopedProtocolError extends Error {
   constructor(readonly reason: string, readonly code?: string, readonly details?: Readonly<Record<string, string | number | boolean>>) { super(`git remote scoped protocol unavailable (${reason})`) }
 }
+/** One sign-in destination on the platform-accounts settings list; never carries credential configuration. */
+export interface RemoteAccountDescriptor { readonly provider: 'github' | 'gitlab'; readonly instance: string; readonly label?: string }
 function record(value: unknown): Record<string, unknown> | undefined { return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : undefined }
 function generation(value: unknown): GitRemoteGeneration | undefined {
   const data = record(value)
@@ -111,6 +113,30 @@ export class ScopedRemoteClient {
     const state = value['state'] as 'supported' | 'no-remotes' | 'unsupported'
     if ((state === 'supported') !== (remotes.length > 0) || (state === 'no-remotes' && safeUnresolved.length > 0)) throw new ScopedProtocolError('invalid-discovery')
     return { state, remotes, ...(safeUnresolved.length ? { unresolved: safeUnresolved } : {}) }
+  }
+  async accounts(signal?: AbortSignal): Promise<readonly RemoteAccountDescriptor[]> {
+    if (!this.enabled) throw new ScopedProtocolError('host-not-negotiated')
+    const key = 'accounts', seq = (this.sequence.get(key) ?? 0) + 1, epoch = this.capabilityEpoch
+    this.sequence.set(key, seq)
+    const reply = await this.rpc.call('/git', 'remote-accounts', { remoteProtocol: 2 }, signal)
+    if (!this.enabled || this.capabilityEpoch !== epoch || this.sequence.get(key) !== seq) throw new ScopedProtocolError('stale-response')
+    if (!reply.ok) throw new ScopedProtocolError('control-error')
+    const data = record(reply.value), value = record(data?.['value'])
+    if (data?.['remoteProtocol'] !== 2 || data['scope'] !== undefined || data['generation'] !== undefined || !Array.isArray(value?.['accounts']) || value['accounts'].length > 17) throw new ScopedProtocolError('invalid-accounts')
+    const seen = new Set<string>(), accounts: RemoteAccountDescriptor[] = []
+    for (const raw of value['accounts'] as unknown[]) {
+      const entry = record(raw), provider = entry?.['provider'], instance = entry?.['instance'], label = entry?.['label']
+      if (provider === 'github') {
+        if (instance !== 'https://github.com' || label !== undefined) throw new ScopedProtocolError('invalid-accounts')
+      } else if (provider === 'gitlab') {
+        if (typeof instance !== 'string') throw new ScopedProtocolError('invalid-accounts')
+        try { if (canonicalGitLabInstance(instance) !== instance) throw new ScopedProtocolError('invalid-accounts') } catch { throw new ScopedProtocolError('invalid-accounts') }
+        if (label !== undefined && (typeof label !== 'string' || label.length > 256 || /[\x00-\x1f\x7f]/u.test(label))) throw new ScopedProtocolError('invalid-accounts')
+      } else throw new ScopedProtocolError('invalid-accounts')
+      const id = `${provider}:${instance}`
+      if (!seen.has(id)) { seen.add(id); accounts.push({ provider, instance: instance as string, ...(label === undefined ? {} : { label: label as string }) }) }
+    }
+    return accounts
   }
   async retire(rawInstance: string, signal?: AbortSignal): Promise<{ disposition: 'retired' | 'already-retired' | 'absent' }> {
     if (!this.enabled) throw new ScopedProtocolError('host-not-negotiated')

@@ -6,6 +6,10 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- The plugin settings page gains a "Platform accounts" section for viewing and managing GitHub/GitLab sign-in.
+
 ### Changed
 
 - Extend DSH compatibility to `0.2.1-rc.4` and `0.2.2-alpha.2`, including the optional credentials seam. Accept their host Cordis/schemastery copies while retaining all earlier supported releases and the `0.2.0-rc.2` development pin. See the [compatibility assessment](docs/reference/dsh-compatibility.md).

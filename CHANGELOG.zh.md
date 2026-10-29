@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- 插件设置页新增“平台账号”分区，可查看并管理 GitHub/GitLab 登录。
+
 ### Changed
 
 - 将 DSH 兼容范围扩展至 `0.2.1-rc.4` 与 `0.2.2-alpha.2`（含可选 credentials seam），接受其宿主 Cordis/schemastery 副本，保留全部旧版支持与 `0.2.0-rc.2` 开发 pin。见[兼容评估](docs/reference/dsh-compatibility.md)。

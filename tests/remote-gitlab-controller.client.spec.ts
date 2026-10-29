@@ -411,3 +411,42 @@ describe('GitLab scoped controller', () => {
     expect(f.controller.getSnapshot().detail).toBeUndefined()
   })
 })
+
+describe('pinned account controllers', () => {
+  it('rejects business endpoints on an account-pinned controller', async () => {
+    const f = fixture()
+    const account = f.feature.accountControllerFor(scope)
+    await account.open(7, 'pulls')
+    expect(account.getSnapshot().error).toBe('invalid-target')
+    expect(f.call.mock.calls.every(call => ['remote-capability', 'remote-account', 'remote-select-auth', 'remote-oauth-logout', 'remote-retry-auth', 'remote-login', 'remote-poll-login', 'remote-cancel-login', 'remote-sign-out', 'remote-clear-grant', 'remote-repositories'].includes(String(call[1])) || call[1] !== 'remote-list-prs')).toBe(true)
+  })
+  it('drops a mounted remote controller\'s viewer and reloads when the same scope logs in from settings', async () => {
+    let authenticated = false
+    const envelope = (payload: Record<string, unknown>, value: unknown): Reply => ({ ok: true, value: { remoteProtocol: 2, scope: { provider: payload['provider'] === 'github' ? 'github' : 'gitlab', instance: String(payload['instance'] ?? scope.instance) }, generation, value } })
+    const cap = () => ({ state: 'on', generation, viewer: authenticated ? viewer : undefined, auth: { state: authenticated ? 'authenticated' : 'signed-out' }, credential: { configured: true, writable: true }, actions, loginAvailable: true, automaticRefreshAvailable: false, authMethods: { deviceFlow: { supported: true } }, authSelection: { method: 'oauth', cliAvailable: false, oauthCached: false } })
+    const f = fixture((endpoint, payload) => {
+      if (endpoint === 'remote-account' || endpoint === 'remote-capability' || endpoint === 'remote-retry-auth') return envelope(payload, cap())
+      if (endpoint === 'remote-login') return envelope(payload, { attemptId: 'settings-login', userCode: 'CODE', verificationUri: `${scope.instance}/oauth/device`, expiresAt: Date.now() + 30_000, intervalMs: 1 })
+      if (endpoint === 'remote-poll-login') { authenticated = true; return envelope(payload, { state: 'authenticated' }) }
+      if (endpoint === 'remote-repository' || endpoint === 'remote-pr') return !authenticated ? { ok: false, error: { code: 'git/signed-out' } } : envelope(payload, endpoint === 'remote-pr' ? pull : { actionScope: { path: target.path, projectId: '12' }, viewer, permissions: {}, actions, operationSupport: support, supportedMergeMethods: ['merge'], supportedReviewEvents: ['COMMENT'] })
+      if (endpoint === 'remote-list-prs' || endpoint === 'remote-list-issues' || endpoint === 'remote-comments' || endpoint === 'remote-discussions' || endpoint === 'remote-commits' || endpoint === 'remote-approvals') return !authenticated ? { ok: false, error: { code: 'git/signed-out' } } : envelope(payload, { items: [], truncated: false })
+      return undefined
+    })
+    f.controller.setRepository('/repo')
+    await vi.waitFor(() => expect(f.controller.getSnapshot().scopedCapability?.auth.state).toBe('signed-out'))
+    const unmount = f.controller.subscribe(() => {})
+    const other = f.feature.accountControllerFor({ provider: 'gitlab', instance: 'https://other.example' })
+    await other.refreshAccount()
+    const otherSnapshot = other.getSnapshot()
+    const account = f.feature.accountControllerFor(scope)
+    await account.refreshAccount()
+    expect(account.getSnapshot().scopedCapability?.auth.state).toBe('signed-out')
+    await account.login()
+    await vi.waitFor(() => expect(f.controller.getSnapshot().scopedCapability?.auth.state).toBe('authenticated'))
+    expect(f.controller.getSnapshot().facts?.viewer).toEqual(viewer)
+    expect(f.controller.getSnapshot().items).toEqual([])
+    expect(other.getSnapshot()).toEqual(otherSnapshot)
+    expect(f.call.mock.calls.filter(call => call[1] === 'remote-capability').length).toBeGreaterThan(1)
+    unmount()
+  })
+})

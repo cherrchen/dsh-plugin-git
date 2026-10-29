@@ -100,3 +100,42 @@ it('drops an old GitHub scoped response when the v1 capability announces a new g
   resolve({ ok: true, value: { remoteProtocol: 2, scope: gh, generation: { instanceId: 'old', revision: 1 }, value: {} } })
   await expect(pending).rejects.toMatchObject({ reason: 'stale-response' })
 })
+
+describe('platform accounts list', () => {
+  const accounts = (entries: unknown[]): unknown => ({ remoteProtocol: 2, value: { accounts: entries } })
+  it('accepts a valid list and drops duplicates', async () => {
+    const c = client(accounts([
+      { provider: 'github', instance: 'https://github.com' },
+      { provider: 'gitlab', instance: 'https://git.example.com' },
+      { provider: 'gitlab', instance: 'https://git.example.com' },
+      { provider: 'gitlab', instance: 'https://self.example', label: 'Mine' },
+    ]))
+    c.scoped.observeCapability({ state: 'on', remoteProtocol: 2 })
+    expect(await c.scoped.accounts()).toEqual([
+      { provider: 'github', instance: 'https://github.com' },
+      { provider: 'gitlab', instance: 'https://git.example.com' },
+      { provider: 'gitlab', instance: 'https://self.example', label: 'Mine' },
+    ])
+    expect(c.call).toHaveBeenCalledWith('/git', 'remote-accounts', { remoteProtocol: 2 }, undefined)
+  })
+  it.each([
+    { remoteProtocol: 2, scope: scope, value: { accounts: [] } },
+    { remoteProtocol: 2, generation: gen, value: { accounts: [] } },
+    accounts([{ provider: 'github', instance: 'https://ghe.example.com' }]),
+    accounts([{ provider: 'github', instance: 'https://github.com', label: 'x' }]),
+    accounts([{ provider: 'gitlab', instance: 'https://GIT.EXAMPLE.COM/' }]),
+    accounts([{ provider: 'gitlab', instance: 'not-a-url' }]),
+    accounts([{ provider: 'gitlab', instance: 'https://git.example.com', label: 'bad\nlabel' }]),
+    accounts([{ provider: 'gitlab', instance: 'https://git.example.com', label: 3 }]),
+    accounts(new Array(18).fill({ provider: 'gitlab', instance: 'https://git.example.com' })),
+    accounts(['https://git.example.com']),
+  ])('rejects a malformed accounts reply %j', async value => {
+    const c = client(value); c.scoped.observeCapability({ state: 'on', remoteProtocol: 2 })
+    await expect(c.scoped.accounts()).rejects.toMatchObject({ reason: 'invalid-accounts' })
+  })
+  it('refuses to ask an old host for accounts', async () => {
+    const c = client()
+    await expect(c.scoped.accounts()).rejects.toMatchObject({ reason: 'host-not-negotiated' })
+    expect(c.call).not.toHaveBeenCalled()
+  })
+})

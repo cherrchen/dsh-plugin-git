@@ -84,6 +84,7 @@ function registerSettingsSurfaces(
     commitMessage: SettingsSection<CommitMessageCardSettings>
     worktrees: SettingsSection<WorktreeCardSettings>
     bundleComponent: unknown
+    bundleInject?: () => Record<string, unknown>
   },
   forms: {
     commitMessage: () => CommitMessageSettingsForm<CommitMessageCardSettings>
@@ -109,6 +110,7 @@ function registerSettingsSurfaces(
     key: options.bundleKey,
     locale: options.locale,
     inject: () => ({
+      ...options.bundleInject?.(),
       commitMessage: commitSurface.inject().controller,
       worktrees: worktreeSurface.inject().controller,
     }),
@@ -133,6 +135,8 @@ export function injectDshGitSettings(
     worktrees: SettingsSection<WorktreeCardSettings>
     /** Component rendering both injected controllers (`commitMessage`, `worktrees`) plus `view`. */
     bundleComponent: unknown
+    /** Extra inject payload merged into the `plugins.bundle.config` registration (e.g. `remoteFeature`). */
+    bundleInject?: () => Record<string, unknown>
   },
 ): void {
   const inject = (ctx as unknown as {

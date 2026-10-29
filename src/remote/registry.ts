@@ -41,9 +41,15 @@ class GitLabScopedProvider implements ScopedRemoteProvider {
     const signal = AbortSignal.any([caller, this.owner.signal])
     const run = async () => {
       signal.throwIfAborted()
-      if (['remote-select-auth', 'remote-oauth-logout', 'remote-login', 'remote-poll-login', 'remote-cancel-login', 'remote-sign-out', 'remote-clear-grant', 'remote-retry-auth'].includes(endpoint) && ['credentialRef', 'ref', 'key', 'clientId', 'accessToken', 'refreshToken'].some(key => Object.hasOwn(request, key))) throw unavailable('invalid-request')
+      if (['remote-account', 'remote-select-auth', 'remote-oauth-logout', 'remote-login', 'remote-poll-login', 'remote-cancel-login', 'remote-sign-out', 'remote-clear-grant', 'remote-retry-auth'].includes(endpoint) && ['credentialRef', 'ref', 'key', 'clientId', 'accessToken', 'refreshToken'].some(key => Object.hasOwn(request, key))) throw unavailable('invalid-request')
       let result
       switch (endpoint) {
+        case 'remote-account':
+          try { await this.auth.establish(signal) } catch (error) {
+            // A rejected stored credential already marks the state invalid; the read still reports it.
+            if (!(error instanceof GitRemoteError) || error.details?.['reason'] !== 'invalid-token') throw error
+          }
+          result = await this.auth.capability(signal); break
         case 'remote-capability': result = await this.auth.capability(signal); break
         case 'remote-login': result = await this.auth.startLogin(signal); break
         case 'remote-poll-login': result = await this.auth.pollLogin(attemptId(request), signal); break
