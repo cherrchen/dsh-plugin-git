@@ -44,6 +44,20 @@ function mountItem(base: ReturnType<typeof fixture>['base']) {
   render(<GitRemoteItemSurface {...props} />)
 }
 describe('GitLab remote detail on the shared surfaces', () => {
+  it('keeps notification coverage inside platform authentication and explains unavailable OAuth', async () => {
+    const f = fixture()
+    render(<GitRemoteSurface {...{ ...f.base, openRemoteItem: vi.fn() } as unknown as ComponentProps<typeof GitRemoteSurface>} />)
+    await screen.findByRole('button', { name: /Fixture MR/ })
+    expect(screen.queryByText(en['gitlab.noticeLimit'])).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: en['remote.auth'], exact: true }))
+    const dialog = within(screen.getByRole('dialog', { name: en['remote.auth'] }))
+    expect(dialog.getByText(en['gitlab.noticeLimit'])).not.toBeNull()
+    expect(dialog.getByText('Connected to GitLab')).not.toBeNull()
+    expect(dialog.getByRole('radio', { name: en['remote.authSourceGlab'] })).not.toBeNull()
+    expect((dialog.getByRole('radio', { name: 'GitLab OAuth (device login)' }) as HTMLInputElement).disabled).toBe(true)
+    expect(dialog.getByText(en['remote.oauthNotConfigured'])).not.toBeNull()
+    expect(screen.getByRole('dialog').textContent).not.toMatch(/GitHub|GH_TOKEN|GITHUB_TOKEN/)
+  })
   it('uses actual method and review-event facts and confirms the selected identity', async () => {
     const f = fixture()
     mountItem(f.base)

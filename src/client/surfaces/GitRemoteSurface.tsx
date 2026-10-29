@@ -74,9 +74,8 @@ export function GitRemoteSurface({ gitSessions, remoteFeature, openRemoteItem, s
       </GitIconButton>
     </div>
     <RemoteNotices notices={notices} t={t} />
-    {gitlab && <p className={css.note}>{t('gitlab.noticeLimit')}</p>}
     <div className={css.loadingArea}>
-      <RemoteLoading pending={state.pending} streaming={state.streaming} t={t} />
+      <RemoteLoading pending={state.pending} streaming={state.streaming} provider={(target ?? state.remotes[0]?.identity)?.provider} t={t} />
     </div>
     <div className={css.body}>
       <div className={css.pad}>

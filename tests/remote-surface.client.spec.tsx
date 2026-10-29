@@ -7,7 +7,7 @@ import { GitRemoteItemSurface } from '../src/client/surfaces/GitRemoteItemSurfac
 import { GitRemoteFeature } from '../src/client/remote.ts'
 import { GitSessionControllers } from '../src/client/session-controllers.ts'
 import type { GitRpcClient } from '../src/client/controller.ts'
-import { en } from '../src/client/locales.ts'
+import { en, zh } from '../src/client/locales.ts'
 import { RemoteLoading } from '../src/client/remote/RemoteLoading.tsx'
 const generation = { instanceId: 'host', revision: 1 }
 const repo = { provider: 'github', host: 'github.com', owner: 'owner', repo: 'repo' } as const
@@ -155,7 +155,7 @@ describe('portable remote surface', () => {
     let release!: (reply: Reply) => void
     const { base } = fixture(false, endpoint => endpoint === 'remote-repository' ? new Promise(resolve => { release = resolve }) : undefined)
     const { container } = render(<GitRemoteSurface {...{ ...base, openRemoteItem: vi.fn() } as unknown as ComponentProps<typeof GitRemoteSurface>} />)
-    await screen.findByText(en['remote.connecting'])
+    await screen.findByText(en['remote.connecting'].replace('{platform}', 'GitHub'))
     expect(container.querySelector('[data-git-remote-skeleton]')).not.toBeNull()
     expect(screen.queryByText(en['remote.noRemote'])).toBeNull()
     await act(async () => { release({ ok: false, error: { code: 'git/remote-unavailable', message: 'Connection timed out' } }) })
@@ -183,16 +183,36 @@ describe('portable remote surface', () => {
     try {
       const t = (key: keyof typeof en) => en[key]
       const view = render(<RemoteLoading pending="repository" t={t} />)
-      expect(screen.queryByText(en['remote.slowConnection'])).toBeNull()
+      expect(screen.queryByText(en['remote.slowConnection'].replace('{platform}', en['remote.platform']))).toBeNull()
       await act(async () => { await vi.advanceTimersByTimeAsync(8000) })
-      expect(screen.getByText(en['remote.slowConnection'])).not.toBeNull()
+      expect(screen.getByText(en['remote.slowConnection'].replace('{platform}', en['remote.platform']))).not.toBeNull()
       view.rerender(<RemoteLoading t={t} />)
       expect(screen.queryByRole('status')).toBeNull()
       expect(vi.getTimerCount()).toBe(0)
       view.rerender(<RemoteLoading pending="authorization" t={t} />)
       await act(async () => { await vi.advanceTimersByTimeAsync(8000) })
-      expect(screen.getByText(en['remote.waitingAuth'])).not.toBeNull()
-      expect(screen.queryByText(en['remote.slowConnection'])).toBeNull()
+      expect(screen.getByText(en['remote.waitingAuth'].replace('{platform}', en['remote.platform']))).not.toBeNull()
+      expect(screen.queryByText(en['remote.slowConnection'].replace('{platform}', en['remote.platform']))).toBeNull()
+    } finally { vi.useRealTimers() }
+  })
+  it.each(['github', 'gitlab', undefined] as const)('uses the detected %s platform for loading, authorization and slow feedback in both locales', async provider => {
+    vi.useFakeTimers()
+    try {
+      for (const messages of [en, zh]) {
+        const platform = provider === 'github' ? 'GitHub' : provider === 'gitlab' ? 'GitLab' : messages['remote.platform']
+        const t = (key: keyof typeof en) => messages[key]
+        const view = render(<RemoteLoading pending="repository" provider={provider} t={t} />)
+        expect(screen.getByText(messages['remote.connecting'].replace('{platform}', platform))).not.toBeNull()
+        await act(async () => { await vi.advanceTimersByTimeAsync(8000) })
+        expect(screen.getByText(messages['remote.slowConnection'].replace('{platform}', platform))).not.toBeNull()
+        view.rerender(<RemoteLoading pending="auth" provider={provider} t={t} />)
+        expect(screen.getByText(messages['remote.loadingAuth'].replace('{platform}', platform))).not.toBeNull()
+        view.rerender(<RemoteLoading pending="authorization" provider={provider} t={t} />)
+        expect(screen.getByText(messages['remote.waitingAuth'].replace('{platform}', platform))).not.toBeNull()
+        view.rerender(<RemoteLoading pending="items" provider={provider} t={t} />)
+        expect(screen.getByText(messages[provider === 'gitlab' ? 'gitlab.loadingItems' : 'remote.loadingItems'])).not.toBeNull()
+        view.unmount()
+      }
     } finally { vi.useRealTimers() }
   })
   it('opens a pull request detail tab from the list row', async () => {

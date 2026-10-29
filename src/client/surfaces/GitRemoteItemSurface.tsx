@@ -105,7 +105,7 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
       </GitIconButton>
     </div>
     <div className={`${css.loadingArea} ${css.loadingAreaDetail}`}>
-      <RemoteLoading pending={state.pending} streaming={state.streaming} t={t} />
+      <RemoteLoading pending={state.pending} streaming={state.streaming} provider={state.target?.provider ?? identity?.provider} t={t} />
     </div>
     <div className={css.body}>
       <div className={css.detailPad}>

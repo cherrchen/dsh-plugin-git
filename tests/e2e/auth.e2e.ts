@@ -64,6 +64,27 @@ test('completes device login through the real client and auth engine without exp
   expect(await page.locator('body').innerText()).not.toContain('e2e-sentinel-')
 })
 
+test('switches an authenticated CLI user to OAuth and back without hiding either method', async ({ page }) => {
+  const dialog = await openAuth(page, 'gh')
+  const cli = dialog.getByRole('radio', { name: 'GitHub CLI（gh）', exact: true })
+  const oauth = dialog.getByRole('radio', { name: 'GitHub OAuth（设备码登录）', exact: true })
+  await expect(cli).toBeChecked()
+  await expect(oauth).toBeEnabled()
+  await oauth.click()
+  await expect(dialog.getByText('E2E-CODE', { exact: true })).toBeVisible()
+  await expect(cli).toBeDisabled()
+  const id = await page.getByRole('status', { name: 'Fixture ID' }).textContent()
+  await page.request.post('/__test/approve', { data: { id } })
+  await expect(oauth).toBeChecked()
+  await expect(cli).toBeEnabled()
+  await cli.click()
+  await expect(cli).toBeChecked()
+  await expect(oauth).toBeEnabled()
+  const info = await page.request.post('/__test/inspect', { data: { id } }).then(response => response.json())
+  expect(info.capability.auth.source).toBe('gh')
+  expect(info.calls).toContain('remote-clear-grant')
+})
+
 test('cancelling device login never reports OAuth authentication', async ({ page }) => {
   const dialog = await openAuth(page, 'anonymous')
   await expect(dialog.getByText('未连接', { exact: true })).toBeVisible()

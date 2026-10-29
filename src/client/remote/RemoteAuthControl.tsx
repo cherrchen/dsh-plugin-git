@@ -41,7 +41,7 @@ export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, co
         closeLabel={t('branch.cancel')}
         className={`${css.authDialog}`}
       >
-        <RemoteLoading pending={state.pending} t={t} />
+        <RemoteLoading pending={state.login === undefined ? state.pending : 'authorization'} provider={gitlab ? 'gitlab' : 'github'} t={t} />
         {state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
         <RemoteAuthSection
           capability={capability}
@@ -54,6 +54,7 @@ export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, co
           onCancelLogin={() => { void controller.cancelLogin() }}
           t={t}
         />
+        {gitlab && <p className={css.note}>{t('gitlab.noticeLimit')}</p>}
         {controller.scopedAvailable && (
           <section className={css.retireSection} aria-label={t('remote.retireTitle')}>
             <strong>{t('remote.retireTitle')}</strong>

@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { RemoteAuthSection } from '../src/client/remote/RemoteAuthSection.tsx'
-import type { GitRemoteCapabilityOn } from '../src/remote/types.ts'
+import type { GitRemoteCapabilityOn, ScopedRemoteCapabilityOn } from '../src/remote/types.ts'
 import { en, zh } from '../src/client/locales.ts'
 
 afterEach(cleanup)
@@ -21,7 +21,7 @@ function mount(auth: GitRemoteCapabilityOn['auth'], options: { loginAvailable?: 
   return { onAuth, onLogin, view }
 }
 const cli = () => screen.getByRole('radio', { name: en['remote.authSourceGh'] })
-const oauth = () => screen.getByRole('radio', { name: en['remote.authSourceOAuth'] })
+const oauth = () => screen.getByRole('radio', { name: en['remote.authSourceOAuth'].replace('{platform}', 'GitHub') })
 
 describe('authentication status card', () => {
   it.each([
@@ -36,7 +36,7 @@ describe('authentication status card', () => {
       const view = render(<RemoteAuthSection capability={{ ...capability, auth: auth as GitRemoteCapabilityOn['auth'] }}
         viewer={undefined} busy={false} login={undefined} onAuth={vi.fn()} onLogin={vi.fn()} onCancelLogin={vi.fn()}
         t={key => messages[key]} />)
-      expect(screen.getByText(messages[headline], { exact: true })).not.toBeNull()
+      expect(screen.getByText(messages[headline].replace('{platform}', 'GitHub'), { exact: true })).not.toBeNull()
       view.unmount()
     }
   })
@@ -66,7 +66,7 @@ describe('authentication status card', () => {
   })
   it('keeps hint lines for non-authenticated states and drops the removed footer/disconnect hints', () => {
     const { view } = mount({ state: 'anonymous' } as GitRemoteCapabilityOn['auth'])
-    expect(screen.getByText(en['remote.authStatusAnonymousHint'], { exact: true })).not.toBeNull()
+    expect(screen.getByText(en['remote.authStatusAnonymousHint'].replace('{platform}', 'GitHub'), { exact: true })).not.toBeNull()
     expect(view.container.textContent).not.toContain('git fetch')
     view.unmount()
   })
@@ -87,6 +87,56 @@ describe('authentication status card', () => {
 })
 
 describe('authentication method radios', () => {
+  it.each(['github', 'gitlab'] as const)('keeps CLI and OAuth selectable for an authenticated %s CLI user in both locales', provider => {
+    for (const messages of [en, zh]) {
+      const cliLabel = messages[provider === 'gitlab' ? 'remote.authSourceGlab' : 'remote.authSourceGh']
+      const oauthLabel = messages['remote.authSourceOAuth'].replace('{platform}', provider === 'gitlab' ? 'GitLab' : 'GitHub')
+      const onLogin = vi.fn(), onAuth = vi.fn()
+      const renderSection = (source: 'gh' | 'glab' | 'grant') => <RemoteAuthSection
+        capability={{ ...capability, auth: { state: 'authenticated', source }, authMethods: { deviceFlow: { supported: true } } }} viewer={undefined}
+        gitlab={provider === 'gitlab'} busy={false} login={undefined} onAuth={onAuth} onLogin={onLogin} onCancelLogin={vi.fn()} t={key => messages[key]} />
+      const view = render(renderSection(provider === 'gitlab' ? 'glab' : 'gh'))
+      const cliRadio = screen.getByRole('radio', { name: cliLabel }) as HTMLInputElement
+      const oauthRadio = screen.getByRole('radio', { name: oauthLabel }) as HTMLInputElement
+      expect(cliRadio.checked).toBe(true)
+      expect(oauthRadio.disabled).toBe(false)
+      fireEvent.click(oauthRadio)
+      expect(onLogin).toHaveBeenCalledTimes(1)
+      view.rerender(renderSection('grant'))
+      expect(oauthRadio.checked).toBe(true)
+      expect(cliRadio.disabled).toBe(false)
+      fireEvent.click(cliRadio)
+      expect(onAuth).toHaveBeenCalledWith('remote-clear-grant', 'remote-retry-auth')
+      view.unmount()
+    }
+  })
+  it.each([
+    [false, true, false, 'remote.oauthUnsupported'],
+    [true, false, false, 'remote.oauthReadOnly'],
+    [true, true, false, 'remote.oauthNotConfigured'],
+    ['unknown', true, true, 'remote.oauthUnverified'],
+  ] as const)('explains OAuth availability for flow=%s, writable=%s, loginAvailable=%s', (supported, writable, loginAvailable, hint) => {
+    const onLogin = vi.fn()
+    const scoped: ScopedRemoteCapabilityOn = { ...capability, auth: { state: 'authenticated', source: 'glab' }, credential: { configured: true, writable }, authMethods: { deviceFlow: { supported } }, loginAvailable }
+    render(<RemoteAuthSection capability={scoped} gitlab viewer={undefined} busy={false} login={undefined} onAuth={vi.fn()} onLogin={onLogin} onCancelLogin={vi.fn()} t={key => en[key]} />)
+    const oauthRadio = screen.getByRole('radio', { name: 'GitLab OAuth (device login)' }) as HTMLInputElement
+    expect(oauthRadio.disabled).toBe(!loginAvailable)
+    expect(screen.getByText(en[hint]).id).toBe(oauthRadio.getAttribute('aria-describedby'))
+    fireEvent.click(oauthRadio)
+    expect(onLogin).toHaveBeenCalledTimes(loginAvailable ? 1 : 0)
+  })
+  it('uses GitLab copy throughout pending device login and blocks competing method changes', () => {
+    const onCancelLogin = vi.fn()
+    render(<RemoteAuthSection capability={capability} gitlab viewer={undefined} busy={false}
+      login={{ attemptId: 'attempt', userCode: 'TEST-CODE', verificationUri: 'https://gitlab.com/oauth/device' }}
+      onAuth={vi.fn()} onLogin={vi.fn()} onCancelLogin={onCancelLogin} t={key => zh[key]} />)
+    expect(screen.getByRole('link', { name: '打开 GitLab 并输入代码' }).getAttribute('href')).toBe('https://gitlab.com/oauth/device')
+    expect(screen.getByText('在 GitLab 页面输入此代码：')).not.toBeNull()
+    expect(document.body.textContent).not.toContain('GitHub')
+    for (const radio of screen.getAllByRole('radio')) expect((radio as HTMLInputElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: zh['branch.cancel'] }))
+    expect(onCancelLogin).toHaveBeenCalledWith('attempt')
+  })
   it.each([
     [{ state: 'authenticated', source: 'gh' }, true, false],
     [{ state: 'authenticated', source: 'grant' }, false, true],
@@ -108,13 +158,14 @@ describe('authentication method radios', () => {
     fireEvent.click(cli())
     expect(onAuth).toHaveBeenCalledWith(...reset, 'remote-retry-auth')
   })
-  it('selecting OAuth calls onLogin and hides the option without loginAvailable', () => {
+  it('selecting OAuth calls onLogin and keeps a disabled option without loginAvailable', () => {
     const { onLogin } = mount({ state: 'anonymous' } as GitRemoteCapabilityOn['auth'])
     fireEvent.click(oauth())
     expect(onLogin).toHaveBeenCalledTimes(1)
     cleanup()
     mount({ state: 'anonymous' } as GitRemoteCapabilityOn['auth'], { loginAvailable: false })
-    expect(screen.queryByRole('radio', { name: en['remote.authSourceOAuth'] })).toBeNull()
+    expect((oauth() as HTMLInputElement).disabled).toBe(true)
+    expect(screen.getByText(en['remote.oauthNotConfigured'])).not.toBeNull()
     expect(cli()).not.toBeNull()
   })
   it('shows the gh login hint only when not authenticated', () => {

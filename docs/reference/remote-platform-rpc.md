@@ -39,6 +39,8 @@ GitLab 远端 mutator 同样必须带上述身份/会话确认；评论、review
 
 Client 主 fiber 提供 GitHub/GitLab 切换、按本地 remote 的实例/仓库选择和逐实例认证修复，浏览 MR/Issue、当前审批、讨论、提交与比较，按对象 facts 启用受支持操作。旧 Host 未宣告 v2 时不发送 GitLab scoped 请求。关闭与合并先展示实例、仓库、对象、head SHA 和账号并要求再次确认；上下文变化使确认失效。部分或未知结果会阻止再次提交，要求刷新具体对象、加载相关分页并由用户确认已核对；本地 Git 的部分回执还要求检查分支和工作树。提交去重和对账状态仅在当前进程有效。GitLab 正文使用安全 Markdown 子集，未知 HTML 以文本展示，链接只允许已验证实例范围，图片显示替代文本而不自动加载，安全折叠可展开；行内写保持禁用。
 
+Remote 加载与平台认证弹窗复用已发现 remote 的 provider，动态显示 GitHub/GitLab 文案；尚未识别平台时使用中性加载提示。认证弹窗统一状态、CLI/OAuth 选择与设备码流程，两种方法始终展示，已通过 gh/glab 登录不隐藏 OAuth；OAuth 仍按 `loginAvailable`、可写凭据存储和 Device Flow 支持启用，缺 App、只读或已知不支持时禁用并解释原因，支持情况 unknown 时允许显式尝试并提示待确认。已有 OAuth grant 切回 CLI 前先清除本地 grant，再显式重试发现；授权等待期间禁止切换方法，但可取消。GitLab 通知覆盖范围是平台限制，与登录状态无关；说明放在平台认证弹窗内，不占用 Remote 列表页边距。
+
 GitLab 的 `remote-notifications` 只读取已认证 viewer、已核验项目范围内 pending 且结构化 `action_name:review_requested` 的 MR todo；项目 id/path、target 项目/id/iid、状态与安全网页链接均单独校验。续页复用绑定实例、项目、viewer、generation、查询和会话的不透明游标；不会标记 todo 完成，也不从自然语言或审批快照伪造 changes-requested。Client 按实例、项目、账号、generation、对象与状态/时间去重，仅对已加载的本人 MR 逐个复查状态；本地 push 建议只针对已验证的本地 origin/upstream：显式 push 使用 origin；sync 前后读取的 Git push remote 与分支一致且属于允许集合时才投影可选 `pushedRemote`，无法证明时不猜测。通知停留在所属 GitLab 视图，原生通知是可卸载增强；范围和请求失败均不代表所有账号事件已覆盖。
 
 `remote-retire-grant` 只接受 `{remoteProtocol:2,provider:'gitlab',instance}`；完整规范化后由 Host 推导本插件 key。未登记 scope 可纯存储清理，已登记时拒绝；锁内验证 v2 绑定并用新 revision 替换为无秘密 retired signed-out 标记。回执 `{remoteProtocol:2,scope,generation:null,value:{disposition}}` 的 disposition 为 `retired`、`already-retired` 或 `absent`；不依赖枚举、不发网络、不解析外部 ref、不撤销服务端 token。普通 `remote-clear-grant` 仍删除活动实例的本地 grant 并恢复发现。Client 认证弹窗提供输入旧 URL、展示规范 scope、再次确认的清理入口。
@@ -51,7 +53,7 @@ GitHub scoped 读写通过旧 owner 的显式适配层，写入另须 `expectedI
 
 | 字段 | 默认 | 语义 |
 | --- | --- | --- |
-| `clientId` | 无 | GitHub Device Flow 公共 client_id；缺少时隐藏登录，发现链仍可用 |
+| `clientId` | 无 | GitHub Device Flow 公共 client_id；缺少时 OAuth 选项禁用并提示配置，发现链仍可用 |
 | `instances` | 内建 GitLab.com | 最多 16 条显式 GitLab 实例配置；`url`、`label?`、`clientId?`、`credentialRef?`、`sshHost?`、`sshPort?`，身份规则见[多实例设计 D2](../architecture/remote-platform-instances.md#d2-配置与实例身份gl-r2gl-r9gl-r13) |
 | `requestTimeoutMs` | `15000` | HTTP 请求总超时，含全部重定向和正文读取 |
 | `probeTimeoutMs` | `5000` | 非交互凭据探针超时，范围 1–5000 ms |

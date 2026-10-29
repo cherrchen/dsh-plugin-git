@@ -7,6 +7,22 @@ async function openGitLab(page: Page, scenario = 'gitlab', lang = 'en') {
   await expect(page.getByRole('heading', { name: '#7 Fixture merge request' })).toBeVisible()
   await expect(page.getByRole('button', { name: lang === 'en' ? 'Checkout verified PR head' : '检出已核验的 PR 提交' })).toBeEnabled()
 }
+test('keeps GitLab copy and both authentication methods together with notification coverage in the dialog', async ({ page }) => {
+  for (const lang of ['en', 'zh']) {
+    await openGitLab(page, 'gitlab', lang)
+    const coverage = lang === 'en' ? 'Notifications cover review-requested to-dos and state changes of your loaded merge requests. Changes-requested notifications are unavailable.' : '通知仅覆盖审阅请求待办及已加载的本人合并请求状态变化；修改请求通知不可用。'
+    await expect(page.getByText(coverage)).toHaveCount(0)
+    const title = lang === 'en' ? 'Platform authentication' : '平台认证'
+    await page.getByRole('button', { name: title, exact: true }).first().click()
+    const dialog = page.getByRole('dialog', { name: title })
+    await expect(dialog.getByText(lang === 'en' ? 'Connected to GitLab' : '已连接 GitLab', { exact: true })).toBeVisible()
+    await expect(dialog.getByRole('radio', { name: lang === 'en' ? 'GitLab CLI (glab)' : 'GitLab CLI（glab）' })).toBeVisible()
+    await expect(dialog.getByRole('radio', { name: lang === 'en' ? 'GitLab OAuth (device login)' : 'GitLab OAuth（设备码登录）' })).toBeDisabled()
+    await expect(dialog.getByText(coverage)).toBeVisible()
+    expect(await dialog.innerText()).not.toContain('GitHub')
+    await page.screenshot({ path: test.info().outputPath(`gitlab-auth-${lang}.png`), animations: 'disabled' })
+  }
+})
 test('browses a scoped GitLab merge request and posts one comment with an isolated Host', async ({ page }) => {
   const replies: Promise<string>[] = []
   page.on('response', response => { if (response.url().endsWith('/__test/rpc')) replies.push(response.text().catch(() => '')) })
