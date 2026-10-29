@@ -42,6 +42,15 @@ async function ready(controller: ReturnType<typeof fixture>['controller']) {
   expect(controller.getSnapshot().detail?.number).toBe(7)
 }
 describe('GitLab scoped controller', () => {
+  it('executes clear-grant before retry when switching an OAuth grant back to CLI discovery', async () => {
+    const f = fixture()
+    await ready(f.controller)
+    f.call.mockClear()
+    await f.controller.authAction('remote-clear-grant', 'remote-retry-auth')
+    const endpoints = f.call.mock.calls.map(args => args[1])
+    expect(endpoints.slice(0, 2)).toEqual(['remote-clear-grant', 'remote-retry-auth'])
+    expect(f.controller.getSnapshot().error).toBeUndefined()
+  })
   describe.each(['pulls', 'issues'] as const)('%s target changes', kind => {
     it.each(['pagination', 'failure'] as const)('clears the previous target rows before %s on an uncached target', async mode => {
       const other = { ...target, path: 'group/other' }

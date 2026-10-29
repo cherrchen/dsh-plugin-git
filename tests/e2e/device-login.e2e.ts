@@ -1,0 +1,60 @@
+import { expect, test, type Page } from '@playwright/test'
+
+async function openLogin(page: Page, provider: string, options = '') {
+  await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort())
+  await page.goto(`/?scenario=${provider === 'GitLab' ? 'gitlab-oauth' : 'anonymous'}&lang=en&desktop=${options.includes('desktop=fail') ? 'fail' : 'mock'}${options.replace('&desktop=fail', '')}`)
+  if (provider === 'GitLab') await expect(page.getByRole('button', { name: /Fixture merge request/ })).toBeVisible()
+  await page.getByRole('button', { name: 'Platform authentication', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Platform authentication' })
+  await expect(dialog.getByRole('radio', { name: `${provider} OAuth (device login)` })).toBeEnabled()
+  return dialog
+}
+
+for (const provider of ['GitHub', 'GitLab']) {
+  test(`${provider}: requests a code, opens once, copies, survives dialog reopening and completes login`, async ({ page }) => {
+    const dialog = await openLogin(page, provider)
+    await dialog.getByRole('radio', { name: `${provider} OAuth (device login)` }).click()
+    await expect(dialog.getByText('E2E-CODE', { exact: true })).toBeVisible()
+    const url = provider === 'GitLab' ? 'https://git.example.test/gitlab/oauth/device?user_code=E2E-CODE' : 'https://github.com/login/device'
+    await expect(page.getByLabel('Native events')).toHaveText(JSON.stringify([`open:${url}`]))
+    await dialog.getByRole('button', { name: 'Copy device code' }).click()
+    await expect(dialog.getByText('Device code copied.')).toBeVisible()
+    await expect(page.getByLabel('Native events')).toHaveText(JSON.stringify([`open:${url}`, 'copy:E2E-CODE']))
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+    await page.getByRole('button', { name: 'Platform authentication', exact: true }).click()
+    await expect(dialog.getByText('E2E-CODE', { exact: true })).toBeVisible()
+    await expect(page.getByLabel('Native events')).toHaveText(JSON.stringify([`open:${url}`, 'copy:E2E-CODE']))
+    await page.screenshot({ path: test.info().outputPath(`${provider}-device-login.png`), animations: 'disabled' })
+    const id = await page.getByLabel('Fixture ID').textContent()
+    await page.request.post('/__test/approve', { data: { id } })
+    await expect(dialog.getByRole('radio', { name: `${provider} OAuth (device login)` })).toBeChecked()
+    await expect(dialog.getByText('E2E-CODE', { exact: true })).toHaveCount(0)
+    await expect(dialog.getByText('OAuth connected.', { exact: true })).toBeVisible()
+    expect(await dialog.innerText()).not.toContain('e2e-sentinel-')
+  })
+  for (const outcome of ['denied', 'expired']) {
+    test(`${provider}: reports ${outcome} and permits an explicit retry`, async ({ page }) => {
+      const dialog = await openLogin(page, provider, `&outcome=${outcome}`)
+      const oauth = dialog.getByRole('radio', { name: `${provider} OAuth (device login)` })
+      await oauth.click()
+      await expect(dialog.getByText(outcome === 'denied' ? 'Authorization was declined. Choose OAuth to try again.' : 'The device code expired. Choose OAuth to request a new code.')).toBeVisible()
+      await expect(oauth).toBeEnabled()
+      await expect(dialog.getByText('E2E-CODE', { exact: true })).toHaveCount(0)
+    })
+  }
+  test(`${provider}: native failures and provider unload preserve manual authorization and cancellation`, async ({ page }) => {
+    const dialog = await openLogin(page, provider, '&desktop=fail&clipboard=fail')
+    await dialog.getByRole('radio', { name: `${provider} OAuth (device login)` }).click()
+    await expect(dialog.getByText('Could not open the browser. Use the link below to continue.')).toBeVisible()
+    await dialog.getByRole('button', { name: 'Copy device code' }).click()
+    await expect(dialog.getByText('Could not copy. Select and copy the code above.')).toBeVisible()
+    // Simulate provider unload outside the modal without navigating or opening a real browser.
+    await page.getByRole('button', { name: 'Unload native fixture' }).evaluate((button: HTMLButtonElement) => button.click())
+    await expect(dialog.getByRole('link', { name: provider === 'GitLab' ? 'Continue authorization on GitLab' : 'Open GitHub and enter this code' })).toBeVisible()
+    await expect(dialog.getByText('Open the authorization page below to continue.')).toBeVisible()
+    await dialog.locator('[role="status"]').getByRole('button', { name: 'Cancel', exact: true }).click()
+    await expect(dialog.getByText('Login cancelled.')).toBeVisible()
+    await expect(dialog.getByRole('radio', { name: `${provider} OAuth (device login)` })).not.toBeChecked()
+  })
+}

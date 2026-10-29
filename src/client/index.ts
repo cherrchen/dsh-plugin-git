@@ -211,11 +211,15 @@ export function apply(ctx: ClientContext): void {
 
   ctx.inject(['desktop'], (desktopCtx) => {
     gitSessions.setDesktop(desktopCtx.desktop)
+    remoteFeature.setAuthDesktop({
+      ...(typeof desktopCtx.desktop.shell.openExternal === 'function' ? { openExternal: (url: string) => desktopCtx.desktop.shell.openExternal!(url) } : {}),
+      ...(typeof desktopCtx.desktop.clipboard?.writeText === 'function' ? { copyText: (text: string) => desktopCtx.desktop.clipboard!.writeText(text) } : {}),
+    })
     remoteFeature.setNotify(async notice => {
       const label = (notice.provider === 'gitlab' ? gitLabNoticeKeys : remoteNoticeKeys)[notice.kind]
       await desktopCtx.desktop.notification.show({ title: t('remote.title'), body: `${t(label)} · ${notice.title}` })
     })
-    return () => { gitSessions.setDesktop(undefined); remoteFeature.setNotify(undefined) }
+    return () => { gitSessions.setDesktop(undefined); remoteFeature.setNotify(undefined); remoteFeature.setAuthDesktop(undefined) }
   })
 
   const mountCommitMessageSettings = (

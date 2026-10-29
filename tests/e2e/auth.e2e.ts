@@ -29,21 +29,16 @@ for (const [scenario, zh, en] of [
   })
 }
 
-test('disconnects then reconnects through the method radios and keeps a 440px dialog', async ({ page }) => {
-  const dialog = await openAuth(page, 'gh')
+test('offers logout only for saved OAuth and keeps a 440px dialog', async ({ page }) => {
+  const dialog = await openAuth(page, 'oauth')
   const cli = dialog.getByRole('radio', { name: 'GitHub CLI（gh）', exact: true })
-  await expect(cli).toBeChecked()
+  await expect(dialog.getByRole('radio', { name: 'GitHub OAuth（设备码登录）', exact: true })).toBeChecked()
   await page.screenshot({ path: test.info().outputPath('auth-dialog.png') })
-  const box = await dialog.boundingBox()
-  expect(box?.width).toBe(440)
-  await dialog.getByRole('button', { name: '断开连接', exact: true }).click()
+  expect((await dialog.boundingBox())?.width).toBe(440)
+  await dialog.getByRole('button', { name: '退出 OAuth', exact: true }).click()
   await expect(dialog.getByText('已断开连接', { exact: true })).toBeVisible()
-  await expect(cli).not.toBeChecked()
-  // A signed-out marker still blocks discovery until the CLI choice clears it first.
-  await cli.click()
-  await expect(cli).toBeChecked()
-  await expect(dialog.getByText('已连接 GitHub', { exact: true })).toBeVisible()
-  await page.screenshot({ path: test.info().outputPath('authentication-source.png') })
+  await expect(dialog.getByRole('button', { name: '退出 OAuth', exact: true })).toHaveCount(0)
+  await expect(cli).toBeEnabled()
 })
 
 test('completes device login through the real client and auth engine without exposing a token', async ({ page }) => {
@@ -82,7 +77,38 @@ test('switches an authenticated CLI user to OAuth and back without hiding either
   await expect(oauth).toBeEnabled()
   const info = await page.request.post('/__test/inspect', { data: { id } }).then(response => response.json())
   expect(info.capability.auth.source).toBe('gh')
-  expect(info.calls).toContain('remote-clear-grant')
+  expect(info.calls).not.toContain('remote-clear-grant')
+})
+
+test('reuses saved OAuth across CLI selection and Host restart, and OAuth logout preserves CLI', async ({ page }) => {
+  let dialog = await openAuth(page, 'gh')
+  await expect(dialog.getByRole('button', { name: '退出 OAuth', exact: true })).toHaveCount(0)
+  await dialog.getByRole('radio', { name: 'GitHub OAuth（设备码登录）', exact: true }).click()
+  await expect(dialog.getByText('E2E-CODE', { exact: true })).toBeVisible()
+  const id = await page.getByLabel('Fixture ID').textContent()
+  await page.request.post('/__test/approve', { data: { id } })
+  await expect(dialog.getByRole('radio', { name: 'GitHub OAuth（设备码登录）', exact: true })).toBeChecked()
+  await dialog.getByRole('radio', { name: 'GitHub CLI（gh）', exact: true }).click()
+  await expect(dialog.getByRole('radio', { name: 'GitHub CLI（gh）', exact: true })).toBeChecked()
+  await expect(dialog.getByRole('button', { name: '退出 OAuth', exact: true })).toBeVisible()
+  await page.request.post('/__test/restart', { data: { id } })
+  await page.goto(`/?scenario=gh&lang=zh&fixture=${id}`)
+  await page.getByRole('button', { name: '平台认证', exact: true }).click()
+  dialog = page.getByRole('dialog', { name: '平台认证' })
+  await expect(dialog.getByRole('radio', { name: 'GitHub CLI（gh）', exact: true })).toBeChecked()
+  await dialog.getByRole('radio', { name: 'GitHub OAuth（设备码登录）', exact: true }).click()
+  await expect(dialog.getByRole('radio', { name: 'GitHub OAuth（设备码登录）', exact: true })).toBeChecked()
+  await expect(dialog.getByText('E2E-CODE', { exact: true })).toHaveCount(0)
+  await dialog.getByRole('radio', { name: 'GitHub CLI（gh）', exact: true }).click()
+  await expect(dialog.getByRole('radio', { name: 'GitHub CLI（gh）', exact: true })).toBeChecked()
+  await dialog.getByRole('button', { name: '退出 OAuth', exact: true }).click()
+  await expect(dialog.getByRole('radio', { name: 'GitHub CLI（gh）', exact: true })).toBeChecked()
+  await expect(dialog.getByRole('button', { name: '退出 OAuth', exact: true })).toHaveCount(0)
+  const info = await page.request.post('/__test/inspect', { data: { id } }).then(response => response.json())
+  expect(info.calls.filter((name: string) => name === 'remote-login')).toHaveLength(1)
+  expect(info.calls).not.toContain('remote-clear-grant')
+  expect(info.capability.auth.source).toBe('gh')
+  expect(info.capability.authSelection.oauthCached).toBe(false)
 })
 
 test('cancelling device login never reports OAuth authentication', async ({ page }) => {
@@ -105,11 +131,11 @@ test('independent browser contexts and fixture stores do not share authenticatio
   const a = await browser.newContext(); const b = await browser.newContext()
   try {
     const pageA = await a.newPage(); const pageB = await b.newPage()
-    const dialogA = await openAuth(pageA, 'gh')
+    const dialogA = await openAuth(pageA, 'oauth')
     const dialogB = await openAuth(pageB, 'anonymous')
-    await expect(dialogA.getByText('GitHub CLI（gh）')).toBeVisible()
+    await expect(dialogA.getByRole('radio', { name: 'GitHub OAuth（设备码登录）', exact: true })).toBeChecked()
     await expect(dialogB.getByText('未连接', { exact: true })).toBeVisible()
-    await dialogA.getByRole('button', { name: '断开连接', exact: true }).click()
+    await dialogA.getByRole('button', { name: '退出 OAuth', exact: true }).click()
     await expect(dialogA.getByText('已断开连接', { exact: true })).toBeVisible()
     await expect(dialogB.getByText('未连接', { exact: true })).toBeVisible()
   } finally { await a.close(); await b.close() }
@@ -118,6 +144,9 @@ test('independent browser contexts and fixture stores do not share authenticatio
 
 test('retires an orphan GitLab grant only after reviewing its canonical URL', async ({ page }) => {
   const dialog = await openAuth(page, 'orphan')
+  await expect(dialog.getByLabel('已移除的实例 URL')).toBeHidden()
+  await dialog.getByText('高级', { exact: true }).focus()
+  await page.keyboard.press('Enter')
   await dialog.getByLabel('已移除的实例 URL').fill('https://OLD.EXAMPLE:443/')
   await dialog.getByRole('button', { name: '检查清除内容' }).click()
   await expect(dialog.getByText('https://old.example', { exact: true })).toBeVisible()

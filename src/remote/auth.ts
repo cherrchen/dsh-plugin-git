@@ -2,6 +2,7 @@
 
 import { createHash, randomUUID } from 'node:crypto'
 import type { CredentialKey, CredentialRef } from './credentials-types.ts'
+import { AuthSelectionStore, authMethod, hasOAuthRecord } from './auth-selection.ts'
 import { GitRemoteError, remoteAuthError } from './errors.ts'
 import { GitRemoteHttp, GitRemoteHttpError } from './http.ts'
 import { gitRemoteCredentialKey, gitRemoteCredentialRef, type GitRemoteCredentialService } from './credentials.ts'
@@ -71,6 +72,9 @@ export class GitRemoteAuth {
   private readonly digest: (value: string) => string
   private readonly sleep: (ms: number, signal: AbortSignal) => Promise<void>
   private readonly instanceId: string
+  private readonly selection: AuthSelectionStore
+  private oauthCached = false
+  private selectionRevision: string | undefined
   private revision = 0
   private context: { authState: GitRemoteSnapshot['state']; token?: string; fingerprint?: string; source?: GitRemoteSnapshot['source']; refSource?: string } = { authState: 'unauthenticated' }
   private invalidFingerprint: string | undefined
@@ -84,6 +88,7 @@ export class GitRemoteAuth {
 
   constructor(deps: GitRemoteAuthDeps) {
     this.credentials = deps.credentials
+    this.selection = new AuthSelectionStore(deps.credentials, GIT_REMOTE_GRANT_RECORD_KEY, 'github', 'https://github.com')
     this.http = deps.http
     this.settings = deps.settings
     if (deps.discoverGh !== undefined) this.discoverGh = deps.discoverGh
@@ -135,7 +140,36 @@ export class GitRemoteAuth {
     }, signal)
   }
 
+  private async selectedMethod() {
+    const selected = await this.selection.read()
+    if (selected.revision !== this.selectionRevision) {
+      this.selectionRevision = selected.revision
+      this.context = { authState: 'unauthenticated' }; this.ghToken = undefined; this.bump()
+    }
+    if (selected.method === 'cli') this.oauthCached = hasOAuthRecord(await this.credentials.readRecord(GIT_REMOTE_GRANT_RECORD_KEY))
+    return selected.method
+  }
+  selectMethod(method: unknown, signal: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<GitRemoteSnapshot> {
+    const selected = authMethod(method)
+    return this.serialize(async inner => {
+      if (selected === 'cli' && this.discoverGh === undefined) throw remoteAuthError('cli-unavailable')
+      await this.selection.write(selected)
+      const snapshot = await this.establishCurrent(inner)
+      return snapshot.source === 'grant' ? this.refreshCurrent(inner) : snapshot
+    }, signal, capture)
+  }
+  logoutOAuth(signal: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<void> {
+    for (const login of this.logins.values()) login.controller.abort()
+    return this.serialize(async inner => {
+      const selected = await this.selectedMethod()
+      await this.modify(async () => ({ ...this.authBase(this.settings.clientId ?? 'unconfigured'), state: 'signed-out' }))
+      this.context = { authState: 'signed-out' }; this.bump()
+      if (selected === 'cli') { this.context = { authState: 'unauthenticated' }; await this.establishCurrent(inner) }
+    }, signal, capture)
+  }
   private async resolveContext(signal: AbortSignal): Promise<GitRemoteSnapshot> {
+    const selected = await this.selectedMethod()
+    if (selected === 'cli') return this.ghToken === undefined ? this.markState('anonymous') : this.acceptToken(this.ghToken, 'gh')
     const { grant, malformed } = await this.readGrantOrMalformed()
     if (malformed) return this.markState('invalid')
     if (grant !== undefined) {
@@ -149,6 +183,7 @@ export class GitRemoteAuth {
       }
       return this.fromGrant(grant)
     }
+    if (selected === 'oauth') return this.markState('unauthenticated')
     for (const ref of REFS) {
       const resolved = await this.credentials.resolve(ref)
       if (resolved !== undefined) {
@@ -208,13 +243,16 @@ export class GitRemoteAuth {
   }
 
   private async readGrant(): Promise<GitRemoteGrant | undefined> {
-    const parsed = parseGrantRecord(await this.credentials.readRecord(GIT_REMOTE_GRANT_RECORD_KEY))
+    const record = await this.credentials.readRecord(GIT_REMOTE_GRANT_RECORD_KEY)
+    this.oauthCached = hasOAuthRecord(record)
+    const parsed = parseGrantRecord(record)
     if (!parsed.ok) return undefined
     return parsed.grant
   }
 
   private async readGrantOrMalformed(): Promise<{ grant?: GitRemoteGrant; malformed: boolean }> {
     const record = await this.credentials.readRecord(GIT_REMOTE_GRANT_RECORD_KEY)
+    this.oauthCached = hasOAuthRecord(record)
     if (record === undefined) return { malformed: false }
     const parsed = parseGrantRecord(record)
     if (!parsed.ok) return { malformed: true }
@@ -230,6 +268,12 @@ export class GitRemoteAuth {
   }
 
   private async establishCurrent(inner: AbortSignal): Promise<GitRemoteSnapshot> {
+  const selected = await this.selectedMethod()
+  if (selected === 'cli') {
+    const token = await this.discoverGh?.(inner)
+    this.ghToken = token
+    return token === undefined ? this.markState('anonymous') : this.acceptToken(token, 'gh')
+  }
   const { grant, malformed } = await this.readGrantOrMalformed()
   if (malformed) return this.markState('invalid')
   if (grant !== undefined) {
@@ -241,6 +285,7 @@ export class GitRemoteAuth {
     }
     return this.fromGrant(grant)
   }
+  if (selected === 'oauth') return this.markState('unauthenticated')
   for (const ref of REFS) {
     const resolved = await this.credentials.resolve(ref)
     if (resolved !== undefined) return this.acceptToken(resolved.value, 'ref', resolved.source)
@@ -276,6 +321,7 @@ export class GitRemoteAuth {
       const next = await mutate(parsed.ok ? parsed.grant : undefined)
       return next === undefined ? undefined : grantRecord(next)
     })
+    this.oauthCached = hasOAuthRecord(record)
     const parsed = parseGrantRecord(record)
     return parsed.ok ? parsed.grant : undefined
   }
@@ -288,6 +334,10 @@ export class GitRemoteAuth {
     const clientId = this.settings.clientId
     if (clientId === undefined) return Promise.reject(remoteAuthError('client-id-missing'))
     return this.serialize(async (inner) => {
+      await this.selection.write('oauth')
+      const preferred = await this.selection.read()
+      if (preferred.method !== 'oauth') throw remoteAuthError('source-changed')
+      this.selectionRevision = preferred.revision
       const attemptId = this.uuid()
       const committed = await this.modify(async (current) => {
         if (current?.state === 'authorizing') return undefined
@@ -404,6 +454,7 @@ export class GitRemoteAuth {
   signOut(signal: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<void> {
     for (const login of this.logins.values()) login.controller.abort()
     return this.serialize(async () => {
+      await this.selection.write('auto')
       const grant = await this.readGrant()
       const clientId = grant?.clientId ?? this.settings.clientId ?? 'unconfigured'
       await this.modify(async () => ({ ...this.authBase(clientId), state: 'signed-out' }))
@@ -414,7 +465,9 @@ export class GitRemoteAuth {
 
   async clearLocalGrant(signal: AbortSignal, capture?: (generation: GitRemoteGeneration) => void): Promise<void> {
     await this.serialize(async () => {
+      await this.selection.write('auto')
       await this.credentials.deleteRecord(GIT_REMOTE_GRANT_RECORD_KEY)
+      this.oauthCached = false
       this.context = { authState: 'unauthenticated' }
       this.ghToken = undefined
       this.bump()
@@ -435,6 +488,7 @@ export class GitRemoteAuth {
     const info = await this.credentials.describeRecord(GIT_REMOTE_GRANT_RECORD_KEY)
     return {
       state: 'on',
+      authSelection: this.selection.capability(this.discoverGh !== undefined, info.configured && this.oauthCached),
       generation: this.generation(),
       credential: { configured: info.configured, writable: info.writable },
       auth: {

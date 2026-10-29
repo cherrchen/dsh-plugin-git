@@ -18,6 +18,8 @@ Entry points are `playwright.config.ts` and `tests/e2e/auth.e2e.ts`. Playwright 
 
 Set `DSH_E2E_OUTPUT_DIR` to an absolute path outside the repository to keep failure screenshots and traces without overwriting working-tree test artifacts.
 
+Device-login cases in `tests/e2e/device-login.e2e.ts` cover GitHub/GitLab automatic code requests, one mocked native browser open per attempt, code copying, reopening the dialog, success, denial, expiry, cancellation and manual continuation after native failure/unload. Advanced cleanup is collapsed by default and supports keyboard expansion. Mock native calls capture URLs/codes without using the real system browser or clipboard; this does not verify the actual Desktop provider.
+
 ## Cross-platform CI acceptance
 
 [Main CI](../../.github/workflows/ci.yml) runs the development pin on ubuntu-latest, windows-latest and macos-latest for PRs (including drafts) and main pushes, without cancelling other systems after one fails. Each lane performs frozen installation, compatibility checks, the full unit suite, A1/A2/A3 acceptance probes, Chromium E2E, documentation checks, build, artifact checks and pack. Git fixtures disable autocrlf consistently. Command-error classification uses an actual Git repository with a malformed config rather than a POSIX shell. Browsers use list and HTML reporters; per-system reports and failure traces are retained for 14 days.
@@ -35,7 +37,7 @@ Deterministic fixtures replace external GitHub OAuth/REST and GitLab API service
 The browser cases cover:
 
 - Chinese/English labels for gh, OAuth and credential references;
-- Disconnecting and reconnecting GitHub CLI through the method radios (the signed-out marker is cleared first inside the same run), plus a dialog-width assertion and screenshots;
+- CLI/OAuth selection and saved-grant reuse, including Host recreation and page reload with the same credentials fixture; OAuth-only logout preserves CLI authentication; dialog-width assertions and screenshots;
 - The complete internal anonymous-to-OAuth device-login flow and cancellation;
 - Absence of token bodies from browser RPC responses and page content;
 - Authentication isolation between separate browser contexts and credential stores;

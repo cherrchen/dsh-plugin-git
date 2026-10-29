@@ -182,6 +182,7 @@
 
 .loginActions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -923,7 +924,10 @@
   }
 }
 
-.retireSection { display: grid; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--dsh-color-border, #ddd); }
+.authAdvanced { margin-top: 20px; padding-top: 16px; border-top: 0.5px solid var(--dsw-alias-border-l2); }
+.authAdvanced > summary { cursor: pointer; color: var(--dsw-alias-label-secondary); font-size: 12px; }
+.authAdvanced > summary:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 4px; }
+.retireSection { display: grid; gap: 8px; margin-top: 12px; }
 .retireSection p { margin: 0; overflow-wrap: anywhere; }
 .retireInput { display: grid; gap: 4px; }
 .retireInput input { min-width: 0; width: 100%; }

@@ -7,6 +7,7 @@ import type { RemoteLoginAttempt } from './remote-view.ts'
 import type { GitLocaleKey } from '../locales.ts'
 import { RemoteAvatar } from './RemoteAvatar.tsx'
 import { platformCopy } from './platform-copy.ts'
+import { RemoteLoginCard } from './RemoteLoginCard.tsx'
 import css from '../GitRemoteSurface.module.css'
 
 export type { RemoteLoginAttempt }
@@ -34,11 +35,17 @@ function statusCopy(state: GitRemoteAuthState): { readonly headline: GitLocaleKe
 }
 
 /** Authentication status card plus a radio choice of connect methods; checked state derives from capability only. */
-export function RemoteAuthSection({ capability, viewer, busy, login, gitlab = false, onAuth, onLogin, onCancelLogin, t }: {
+export function RemoteAuthSection({ capability, viewer, busy, login, loginBrowser, loginCopy, onCopyLogin, onOpenLogin, onSelectMethod, onLogoutOAuth, gitlab = false, onAuth, onLogin, onCancelLogin, t }: {
   readonly capability: GitRemoteCapabilityOn | ScopedRemoteCapabilityOn
   readonly viewer: GitRemoteViewer | undefined
   readonly busy: boolean
   readonly login: RemoteLoginAttempt | undefined
+  readonly loginBrowser?: 'opening' | 'opened' | 'manual' | 'failed' | undefined
+  readonly loginCopy?: 'copied' | 'failed' | undefined
+  readonly onCopyLogin?: (() => void) | undefined
+  readonly onOpenLogin?: (() => boolean) | undefined
+  readonly onSelectMethod?: ((method: 'cli' | 'oauth') => void) | undefined
+  readonly onLogoutOAuth?: (() => void) | undefined
   /** Scoped GitLab instance: CLI radio describes glab and the API/transport auth hint is shown. */
   readonly gitlab?: boolean
   readonly onAuth: (...endpoints: string[]) => void
@@ -51,7 +58,7 @@ export function RemoteAuthSection({ capability, viewer, busy, login, gitlab = fa
   const authenticated = auth.state === 'authenticated'
   // A stored grant or signed-out marker would override the chosen method; drop it first.
   const reset = auth.state === 'signed-out' || auth.state === 'invalid' || auth.source === 'grant'
-  const status = statusCopy(auth.state)
+  const status = login === undefined ? statusCopy(auth.state) : { headline: 'remote.loginInProgress' as const }
   const copy = (key: GitLocaleKey): string => platformCopy(t, key, gitlab ? 'gitlab' : 'github')
   const deviceFlow = 'authMethods' in capability ? capability.authMethods.deviceFlow.supported : undefined
   const oauthAvailable = capability.loginAvailable && capability.credential.writable && deviceFlow !== false
@@ -60,29 +67,31 @@ export function RemoteAuthSection({ capability, viewer, busy, login, gitlab = fa
     : !capability.loginAvailable ? 'remote.oauthNotConfigured'
     : deviceFlow === 'unknown' ? 'remote.oauthUnverified' : undefined
   const methodsBusy = busy || login !== undefined
+  const cachedOAuth = capability.authSelection?.oauthCached === true
+  const cliAvailable = capability.authSelection?.cliAvailable !== false
   const cliSource = gitlab ? 'glab' : 'gh'
   const source = authenticated && auth.source !== undefined
     ? gitlab && auth.source === 'ref' ? 'gitlab.authSourceRef' : sourceLabels[auth.source] ?? 'remote.authSourceUnknown'
     : 'remote.authSourceUnknown'
-  const subline = authenticated && auth.source !== cliSource && auth.source !== 'grant' ? source : undefined
+  const subline = login === undefined && authenticated && auth.source !== cliSource && auth.source !== 'grant' ? source : undefined
   return (
     <section className={css.authSection} aria-label={t('remote.auth')}>
       <div className={css.authCard}>
         <div className={css.authStatus}>
           <div className={css.authIdentity}>
-            {authenticated && viewer !== undefined
+            {login === undefined && authenticated && viewer !== undefined
               ? <RemoteAvatar login={viewer.login} url={viewer.avatarUrl} size={32} />
-              : <StateDot state={authDot(auth.state)} />}
+              : <StateDot state={login === undefined ? authDot(auth.state) : 'idle'} />}
             <div className={css.authIdentityText}>
               <strong>{copy(status.headline)}</strong>
-              {authenticated && viewer !== undefined && <span className={css.authLogin}>@{viewer.login}</span>}
+              {login === undefined && authenticated && viewer !== undefined && <span className={css.authLogin}>@{viewer.login}</span>}
               {status.hint !== undefined && <span className={css.methodHint}>{copy(status.hint)}</span>}
               {subline !== undefined && <span className={css.methodHint}>{copy(subline)}</span>}
             </div>
           </div>
-          {(authenticated || auth.state === 'invalid') && (
-            <Button variant="ghost" size="sm" onClick={() => { onAuth('remote-sign-out') }}>
-              {t('remote.disconnect')}
+          {(cachedOAuth || auth.source === 'grant') && (
+            <Button variant="ghost" size="sm" onClick={() => { if (onLogoutOAuth !== undefined) onLogoutOAuth(); else onAuth('remote-sign-out') }}>
+              {t('remote.oauthLogout')}
             </Button>
           )}
         </div>
@@ -94,37 +103,36 @@ export function RemoteAuthSection({ capability, viewer, busy, login, gitlab = fa
             type="radio"
             name={group}
             checked={authenticated && auth.source === cliSource}
-            disabled={methodsBusy}
-            onChange={() => { if (!methodsBusy) onAuth(...(reset ? ['remote-clear-grant'] : []), 'remote-retry-auth') }}
+            disabled={methodsBusy || !cliAvailable}
+            onChange={() => {
+              if (methodsBusy || !cliAvailable) return
+              if (capability.authSelection !== undefined && onSelectMethod !== undefined) onSelectMethod('cli')
+              else onAuth(...(reset ? ['remote-clear-grant'] : []), 'remote-retry-auth')
+            }}
           />
           <span>{t(gitlab ? 'remote.authSourceGlab' : 'remote.authSourceGh')}</span>
         </label>
-        {!authenticated && <span className={css.radioHint}>{t(gitlab ? 'remote.glabLoginHint' : 'remote.ghLoginHint')}</span>}
+        {!cliAvailable && <span className={css.radioHint}>{t('remote.cliUnavailable')}</span>}
+        {!authenticated && login === undefined && <span className={css.radioHint}>{t(gitlab ? 'remote.glabLoginHint' : 'remote.ghLoginHint')}</span>}
         <label className={css.radioRow}>
           <input
             type="radio"
             name={group}
             checked={authenticated && auth.source === 'grant'}
             disabled={methodsBusy || !oauthAvailable}
-            aria-describedby={oauthHint === undefined ? undefined : `${group}-oauth-hint`}
-            onChange={() => { if (!methodsBusy && oauthAvailable) onLogin() }}
+            aria-describedby={oauthHint === undefined || login !== undefined ? undefined : `${group}-oauth-hint`}
+            onChange={() => {
+              if (methodsBusy || !oauthAvailable) return
+              if (capability.authSelection !== undefined && onSelectMethod !== undefined) onSelectMethod('oauth')
+              else onLogin()
+            }}
           />
           <span>{copy('remote.authSourceOAuth')}</span>
         </label>
-        {oauthHint !== undefined && <span id={`${group}-oauth-hint`} className={css.radioHint}>{t(oauthHint)}</span>}
+        {cachedOAuth && login === undefined && <span className={css.radioHint}>{t('remote.oauthSaved')}</span>}
+        {login === undefined && oauthHint !== undefined && <span id={`${group}-oauth-hint`} className={css.radioHint}>{t(oauthHint)}</span>}
         {login !== undefined && (
-          <div className={css.loginCard} role="status">
-            <span className={css.methodHint}>{copy('remote.loginCodeHint')}</span>
-            <span className={css.loginCode}>{login.userCode}</span>
-            <div className={css.loginActions}>
-              <a className={css.loginLink} href={login.verificationUri} target="_blank" rel="noreferrer">
-                {copy('remote.verify')}
-              </a>
-              <Button variant="ghost" size="sm" onClick={() => { onCancelLogin(login.attemptId) }}>
-                {t('branch.cancel')}
-              </Button>
-            </div>
-          </div>
+          <RemoteLoginCard login={login} browser={loginBrowser} copied={loginCopy} onCopy={onCopyLogin} onOpen={onOpenLogin} onCancel={() => { onCancelLogin(login.attemptId) }} t={copy} />
         )}
       </div>
       {gitlab && <p className={css.note}>{t('gitlab.authHint')}</p>}

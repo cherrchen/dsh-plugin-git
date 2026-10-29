@@ -26,7 +26,7 @@ Each context owns auth, runtime generation, viewer/permission/ETag data, pending
 
 Under the registry lock, publish configuration, remove old owners and synchronously initiate cancellation without joining their requests. Old business requests may reenter list/guard and finish within a bounded interval. A replacement for the same instance waits for the old owner to drain outside the lock, then reacquires the lock and rechecks configuration before creation. Disposal closes admission and joins all active and already removed owners outside the lock; its drain promise must never become part of the admission chain. When the Client changes target or invalidates identity, it immediately clears the login code/link and cancels against the original instance scope on a separate cleanup lane. Epoch checks discard old poll replies, and cleanup cannot invalidate fresh reads or login even when switching within one instance.
 
-The credentials seam remains a whole-feature hard gate. An instance’s configuration/auth/network failure cannot disable other instances or local UI. Portable UI stays in the main fiber; removable Desktop children enhance notifications only.
+The credentials seam remains a whole-feature hard gate. An instance’s configuration/auth/network failure cannot disable other instances or local UI. Portable UI stays in the main fiber; removable Desktop children enhance notifications, authorization browser opening and user-code copying.
 
 ### D2 Configuration and instance identity (GL-R2, GL-R9, GL-R13)
 
@@ -45,7 +45,7 @@ Target configuration:
 }
 ```
 
-remote.clientId still means GitHub only; instances[] registers GitLab without inheriting that clientId. GitLab.com remote recognition and an anonymous default descriptor are built in; a single matching configuration supplies overrides such as the App, rather than creating a second context. Unregistered self-hosted remotes never trigger network discovery. Drop editable id; optional label is display-only, while url defines security identity. clientId/credentialRef are optional; credentialRef is an existing-grammar ref name, never a token/secret in settings. sshHost defaults to URL hostname, sshPort to 22; explicit overrides affect SSH mapping, not API identity. Ambiguous SSH endpoint/repository ownership is rejected.
+Release-default app IDs, explicit overrides and empty-value disabling follow the [RPC configuration reference](../reference/remote-platform-rpc.en.md#configuration-and-authentication); self-managed instances never inherit the GitLab.com app. remote.clientId still means GitHub only; instances[] registers GitLab without inheriting that clientId. GitLab.com remote recognition and an anonymous default descriptor are built in; a single matching configuration supplies overrides such as the App, rather than creating a second context. Unregistered self-hosted remotes never trigger network discovery. Drop editable id; optional label is display-only, while url defines security identity. clientId/credentialRef are optional; credentialRef is an existing-grammar ref name, never a token/secret in settings. sshHost defaults to URL hostname, sshPort to 22; explicit overrides affect SSH mapping, not API identity. Ambiguous SSH endpoint/repository ownership is rejected.
 
 Normalization validates raw input before constructing URL so dot segments cannot be swallowed first. HTTPS only; reject userinfo, query, fragment, backslashes, repeated path separators, literal/encoded dot segments, encoded slashes and nested encodings. Lowercase domains through URL/IDNA; serialize IPs with standard URL rules including IPv6 brackets. Omit 443, retain other ports. Preserve prefix case with ASCII URL-unreserved segments; prefixes requiring percent encoding are deferred, independently of project-namespace encoding. Remove root/trailing slashes. Canonical URL UTF-8 length is at most 512 bytes; reject excess rather than truncate.
 
@@ -110,6 +110,8 @@ Do not reinterpret GitHub-v1 host/owner/repo, viewer.host, expectedViewer.host o
 ```
 
 One account per instance this round. GitLab introduces grant-v2 payloads with ADR states/revisions/attempt/refresh markers, bound to provider/instance/clientId; never move or overwrite GitHub-v1 records. Authorizing/authenticated OAuth states require the matching clientId; signed-out suppression may omit clientId when no App is configured, remaining bound to provider/instance. Tokens discovered from refs stay external rather than being written as fabricated OAuth grants. Unknown/malformed/mismatched instance/App records become invalid without discovery fallback. URL edits remove the old context and create another; old grants stay at their keys without token migration; the D2 G1 retirement operation makes their secrets reachable for explicit cleanup even after scope removal.
+
+Persisted method selection is separate from OAuth grants; explicit CLI/OAuth switching preserves authorization. The [RPC reference](../reference/remote-platform-rpc.en.md#configuration-and-authentication) owns the new endpoints, OAuth-only logout, older-Host compatibility and secret boundaries.
 
 Candidate discovery: authenticated grant → configured per-instance credentialRef → GitLab.com-only GITLAB_TOKEN/GL_TOKEN refs → GitLab.com noninteractive glab probe → anonymous. Self-hosted instances consume neither generic refs nor CLI; self-hosted git credential fill is disabled this round to prevent helpers sharing tokens across deployment prefixes. CLI runs only once per identity-establishment event, ≤5s; bounded single-line whitespace/control-free output still needs GET /user validation, without assuming token prefixes. Missing commands/help output never establishes identity; 401 after identity acceptance cannot switch accounts. Source alone establishes neither token type nor expiry.
 
@@ -182,7 +184,7 @@ The primary scenario is a standard single-node CE or unlicensed EE instance with
 
 | Capability | GitHub v1 | GitLab.com/self-hosted target | Negative/restricted behavior |
 | --- | --- | --- | --- |
-| Device Flow | Preserve current behavior | Registered App + supported flow | Hide absent App; absent flow never silently starts PKCE |
+| Device Flow | Preserve current behavior | Registered App + supported flow | Keep disabled with a reason without an App; absent flow never silently starts PKCE |
 | API reads/pages | Existing contracts | MR/Issue/commits/discussions/current approvals | Classify denied/missing fields/unsafe continuations, never invent empty data |
 | Comment/approve/create/close | Existing contracts | Per-action support and permission guards | Explain scope/policy denial or additional approval authentication |
 | Merge/checkout | Existing SHA/CAS | Direct merge and target MR refs | No blind retry for locked/draft/head moves/missing refs |

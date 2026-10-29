@@ -2,6 +2,7 @@
 
 import { readVolatile } from '../compat/dsh-schema.ts'
 import { resolveGitLabInstances, type GitLabInstance, type GitLabInstanceSettings } from './instances.ts'
+import { effectiveOAuthClientId } from './release-oauth.ts'
 
 export interface RemoteSettings {
   clientId?: string
@@ -26,7 +27,7 @@ export interface ResolvedRemoteSettings {
 }
 
 export function resolveRemoteSettings(source: RemoteSettings | undefined): ResolvedRemoteSettings {
-  const clientId = readVolatile(source?.clientId)
+  const clientId = effectiveOAuthClientId(readVolatile(source?.clientId), 'github')
   const requestTimeoutMs = readVolatile(source?.requestTimeoutMs)
   const probeTimeoutMs = readVolatile(source?.probeTimeoutMs)
   const refreshTtlMs = readVolatile(source?.refreshTtlMs)

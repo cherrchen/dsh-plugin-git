@@ -15,13 +15,15 @@ import { resolveRemoteSettings, type RemoteSettings } from '../src/remote/settin
 
 function fakeStore() {
   let record: CredentialRecord | undefined
+  const preferences = new Map<string, CredentialRecord>()
   let queue: Promise<unknown> = Promise.resolve()
   const resolves: Record<string, { value: string; source: string } | undefined> = {}
   const failCommits = { next: 0 }
   const calls = { resolve: 0, modify: 0, read: 0 }
   const service: GitRemoteCredentialService = {
-    readRecord: async () => { calls.read += 1; return record },
+    readRecord: async key => { if (key !== GIT_REMOTE_GRANT_RECORD_KEY) return preferences.get(key); calls.read += 1; return record },
     modifyRecord: (_key, mutate) => {
+      if (_key !== GIT_REMOTE_GRANT_RECORD_KEY) return Promise.resolve().then(async () => { const next = await mutate(preferences.get(_key)); if (next !== undefined) preferences.set(_key, next); return preferences.get(_key) })
       const run = queue.then(async () => {
         calls.modify += 1
         const next = await mutate(record)
@@ -33,7 +35,7 @@ function fakeStore() {
       queue = run.catch(() => {})
       return run
     },
-    deleteRecord: async () => { record = undefined },
+    deleteRecord: async key => { if (key === GIT_REMOTE_GRANT_RECORD_KEY) record = undefined; else preferences.delete(key) },
     resolve: async (ref) => { calls.resolve += 1; return resolves[String(ref)] },
     describe: async () => ({ configured: false, writable: true }),
     describeRecord: async () => ({ configured: record !== undefined, writable: true }),

@@ -7,6 +7,7 @@ import { retireGitLabGrant } from './gitlab-grant.ts'
 import { GitRemoteHttp } from './http.ts'
 import { canonicalGitLabInstance, GITLAB_COM, gitLabGrantKey, resolveGitLabInstances, sameGitLabInstanceConfiguration, type GitLabInstance } from './instances.ts'
 import { glabAuthToken, type GitRemoteSubprocess } from './probe.ts'
+import { authSelectionKey } from './auth-selection.ts'
 import type { RemoteGitRun } from './git.ts'
 import type { RemoteSettings, ResolvedRemoteSettings } from './settings.ts'
 import type { ScopedRemoteScope } from './types.ts'
@@ -40,7 +41,7 @@ class GitLabScopedProvider implements ScopedRemoteProvider {
     const signal = AbortSignal.any([caller, this.owner.signal])
     const run = async () => {
       signal.throwIfAborted()
-      if (['remote-login', 'remote-poll-login', 'remote-cancel-login', 'remote-sign-out', 'remote-clear-grant', 'remote-retry-auth'].includes(endpoint) && ['credentialRef', 'ref', 'key', 'clientId', 'accessToken', 'refreshToken'].some(key => Object.hasOwn(request, key))) throw unavailable('invalid-request')
+      if (['remote-select-auth', 'remote-oauth-logout', 'remote-login', 'remote-poll-login', 'remote-cancel-login', 'remote-sign-out', 'remote-clear-grant', 'remote-retry-auth'].includes(endpoint) && ['credentialRef', 'ref', 'key', 'clientId', 'accessToken', 'refreshToken'].some(key => Object.hasOwn(request, key))) throw unavailable('invalid-request')
       let result
       switch (endpoint) {
         case 'remote-capability': result = await this.auth.capability(signal); break
@@ -48,6 +49,8 @@ class GitLabScopedProvider implements ScopedRemoteProvider {
         case 'remote-poll-login': result = await this.auth.pollLogin(attemptId(request), signal); break
         case 'remote-cancel-login': result = await this.auth.cancelLogin(attemptId(request)); break
         case 'remote-sign-out': result = await this.auth.signOut(signal); break
+        case 'remote-select-auth': result = await this.auth.selectMethod(request['method'], signal); break
+        case 'remote-oauth-logout': result = await this.auth.logoutOAuth(signal); break
         case 'remote-clear-grant': result = await this.auth.clearGrant(signal); break
         case 'remote-retry-auth': result = await this.auth.retry(signal); break
         case 'remote-repository': result = await this.projects.repository(request, signal, context); break
@@ -129,7 +132,7 @@ export class GitLabProviderRegistry {
     for (const provider of removed) this.drain(provider)
   }
   invalidateRecord(key: string): void {
-    for (const [instance, provider] of this.providers) if (gitLabGrantKey(instance) === key) provider.invalidate?.('record')
+    for (const [instance, provider] of this.providers) if (gitLabGrantKey(instance) === key || authSelectionKey(gitLabGrantKey(instance)) === key) provider.invalidate?.('record')
   }
   invalidateReference(ref: string): void {
     for (const [instance, provider] of this.providers) {

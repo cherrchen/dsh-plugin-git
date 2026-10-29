@@ -14,6 +14,8 @@ describe('orphan-grant confirmation', () => {
     const controller = { scopedAvailable: true, retireGrant, getSnapshot: () => snapshot, subscribe: () => () => {}, authAction: vi.fn(), login: vi.fn(), cancelLogin: vi.fn() } as unknown as GitRemoteController
     render(<RemoteAuthControl capability={capability} viewer={undefined} busy={false} controller={controller} t={key => en[key]} />)
     fireEvent.click(screen.getByRole('button', { name: en['remote.auth'] }))
+    expect(document.querySelector('details')?.open).toBe(false)
+    fireEvent.click(screen.getByText(en['remote.advanced'], { exact: true }))
     fireEvent.change(screen.getByLabelText(en['remote.retireUrl']), { target: { value: 'https://GIT.EXAMPLE.COM:443/' } })
     fireEvent.click(screen.getByRole('button', { name: en['remote.retirePrepare'] }))
     expect(retireGrant).not.toHaveBeenCalled(); expect(screen.getByText('https://git.example.com')).toBeTruthy()

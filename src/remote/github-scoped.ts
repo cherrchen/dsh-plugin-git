@@ -14,7 +14,7 @@ export class GitHubScopedProvider {
       const cap = await this.auth.capability()
       return { generation: cap.generation, value: this.project(cap) }
     }
-    if (!['remote-login', 'remote-poll-login', 'remote-cancel-login', 'remote-sign-out', 'remote-clear-grant', 'remote-retry-auth', 'remote-use-git-credential'].includes(endpoint)) {
+    if (!['remote-select-auth', 'remote-oauth-logout', 'remote-login', 'remote-poll-login', 'remote-cancel-login', 'remote-sign-out', 'remote-clear-grant', 'remote-retry-auth', 'remote-use-git-credential'].includes(endpoint)) {
       if (legacy === undefined) throw new GitRemoteError('git/remote-unavailable', 'git-remote: scoped operation not implemented', { reason: 'not-implemented' })
       return this.business(endpoint, request, legacy)
     }
@@ -30,6 +30,8 @@ export class GitHubScopedProvider {
         await this.auth.cancelLogin(attempt, capture); break
       }
       case 'remote-sign-out': await this.auth.signOut(signal, capture); break
+      case 'remote-select-auth': await this.auth.selectMethod(request['method'], signal, capture); value = await this.auth.capability(); break
+      case 'remote-oauth-logout': await this.auth.logoutOAuth(signal, capture); value = await this.auth.capability(); break
       case 'remote-clear-grant': await this.auth.clearLocalGrant(signal, capture); break
       case 'remote-retry-auth': await this.auth.retry(signal, capture); value = await this.auth.capability(); break
       case 'remote-use-git-credential': await this.auth.useGitCredential(signal, capture); value = await this.auth.capability(); break
@@ -37,7 +39,7 @@ export class GitHubScopedProvider {
     }
     signal.throwIfAborted()
     if (generation === undefined) throw new GitRemoteError('git/remote-unavailable', 'git-remote: missing operation generation', { reason: 'generation-missing' })
-    if (endpoint === 'remote-retry-auth' || endpoint === 'remote-use-git-credential') {
+    if (endpoint === 'remote-select-auth' || endpoint === 'remote-oauth-logout' || endpoint === 'remote-retry-auth' || endpoint === 'remote-use-git-credential') {
       const cap = value as Awaited<ReturnType<GitRemoteAuth['capability']>>
       if (!sameGeneration(generation, cap.generation)) throw new GitRemoteError('git/remote-identity-mismatch', 'git-remote: authentication changed during response')
       value = this.project(cap)

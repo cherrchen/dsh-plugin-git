@@ -2,6 +2,7 @@
 import { createHash, randomUUID } from 'node:crypto'
 import type { CredentialRef, CredentialRecord } from './credentials-types.ts'
 import { gitRemoteCredentialRef, type GitRemoteCredentialService } from './credentials.ts'
+import { AuthSelectionStore, authMethod, hasOAuthRecord } from './auth-selection.ts'
 import { GitRemoteError, remoteAuthError } from './errors.ts'
 import { GitRemoteHttp, GitRemoteHttpError } from './http.ts'
 import { gitLabGrantRecord, parseGitLabGrant, type GitLabGrant } from './gitlab-grant.ts'
@@ -95,6 +96,7 @@ export class GitLabAuth {
   private async read(): Promise<{ record?: CredentialRecord; grant?: GitLabGrant }> {
     let record: CredentialRecord | undefined
     try { record = await this.deps.credentials.readRecord(gitLabGrantKey(this.deps.instance.instance)) } catch { throw remoteAuthError('store-read-failed') }
+    this.oauthCached = hasOAuthRecord(record)
     if (record === undefined) return {}
     const grant = parseGitLabGrant(record, this.deps.instance.instance)
     if (grant === undefined) { this.setState('invalid'); throw remoteAuthError('record-mismatch') }
@@ -112,6 +114,7 @@ export class GitLabAuth {
         return next === undefined ? undefined : gitLabGrantRecord(next)
       })
     } catch (error) { if (error instanceof GitRemoteError) throw error; throw remoteAuthError('store-write-failed') }
+    this.oauthCached = hasOAuthRecord(record)
     return parseGitLabGrant(record, this.deps.instance.instance)
   }
   private base(): { v: 2; provider: 'gitlab'; instance: string; revision: string } {
@@ -144,6 +147,7 @@ export class GitLabAuth {
       const current = (await this.read()).grant
       if (current?.state !== 'authenticated' || current.revision !== grantRevision || current.accessToken !== token) { this.setState('invalid'); throw remoteAuthError('source-changed') }
     }
+    if ((await this.selectionStore().read()).revision !== this.selectionRevision) { this.setState('unauthenticated'); throw remoteAuthError('source-changed') }
     signal.throwIfAborted()
     this.checkCurrent()
     const viewer: GitRemoteViewer = { host: this.deps.instance.hostname, userId: String(id), login }
@@ -174,7 +178,43 @@ export class GitLabAuth {
     this.adopted = { source: 'glab' }
     await this.accept(token, 'glab', inner)
   }
+  private oauthCached = false
+  private selection: AuthSelectionStore | undefined
+  private selectionRevision: string | undefined
+  private selectionStore(): AuthSelectionStore { return this.selection ??= new AuthSelectionStore(this.deps.credentials, gitLabGrantKey(this.deps.instance.instance), 'gitlab', this.deps.instance.instance, () => this.checkCurrent()) }
+  private async selectedMethod() {
+    const selected = await this.selectionStore().read()
+    if (selected.revision !== this.selectionRevision) {
+      this.selectionRevision = selected.revision
+      this.resetGlab(); this.adopted = undefined; this.setState('unauthenticated')
+    }
+    if (selected.method === 'cli') this.oauthCached = hasOAuthRecord(await this.deps.credentials.readRecord(gitLabGrantKey(this.deps.instance.instance)))
+    return selected.method
+  }
+  selectMethod(method: unknown, signal: AbortSignal): Promise<ScopedRemoteResult<ScopedRemoteCapabilityOn>> {
+    const selected = authMethod(method)
+    return this.run(async inner => {
+      if (selected === 'cli' && this.deps.discoverGlab === undefined) throw remoteAuthError('cli-unavailable')
+      await this.selectionStore().write(selected)
+      try { await this.establishCurrent(inner) } catch (error) {
+        if (!(error instanceof GitRemoteError) || error.details?.['reason'] !== 'invalid-token') throw error
+      }
+      return this.currentCapability()
+    }, signal)
+  }
+  logoutOAuth(signal: AbortSignal): Promise<ScopedRemoteResult<ScopedRemoteCapabilityOn>> {
+    for (const login of this.logins.values()) login.controller.abort()
+    return this.run(async inner => {
+      const selected = await this.selectedMethod()
+      await this.modify(() => ({ ...this.base(), state: 'signed-out' }))
+      if (selected !== 'cli') { this.adopted = undefined; this.setState('signed-out') }
+      else await this.establishCurrent(inner)
+      return this.currentCapability()
+    }, signal)
+  }
   private async establishCurrent(signal: AbortSignal): Promise<void> {
+    const selected = await this.selectedMethod()
+    if (selected === 'cli') { await this.establishGlab(signal); return }
     let { grant } = await this.read()
     if (grant !== undefined) {
       if (grant.state === 'signed-out') { this.setState('signed-out'); return }
@@ -188,6 +228,7 @@ export class GitLabAuth {
       await this.accept(grant.accessToken, 'grant', signal, undefined, undefined, grant.refreshToken !== undefined && this.deps.settings.refreshStoreExclusive, grant.revision)
       return
     }
+    if (selected === 'oauth') { this.setState('unauthenticated'); return }
     if (this.adopted?.source === 'grant') { this.setState('invalid'); throw remoteAuthError('source-lost') }
     const refs: CredentialRef[] = []
     if (this.deps.instance.credentialRef !== undefined) refs.push(this.deps.instance.credentialRef)
@@ -240,7 +281,7 @@ export class GitLabAuth {
     try { info = await this.deps.credentials.describeRecord(gitLabGrantKey(this.deps.instance.instance)) } catch { throw remoteAuthError('store-read-failed') }
     const generation = this.generation()
     const value: ScopedRemoteCapabilityOn = {
-      state: 'on', generation, credential: { configured: info.configured, writable: info.writable },
+      state: 'on', authSelection: this.selectionStore().capability(this.deps.discoverGlab !== undefined, info.configured && this.oauthCached), generation, credential: { configured: info.configured, writable: info.writable },
       auth: { state: this.context.state, ...(this.context.source === undefined ? {} : { source: this.context.source }) },
       ...(this.context.viewer === undefined ? {} : { viewer: this.context.viewer }),
       actions: { canComment: false, canReview: false, canMerge: false, canClose: false, canCreatePr: false },
@@ -275,13 +316,17 @@ export class GitLabAuth {
       signal.throwIfAborted(); this.checkCurrent() // Other metadata failures do not replace a verified identity.
     }
   }
-  startLogin(signal: AbortSignal): Promise<ScopedRemoteResult<{ attemptId: string; userCode: string; verificationUri: string; expiresAt: number; intervalMs: number }>> {
+  startLogin(signal: AbortSignal): Promise<ScopedRemoteResult<{ attemptId: string; userCode: string; verificationUri: string; verificationUriComplete?: string; expiresAt: number; intervalMs: number }>> {
     return this.run(async inner => {
       const clientId = this.deps.instance.clientId
       if (clientId === undefined) throw remoteAuthError('client-id-missing')
       if (this.deviceFlow === false) throw remoteAuthError('device-flow-not-supported')
       const info = await this.deps.credentials.describeRecord(gitLabGrantKey(this.deps.instance.instance))
       if (!info.writable) throw remoteAuthError('store-read-only')
+      await this.selectionStore().write('oauth')
+      const preferred = await this.selectionStore().read()
+      if (preferred.method !== 'oauth') throw remoteAuthError('source-changed')
+      this.selectionRevision = preferred.revision
       const attemptId = this.uuid()
       const committed = await this.modify(current => {
         if (current !== undefined && (current.state === 'authorizing' || current.state === 'authenticated' || current.state === 'refreshing') && current.clientId !== clientId) throw remoteAuthError('record-mismatch')
@@ -304,7 +349,7 @@ export class GitLabAuth {
         const intervalMs = positive(data['interval']) ? data['interval'] * 1000 : 5000
         if (!Number.isSafeInteger(intervalMs) || intervalMs > 2_147_483_647) throw remoteAuthError('invalid-device-response')
         this.logins.set(attemptId, { deviceCode: data['device_code'], userCode, expiresAt, intervalMs, controller: new AbortController() })
-        return this.result({ attemptId, userCode, verificationUri: verificationUri as string, expiresAt, intervalMs })
+        return this.result({ attemptId, userCode, verificationUri: verificationUri as string, ...(typeof data['verification_uri_complete'] === 'string' ? { verificationUriComplete: data['verification_uri_complete'] } : {}), expiresAt, intervalMs })
       } catch (error) {
         await this.modify(current => current?.state === 'authorizing' && current.attemptId === attemptId ? { ...this.base(), state: 'reauth-required', clientId } : undefined, true)
         throw error
@@ -371,11 +416,11 @@ export class GitLabAuth {
   }
   signOut(signal: AbortSignal): Promise<ScopedRemoteResult<null>> {
     for (const login of this.logins.values()) login.controller.abort()
-    return this.run(async () => { await this.modify(() => ({ ...this.base(), state: 'signed-out' })); this.resetGlab(); this.adopted = undefined; this.invalidFingerprint = undefined; this.setState('signed-out'); return this.result(null) }, signal)
+    return this.run(async () => { await this.selectionStore().write('auto'); await this.modify(() => ({ ...this.base(), state: 'signed-out' })); this.resetGlab(); this.adopted = undefined; this.invalidFingerprint = undefined; this.setState('signed-out'); return this.result(null) }, signal)
   }
   clearGrant(signal: AbortSignal): Promise<ScopedRemoteResult<null>> {
     for (const login of this.logins.values()) login.controller.abort()
-    return this.run(async () => { this.checkCurrent(); try { await this.deps.credentials.deleteRecord(gitLabGrantKey(this.deps.instance.instance)) } catch { throw remoteAuthError('store-write-failed') }; this.resetGlab(); this.adopted = undefined; this.invalidFingerprint = undefined; this.setState('unauthenticated'); return this.result(null) }, signal)
+    return this.run(async () => { this.checkCurrent(); await this.selectionStore().write('auto'); try { await this.deps.credentials.deleteRecord(gitLabGrantKey(this.deps.instance.instance)) } catch { throw remoteAuthError('store-write-failed') }; this.oauthCached = false; this.resetGlab(); this.adopted = undefined; this.invalidFingerprint = undefined; this.setState('unauthenticated'); return this.result(null) }, signal)
   }
   private async waitForRefresh(marker: Extract<GitLabGrant, { state: 'refreshing' }>, signal: AbortSignal): Promise<GitLabGrant | undefined> {
     const deadline = Math.min(marker.refreshExpiresAt, this.now() + this.deps.settings.refreshTtlMs)

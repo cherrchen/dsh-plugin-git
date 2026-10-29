@@ -229,6 +229,7 @@ describe('GitLab per-instance authentication', () => {
     const s = store()
     const f = fixture(s, undefined, { clientId: 'app', fetch: async url => url.endsWith('authorize_device') ? json({ device_code: 'device-secret', user_code: 'ABCD', verification_uri: 'https://one.example/gitlab/oauth/device', verification_uri_complete: 'https://one.example/gitlab/oauth/device?user_code=ABCD', expires_in: 100, interval: 1 }) : json({ access_token: 'secret' }) })
     const start = await f.engine.startLogin(SIG)
+    expect(start.value.verificationUriComplete).toBe('https://one.example/gitlab/oauth/device?user_code=ABCD')
     expect(JSON.stringify(start)).not.toContain('device-secret')
     await expect(f.engine.pollLogin(start.value.attemptId, SIG)).rejects.toMatchObject({ details: { reason: 'invalid-oauth-response' } })
     expect(JSON.stringify(s.records.get(gitLabGrantKey(f.instance.instance)))).not.toContain('secret')

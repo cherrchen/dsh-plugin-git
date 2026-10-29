@@ -12,13 +12,15 @@ const capability: GitRemoteCapabilityOn = {
   actions: { canComment: 'unknown', canReview: 'unknown', canMerge: 'unknown', canClose: 'unknown', canCreatePr: 'unknown' },
   loginAvailable: true, automaticRefreshAvailable: false,
 }
-function mount(auth: GitRemoteCapabilityOn['auth'], options: { loginAvailable?: boolean; busy?: boolean } = {}) {
+function mount(auth: GitRemoteCapabilityOn['auth'], options: { loginAvailable?: boolean; busy?: boolean; authSelection?: GitRemoteCapabilityOn['authSelection'] } = {}) {
   const onAuth = vi.fn()
   const onLogin = vi.fn()
-  const view = render(<RemoteAuthSection capability={{ ...capability, auth, loginAvailable: options.loginAvailable ?? true }}
+  const onSelectMethod = vi.fn()
+  const onLogoutOAuth = vi.fn()
+  const view = render(<RemoteAuthSection capability={{ ...capability, auth, ...(options.authSelection === undefined ? {} : { authSelection: options.authSelection }), loginAvailable: options.loginAvailable ?? true }}
     viewer={{ host: 'github.com', userId: '1', login: 'alice' }} busy={options.busy ?? false} login={undefined}
-    onAuth={onAuth} onLogin={onLogin} onCancelLogin={vi.fn()} t={key => en[key]} />)
-  return { onAuth, onLogin, view }
+    onAuth={onAuth} onSelectMethod={onSelectMethod} onLogoutOAuth={onLogoutOAuth} onLogin={onLogin} onCancelLogin={vi.fn()} t={key => en[key]} />)
+  return { onAuth, onLogin, onSelectMethod, onLogoutOAuth, view }
 }
 const cli = () => screen.getByRole('radio', { name: en['remote.authSourceGh'] })
 const oauth = () => screen.getByRole('radio', { name: en['remote.authSourceOAuth'].replace('{platform}', 'GitHub') })
@@ -70,17 +72,16 @@ describe('authentication status card', () => {
     expect(view.container.textContent).not.toContain('git fetch')
     view.unmount()
   })
-  it('shows disconnect only for authenticated and invalid states', () => {
-    const states = { anonymous: false, unauthenticated: false, 'signed-out': false, authenticated: true, invalid: true } as const
-    for (const [state, shown] of Object.entries(states)) {
-      const { view } = mount({ state } as GitRemoteCapabilityOn['auth'])
-      expect(screen.queryByRole('button', { name: en['remote.disconnect'] }) !== null).toBe(shown)
+  it('shows OAuth logout for an active grant and never offers CLI logout', () => {
+    for (const source of ['gh', 'ref', 'grant'] as const) {
+      const { view } = mount({ state: 'authenticated', source })
+      expect(screen.queryByRole('button', { name: en['remote.oauthLogout'] }) !== null).toBe(source === 'grant')
       view.unmount()
     }
   })
-  it('never disables disconnect while busy', () => {
-    mount({ state: 'authenticated', source: 'gh' } as GitRemoteCapabilityOn['auth'], { busy: true })
-    expect((screen.getByRole('button', { name: en['remote.disconnect'] }) as HTMLButtonElement).disabled).toBe(false)
+  it('allows OAuth logout during an in-flight operation while method changes are disabled', () => {
+    mount({ state: 'authenticated', source: 'grant' }, { busy: true })
+    expect((screen.getByRole('button', { name: en['remote.oauthLogout'] }) as HTMLButtonElement).disabled).toBe(false)
     expect((cli() as HTMLInputElement).disabled).toBe(true)
     expect((oauth() as HTMLInputElement).disabled).toBe(true)
   })
@@ -175,5 +176,25 @@ describe('authentication method radios', () => {
       expect(screen.queryByText(en['remote.ghLoginHint'], { exact: true }) !== null).toBe(expectHint)
       view.unmount()
     }
+  })
+})
+
+
+describe('persisted authentication selection', () => {
+  it('uses method selection without clearing the saved OAuth and offers OAuth-only logout while CLI is active', () => {
+    const { onAuth, onLogin, onSelectMethod, onLogoutOAuth } = mount({ state: 'authenticated', source: 'gh' }, { authSelection: { method: 'cli', cliAvailable: true, oauthCached: true } })
+    expect(screen.getByText(en['remote.oauthSaved'])).not.toBeNull()
+    fireEvent.click(oauth())
+    expect(onSelectMethod).toHaveBeenCalledWith('oauth')
+    expect(onLogin).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: en['remote.oauthLogout'] }))
+    expect(onLogoutOAuth).toHaveBeenCalledOnce()
+    expect(onAuth).not.toHaveBeenCalled()
+  })
+  it('switches from OAuth to CLI through the new method endpoint', () => {
+    const { onAuth, onSelectMethod } = mount({ state: 'authenticated', source: 'grant' }, { authSelection: { method: 'oauth', cliAvailable: true, oauthCached: true } })
+    fireEvent.click(cli())
+    expect(onSelectMethod).toHaveBeenCalledWith('cli')
+    expect(onAuth).not.toHaveBeenCalled()
   })
 })

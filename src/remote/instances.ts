@@ -3,6 +3,7 @@ import { readVolatile } from '../compat/dsh-schema.ts'
 import { gitRemoteCredentialKey, gitRemoteCredentialRef } from './credentials.ts'
 import type { CredentialKey, CredentialRef } from './credentials-types.ts'
 import { canonicalGitLabInstance } from './instance-url.ts'
+import { effectiveOAuthClientId } from './release-oauth.ts'
 export { canonicalGitLabInstance } from './instance-url.ts'
 
 export const GITLAB_COM = 'https://gitlab.com'
@@ -86,7 +87,8 @@ function makeInstance(input: Record<string, unknown>): GitLabInstance {
   const instance = canonicalGitLabInstance(rawUrl)
   const parsed = new URL(instance)
   const label = optionalString(readVolatile(input['label']), 'label', 256)
-  const clientId = optionalString(readVolatile(input['clientId']), 'client-id', 512)
+  const configuredClientId = optionalString(readVolatile(input['clientId']), 'client-id', 512)
+  const clientId = instance === GITLAB_COM ? effectiveOAuthClientId(readVolatile(input['clientId']), 'gitlab') : configuredClientId
   if (clientId !== undefined && /\s/u.test(clientId)) return invalid('client-id')
   const refValue = optionalString(readVolatile(input['credentialRef']), 'credential-ref', 256)
   let credentialRef: CredentialRef | undefined

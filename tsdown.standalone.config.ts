@@ -10,6 +10,21 @@ const TYPES_MARKER = `${sep}lib${sep}types${sep}`
 const CSS_PREFIX = '\0dsh-git-css:'
 const CSS_SUFFIX = '.mjs'
 
+// Maintainer-owned public OAuth applications, baked into Host builds only.
+const publicOAuthApps: unknown = JSON.parse(readFileSync(new URL('./oauth-apps.json', import.meta.url), 'utf8'))
+if (typeof publicOAuthApps !== 'object' || publicOAuthApps === null || Array.isArray(publicOAuthApps)
+  || Object.entries(publicOAuthApps).some(([key, value]) => !['github', 'gitlab'].includes(key) || typeof value !== 'string')) {
+  throw new Error('oauth-apps.json must contain only public GitHub/GitLab client IDs')
+}
+const defaultOAuthIds = publicOAuthApps as Readonly<Partial<Record<'github' | 'gitlab', string>>>
+const releaseOAuthIds = Object.fromEntries([
+  ['github', process.env['DSH_GIT_GITHUB_CLIENT_ID'] ?? defaultOAuthIds.github],
+  ['gitlab', process.env['DSH_GIT_GITLAB_CLIENT_ID'] ?? defaultOAuthIds.gitlab],
+].filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1] !== ''))
+for (const id of Object.values(releaseOAuthIds)) {
+  if (id.length > 512 || /[\s\x00-\x1f\x7f]/u.test(id)) throw new Error('Invalid public OAuth application ID in release configuration')
+}
+
 interface Manifest {
   dependencies?: Record<string, string>
   peerDependencies?: Record<string, string>
@@ -63,6 +78,7 @@ function styleModule(file: string, css: string, classes: Readonly<Record<string,
 }
 
 export const nodeConfig: UserConfig = {
+  define: { __DSH_GIT_OAUTH_CLIENT_IDS__: JSON.stringify(releaseOAuthIds) },
   name: PACKAGE_NAME,
   entry: ['lib/types/index.js', 'lib/types/types.js'],
   tsconfig: 'tsconfig.standalone.host.json',

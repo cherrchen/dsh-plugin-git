@@ -24,7 +24,9 @@ export interface GitDesktopCapability {
   shell: {
     showItemInFolder(path: string): Promise<void>
     openPath(path: string): Promise<string>
+    openExternal?(url: string): Promise<void>
   }
+  clipboard?: { writeText(text: string): Promise<void> }
   notification: {
     show(options: { title: string; body?: string }): Promise<{ shown: boolean }>
   }

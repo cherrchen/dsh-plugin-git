@@ -18,7 +18,7 @@ import type { SubprocessRuntime } from '@deepseek-ai/dsh-subprocess'
 
 const fixtures = new Map<string, Fixture>()
 const CLIENT = 'isolated-e2e-client'
-const scenarios = ['gh', 'ref', 'oauth', 'anonymous', 'orphan', 'gitlab', 'gitlab-approval-unknown']
+const scenarios = ['gh', 'ref', 'oauth', 'anonymous', 'orphan', 'gitlab', 'gitlab-approval-unknown', 'gitlab-oauth']
 const ORPHAN = 'https://old.example'
 const GITLAB = 'https://git.example.test/gitlab'
 const SHA = 'a'.repeat(40)
@@ -27,7 +27,8 @@ const json = (body: unknown) => new Response(JSON.stringify(body), { headers: { 
 class Fixture {
   readonly id = randomUUID()
   readonly root = mkdtempSync(join(tmpdir(), 'dsh-git-auth-e2e-'))
-  readonly runtime: GitRemoteRuntime
+  runtime: GitRemoteRuntime
+  private readonly createRuntime: () => GitRemoteRuntime
   private readonly records = new Map<string, CredentialRecord>()
   private queue: Promise<unknown> = Promise.resolve()
   approved = false
@@ -39,7 +40,7 @@ class Fixture {
     GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: join(this.root, 'gitconfig'),
     GIT_TERMINAL_PROMPT: '0', GIT_ASKPASS: '',
   }
-  constructor(readonly scenario: string) {
+  constructor(readonly scenario: string, readonly outcome = 'success') {
     execFileSync('git', ['init', '-b', 'main'], { cwd: this.root, env: this.env, stdio: 'ignore' })
     execFileSync('git', ['remote', 'add', 'origin', scenario.startsWith('gitlab') ? `${GITLAB}/group/sub/repo.git` : 'https://github.com/fixture/repo.git'], { cwd: this.root, env: this.env })
     if (scenario === 'oauth') this.records.set('dsh-plugin-git/github-com', grantRecord({ v: 1, state: 'authenticated', revision: randomUUID(), host: 'github.com', clientId: CLIENT, accessToken: this.token('oauth') }))
@@ -77,8 +78,10 @@ class Fixture {
       },
     }
     const service = new GitService(subprocess as SubprocessRuntime, { executable: 'git', maxOutputBytes: 1_048_576, graceMs: 1000 })
-    this.runtime = new GitRemoteRuntime(credentials, subprocess, service, { clientId: CLIENT, ...(scenario.startsWith('gitlab') ? { instances: [{ url: GITLAB, credentialRef: 'OFFICE' }] } : {}) })
+    this.createRuntime = () => new GitRemoteRuntime(credentials, subprocess, service, { clientId: CLIENT, ...(scenario.startsWith('gitlab') ? { instances: [{ url: GITLAB, credentialRef: 'OFFICE', ...(scenario === 'gitlab-oauth' ? { clientId: CLIENT } : {}) }] } : {}) })
+    this.runtime = this.createRuntime()
   }
+  async restart() { await this.runtime.dispose(); this.runtime = this.createRuntime() }
   get orphanRetired(): boolean { const record = this.records.get(gitLabGrantKey(ORPHAN)); const payload = record?.kind === 'grant' && typeof record.payload === 'object' && record.payload !== null ? record.payload as Record<string, unknown> : undefined; return payload?.['state'] === 'signed-out' && payload['retired'] === true && payload['accessToken'] === undefined && payload['refreshToken'] === undefined }
   token(channel: string) { return `e2e-sentinel-${this.id}-${channel}` }
   async call(endpoint: string, payload: Record<string, unknown>) {
@@ -94,6 +97,18 @@ const originalFetch = globalThis.fetch
 globalThis.fetch = async (input, init) => {
   const url = new URL(String(input))
   if (url.origin === 'https://git.example.test') {
+    const form = new URLSearchParams(String(init?.body))
+    if (url.pathname === '/gitlab/oauth/authorize_device' && form.get('client_id') === CLIENT) {
+      const fixture = [...fixtures.values()].at(-1)!
+      return json({ device_code: fixture.id, user_code: 'E2E-CODE', verification_uri: `${GITLAB}/oauth/device`, verification_uri_complete: `${GITLAB}/oauth/device?user_code=E2E-CODE`, expires_in: 60, interval: 0.05 })
+    }
+    if (url.pathname === '/gitlab/oauth/token') {
+      const fixture = fixtures.get(form.get('device_code') ?? '')
+      if (fixture === undefined) throw new Error('E2E unknown GitLab login')
+      if (fixture.outcome === 'denied') return json({ error: 'access_denied' })
+      if (fixture.outcome === 'expired') return json({ error: 'expired_token' })
+      return json(fixture.approved ? { access_token: fixture.token('gitlab'), token_type: 'bearer', expires_in: 7200 } : { error: 'authorization_pending' })
+    }
     const authorization = new Headers(init?.headers).get('authorization') ?? ''
     const fixture = [...fixtures.values()].find(value => authorization === `Bearer ${value.token('gitlab')}`)
     if (fixture === undefined) throw new Error('E2E blocked an unrecognized GitLab credential')
@@ -127,7 +142,7 @@ globalThis.fetch = async (input, init) => {
       return json({ device_code: fixture.id, user_code: 'E2E-CODE', verification_uri: 'https://github.com/login/device', expires_in: 60, interval: 0.05 })
     }
     const fixture = fixtures.get(form.get('device_code') ?? '')
-    if (url.pathname === '/login/oauth/access_token' && fixture !== undefined) return json(fixture.approved
+    if (url.pathname === '/login/oauth/access_token' && fixture !== undefined) return json(fixture.outcome === 'denied' ? { error: 'access_denied' } : fixture.outcome === 'expired' ? { error: 'expired_token' } : fixture.approved
       ? { access_token: fixture.token('oauth'), token_type: 'bearer', scope: 'repo' }
       : { error: 'authorization_pending' })
   }
@@ -160,12 +175,15 @@ export default defineConfig({
           for await (const chunk of request) body += chunk
           const data = body ? JSON.parse(body) : {}
           if (request.url === '/fixture' && request.method === 'POST') {
+            const existing = fixtures.get(data.fixtureId)
+            if (existing !== undefined) { response.end(JSON.stringify({ id: existing.id, repository: existing.root })); return }
             if (!scenarios.includes(data.scenario)) throw new Error('Unknown fixture scenario')
-            const fixture = new Fixture(data.scenario); fixtures.set(fixture.id, fixture)
+            const fixture = new Fixture(data.scenario, ['success', 'denied', 'expired'].includes(data.outcome) ? data.outcome : 'success'); fixtures.set(fixture.id, fixture)
             response.end(JSON.stringify({ id: fixture.id, repository: fixture.root })); return
           }
           const fixture = fixtures.get(data.id)
           if (fixture === undefined) throw new Error('Unknown fixture')
+          if (request.url === '/restart') { await fixture.restart(); response.end('{}'); return }
           if (request.url === '/approve') { fixture.approved = true; response.end('{}'); return }
           if (request.url === '/inspect') { response.end(JSON.stringify({ calls: fixture.calls, capability: await fixture.runtime.capability(), orphanRetired: fixture.orphanRetired })); return }
           if (request.url !== '/rpc' || !data.endpoint.startsWith('remote-')) throw new Error('Unsupported fixture endpoint')

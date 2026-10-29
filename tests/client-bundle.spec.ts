@@ -7,6 +7,16 @@ import { CREDENTIALS_SEAM_DSH_RELEASES, SUPPORTED_DSH_RELEASES } from '../src/co
 const packageRoot = resolve(import.meta.dirname, '..')
 
 describe('Git client bundle', () => {
+  it('embeds the configured public OAuth IDs in the Host and leaves Client authorization on RPC', () => {
+    const defaults = JSON.parse(readFileSync(join(packageRoot, 'oauth-apps.json'), 'utf8')) as Record<string, string>
+    const host = readFileSync(join(packageRoot, 'lib/index.js'), 'utf8')
+    const client = readFileSync(join(packageRoot, 'lib/client.js'), 'utf8')
+    for (const [provider, variable] of [['github', 'DSH_GIT_GITHUB_CLIENT_ID'], ['gitlab', 'DSH_GIT_GITLAB_CLIENT_ID']] as const) {
+      const id = process.env[variable] ?? defaults[provider]
+      if (id) { expect(host).toContain(id); expect(client).not.toContain(id) }
+    }
+    expect(host).not.toContain('__DSH_GIT_OAUTH_CLIENT_IDS__')
+  })
   it('uses the host-owned DiffBlock without bundling a private renderer', () => {
     const client = readFileSync(join(packageRoot, 'lib/client.js'), 'utf8')
     expect(client).toMatch(/\.DiffBlock\b/)

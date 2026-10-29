@@ -40,7 +40,17 @@ export interface RemoteConfirmation {
   readonly sha: string
 }
 
-export interface RemoteLoginAttempt { readonly attemptId: string; readonly userCode: string; readonly verificationUri: string }
+export interface RemoteLoginAttempt {
+  readonly attemptId: string
+  readonly userCode: string
+  readonly verificationUri: string
+  readonly verificationUriComplete?: string
+  /** Optional for compatibility with older Hosts. */
+  readonly expiresAt?: number
+  readonly intervalMs?: number
+}
+
+export type RemoteLoginStatus = 'requesting' | 'waiting' | 'verifying' | 'connected' | 'cancelled' | 'expired' | 'denied' | 'failed' | 'unavailable'
 
 /** The constant scope GitHub scoped requests are dispatched under. */
 export const GITHUB_SCOPE: ScopedRemoteScope = { provider: 'github', instance: 'https://github.com' }

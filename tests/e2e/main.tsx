@@ -15,7 +15,7 @@ const locale = params.get('lang') === 'en' ? en : zh
 const t = (key: GitLocaleKey): string => locale[key]
 const { id, repository } = await fetch('/__test/fixture', {
   method: 'POST', headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ scenario: params.get('scenario') ?? 'gh' }),
+  body: JSON.stringify({ scenario: params.get('scenario') ?? 'gh', outcome: params.get('outcome') ?? 'success', fixtureId: params.get('fixture') }),
 }).then(response => response.json())
 const rpc = { call: async (_channel: string, endpoint: string, payload: unknown, signal?: AbortSignal) => {
   return fetch('/__test/rpc', {
@@ -24,6 +24,19 @@ const rpc = { call: async (_channel: string, endpoint: string, payload: unknown,
   }).then(response => response.json())
 } }
 const feature = new GitRemoteFeature(rpc)
+// Native calls are captured, never sent to a real system browser or clipboard.
+const nativeEvents: string[] = []
+const showNativeEvents = () => { document.getElementById('native-events')!.textContent = JSON.stringify(nativeEvents) }
+if (params.get('desktop') !== null) feature.setAuthDesktop({
+  openExternal: async url => {
+    nativeEvents.push(`open:${url}`); showNativeEvents()
+    if (params.get('desktop') === 'fail') throw new Error('Fixture browser failure')
+  },
+  copyText: async text => {
+    nativeEvents.push(`copy:${text}`); showNativeEvents()
+    if (params.get('clipboard') === 'fail') throw new Error('Fixture clipboard failure')
+  },
+})
 // The isolated /rpc endpoint only serves remote-* endpoints, so the local
 // session controller is stubbed to report the fixture checkout directly.
 const localSnapshot = Object.freeze({ repository: { root: repository }, loading: false })
@@ -57,6 +70,8 @@ function App() {
     <h1>Isolated Git authentication</h1>
     <p>Temporary repository and credentials · simulated GitHub service</p>
     <output aria-label="Fixture ID">{id}</output>
+    <output id="native-events" aria-label="Native events" />
+    <button type="button" onClick={() => { feature.setAuthDesktop(undefined) }}>Unload native fixture</button>
     {gitlab ? <>
       <button type="button" onClick={() => { void feature.pushed(repository, 'a'.repeat(40), id, 'Fixture GitHub push', 'origin') }}>Simulate local push event</button>
       <button type="button" onClick={() => { void list.pollNotices() }}>Run notification fixture</button>
