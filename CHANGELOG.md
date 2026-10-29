@@ -21,6 +21,7 @@ All notable changes to this package are recorded here. The format follows [Keep 
 ### Fixed
 
 - Copying error details now reports a failure when the clipboard API is unavailable or the writer throws synchronously.
+- Blocked remote-write notices now report copy success or failure while keeping their reconciliation controls available.
 - GitLab authenticated-account and author avatars now display, including Gravatar default avatars.
 
 ## [0.2.8] — 2026-10-25

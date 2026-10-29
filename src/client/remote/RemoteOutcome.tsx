@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { IconWarningOutline16 } from '../../compat/dsh-icons.tsx'
 import { Toast } from '../../compat/dsh-toast.tsx'
 import type { RemoteWriteOutcome } from './remote-view.ts'
 import type { GitLocaleKey } from '../locales.ts'
-import { describeRemoteError } from '../error-feedback.tsx'
+import { copyErrorDetails, describeRemoteError } from '../error-feedback.tsx'
 
 const stepKeys: Readonly<Record<string, GitLocaleKey>> = {
   comment: 'gitlab.stepComment', approve: 'gitlab.stepApprove', 'close-pr': 'gitlab.stepClose', 'merge-pr': 'gitlab.stepMerge', 'merge-verification': 'gitlab.stepMergeVerification', 'create-pr': 'gitlab.stepCreate',
@@ -47,6 +47,7 @@ export function RemoteBlockedToast({ outcome, action, error, errorDetails, provi
   readonly onAcknowledge: () => void
   readonly t: (key: GitLocaleKey) => string
 }): ReactNode {
+  const [copyResult, setCopyResult] = useState<{ detail: string; result: 'copied' | 'failed' }>()
   const parts = [t('gitlab.partial')]
   if (action === 'remote-checkout-pr' || action === 'remote-issue-branch') parts.push(t('gitlab.localInspect'))
   if (errorDetails?.['commentSucceeded'] === true) parts.push(t('gitlab.commentSucceeded'))
@@ -61,8 +62,11 @@ export function RemoteBlockedToast({ outcome, action, error, errorDetails, provi
   if (errorReport !== undefined) parts.push(errorReport.summary)
   if (!reconciled) parts.push(t('gitlab.reconcileHint'))
   const detail = errorReport === undefined ? undefined : `${errorReport.detail}${receiptError === undefined ? '' : `\nreceipt: ${receiptError}`}`
+  if (copyResult !== undefined && copyResult.detail === detail) parts.push(t(copyResult.result === 'copied' ? 'error.copyDone' : 'error.copyFailed'))
   const actions = [
-    ...(detail === undefined ? [] : [{ prefix: t('error.copyPrefix'), label: t('error.copyDetails'), onClick: () => { void navigator.clipboard.writeText(detail).then(() => undefined, () => undefined) } }]),
+    ...(detail === undefined ? [] : [{ prefix: t('error.copyPrefix'), label: t('error.copyDetails'), onClick: () => {
+      void copyErrorDetails(detail).then(() => { setCopyResult({ detail, result: 'copied' }) }, () => { setCopyResult({ detail, result: 'failed' }) })
+    } }]),
     ...(reconciled ? [{ prefix: detail === undefined ? t('error.copyPrefix') : ' ', label: t('gitlab.reconcile'), onClick: onAcknowledge }] : []),
   ]
   return (
