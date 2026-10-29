@@ -1,4 +1,3 @@
-import { gitLabWebUrl } from './gitlab-model.ts'
 /** GitLab-only per-instance authentication. Secrets never leave this owner. */
 import { createHash, randomUUID } from 'node:crypto'
 import type { CredentialRef, CredentialRecord } from './credentials-types.ts'
@@ -151,8 +150,7 @@ export class GitLabAuth {
     if ((await this.selectionStore().read()).revision !== this.selectionRevision) { this.setState('unauthenticated'); throw remoteAuthError('source-changed') }
     signal.throwIfAborted()
     this.checkCurrent()
-    const avatarUrl = gitLabWebUrl(this.deps.instance.instance, body?.['avatar_url'], true)
-    const viewer: GitRemoteViewer = { ...(avatarUrl === undefined ? {} : { avatarUrl }), host: this.deps.instance.hostname, userId: String(id), login }
+    const viewer: GitRemoteViewer = { host: this.deps.instance.hostname, userId: String(id), login }
     this.context = { state: 'authenticated', source, token, fingerprint, viewer, refreshable, ...(ref === undefined ? {} : { ref }), ...(refSource === undefined ? {} : { refSource }) }
     this.adopted = { source, ...(ref === undefined ? {} : { ref }) }; this.serverVersion = undefined; this.bump()
   }

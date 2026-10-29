@@ -225,5 +225,3 @@ GL1 已涉及 Host 装配、认证/HTTP 描述、ScopedRemote* 类型和 Git rem
 - [当前 RPC 契约](../reference/remote-platform-rpc.md)
 - [当前架构](overview.md)
 - 官方端点来源：[REST](https://docs.gitlab.com/api/rest/)、[MR](https://docs.gitlab.com/api/merge_requests/)、[Approvals](https://docs.gitlab.com/api/merge_request_approvals/)、[Discussions](https://docs.gitlab.com/api/discussions/)、[To-Do](https://docs.gitlab.com/api/todos/)、[Metadata](https://docs.gitlab.com/api/metadata/)、[相对 URL 部署](https://docs.gitlab.com/omnibus/settings/configuration/#configure-a-relative-url-for-gitlab)。这些来源未证明真实环境或历史精确版本已通过验收。
-
-GitLab 验证后的 viewer 与作者均投影受校验的 `avatar_url`；允许同实例及 secure.gravatar.com 的 HTTPS 图片。头像参数仅允许唯一的 s 尺寸、内置 d 占位样式和 r 分级值，拒绝外链默认图及任意 query。Client 图片失败回退首字母，新头像 URL 可重新加载。
