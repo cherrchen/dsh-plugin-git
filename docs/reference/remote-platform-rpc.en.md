@@ -163,3 +163,5 @@ Automated evidence lives in tests/remote-*.spec.ts and tests/remote-surface.clie
 Authentication switches, retries, and completed OAuth login from a GitLab detail view reload the original MR/Issue and its object permissions under the new identity, preserving the navigation target; logout withdraws the previous identity’s data.
 
 v2 scoped mutations, like the legacy channel, invalidate all session, list-filter, and detail caches for the same local repository on success, rejection, or response loss; targeted reconciliation gates for unknown outcomes remain in place.
+
+When a running GitHub Host observes a changed authentication preference revision in shared credential storage, it withdraws the old identity and establishes the selected CLI identity on the next snapshot. Even an absent candidate is probed once; ordinary reads do not repeatedly launch the CLI.

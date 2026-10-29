@@ -171,7 +171,10 @@ export class GitRemoteAuth {
   }
   private async resolveContext(signal: AbortSignal): Promise<GitRemoteSnapshot> {
     const selected = await this.selectedMethod()
-    if (selected === 'cli') return this.ghToken === undefined ? this.markState('anonymous') : this.acceptToken(this.ghToken, 'gh')
+    if (selected === 'cli') {
+      if (this.context.authState === 'unauthenticated') return this.establishCurrent(signal)
+      return this.ghToken === undefined ? this.markState('anonymous') : this.acceptToken(this.ghToken, 'gh')
+    }
     const { grant, malformed } = await this.readGrantOrMalformed()
     if (malformed) return this.markState('invalid')
     if (grant !== undefined) {

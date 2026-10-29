@@ -137,6 +137,22 @@ describe('GitRemoteAuth discovery', () => {
     expect(snap2.generation.revision).toBeGreaterThanOrEqual(snap.generation.revision)
   })
 
+  it.each(['gh-token', undefined])('discovers CLI once when another Host selects it (%s)', async token => {
+    const store = fakeStore()
+    store.resolves['GH_TOKEN'] = { value: 'old-env-token', source: 'env' }
+    const gh = vi.fn(async () => token)
+    const running = auth(store, { discoverGh: gh }).engine
+    const other = auth(store, { discoverGh: async () => 'other-host-token' }).engine
+    const before = await running.establish(SIG)
+    expect(before.source).toBe('ref')
+    await other.selectMethod('cli', SIG)
+    const after = await running.snapshot(SIG)
+    expect(after).toMatchObject(token === undefined ? { state: 'anonymous' } : { state: 'authenticated', source: 'gh', token })
+    expect(after.generation.revision).toBeGreaterThan(before.generation.revision)
+    await running.snapshot(SIG)
+    expect(gh).toHaveBeenCalledTimes(1)
+    await Promise.all([running.dispose(), other.dispose()])
+  })
   it('bumps generation on context change even when login matches', async () => {
     const store = fakeStore()
     const { engine } = auth(store, { settings: { clientId: CLIENT } })
