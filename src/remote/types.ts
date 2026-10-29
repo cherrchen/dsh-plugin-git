@@ -67,6 +67,8 @@ export type RemoteAuthMethod = 'auto' | 'cli' | 'oauth'
 export interface RemoteAuthSelection { readonly method: RemoteAuthMethod; readonly cliAvailable: boolean; readonly oauthCached: boolean }
 
 export interface GitRemoteCapabilityOn {
+  /** Public authentication destinations; no credential configuration or secrets. */
+  readonly authScopes?: readonly ScopedRemoteScope[]
   readonly authSelection?: RemoteAuthSelection
   readonly state: 'on'
   readonly generation: GitRemoteGeneration

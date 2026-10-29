@@ -129,6 +129,17 @@ describe('GitLab scoped controller', () => {
     expect(count('remote-list-issues')).toBe(issuesBefore + 1)
     expect(f.controller.getSnapshot().blocked).toBe(outcome === 'unknown')
   })
+  it('withdraws and reloads mounted detail permissions when settings switches the instance account', async () => {
+    const cap = { state: 'on', generation, auth: { state: 'authenticated', source: 'glab' }, authSelection: { method: 'cli', cliAvailable: true, oauthCached: true } }
+    const f = fixture(endpoint => ['remote-capability', 'remote-select-auth', 'remote-auth-status'].includes(endpoint) ? { ok: true, value: { remoteProtocol: 2, scope, generation, value: cap } } : undefined)
+    await ready(f.controller)
+    const unsubscribe = f.controller.subscribe(() => {})
+    const account = f.feature.authControllerFor(scope)
+    await account.selectAuthMethod('cli')
+    await vi.waitFor(() => expect(f.call.mock.calls.filter(args => args[1] === 'remote-pr')).toHaveLength(2))
+    await vi.waitFor(() => expect(f.controller.getSnapshot()).toMatchObject({ busy: false, detail: { number: 7 }, facts: { viewer } }))
+    unsubscribe()
+  })
   describe.each(['pulls', 'issues'] as const)('%s target changes', kind => {
     it.each(['pagination', 'failure'] as const)('clears the previous target rows before %s on an uncached target', async mode => {
       const other = { ...target, path: 'group/other' }

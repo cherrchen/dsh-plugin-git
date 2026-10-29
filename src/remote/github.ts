@@ -5,10 +5,11 @@ import { GitRemoteError } from './errors.ts'
 import { GitRemoteHttp, GitRemoteHttpError, GIT_REMOTE_API_ORIGIN, GIT_REMOTE_WEB_ORIGIN, type GitRemoteHttpResponse } from './http.ts'
 import { apiPath, avatarUrl, browserUrl, comment, commit, file, invalidResponse, issue, number, object, objectNumber, pull, repositoryPath, review, string } from './github-model.ts'
 import type { RemotePage, RemotePageRequest, RemoteProvider, RemoteReadContext, RemoteRepository, RemoteRepositoryFacts, RemoteResult, RemoteWrite, RemoteWriteReceipt, RemoteNotice } from './provider.ts'
-import type { GitRemoteGeneration, GitRemoteViewer, GitRemoteWriteContext } from './types.ts'
+import type { GitRemoteCapabilityOn, GitRemoteGeneration, GitRemoteViewer, GitRemoteWriteContext } from './types.ts'
 
 export function sameGeneration(a: GitRemoteGeneration, b: GitRemoteGeneration): boolean { return a.instanceId === b.instanceId && a.revision === b.revision }
 export interface GitHubScopedFactsProvider extends RemoteProvider {
+  account(context: RemoteReadContext): Promise<RemoteResult<GitRemoteCapabilityOn>>
   scopedRepository(repo: RemoteRepository, context: RemoteReadContext): Promise<RemoteResult<RemoteRepositoryFacts & { supportedMergeMethods: readonly ('merge' | 'squash')[] }>>
 }
 interface CacheEntry { body: unknown; etag?: string; link: string | null }
@@ -37,9 +38,9 @@ export class GitHubProvider implements GitHubScopedFactsProvider {
 
   headRefspec(n: number): string { return `refs/pull/${objectNumber(n)}/head` }
 
-  private operation<T>(repo: RemoteRepository, context: RemoteReadContext, work: (op: Operation) => Promise<T>, checkAfter = true): Promise<RemoteResult<T>> {
+  private operation<T>(repo: RemoteRepository | undefined, context: RemoteReadContext, work: (op: Operation) => Promise<T>, checkAfter = true): Promise<RemoteResult<T>> {
     if (this.owner.signal.aborted) return Promise.reject(new GitRemoteError('git/remote-unavailable', 'git-remote: provider is disposed'))
-    repositoryPath(repo)
+    if (repo !== undefined) repositoryPath(repo)
     const signal = AbortSignal.any([this.owner.signal, context.signal])
     const run = this.chain.then(async () => {
       signal.throwIfAborted()
@@ -48,7 +49,7 @@ export class GitHubProvider implements GitHubScopedFactsProvider {
       if (this.generation === undefined || !sameGeneration(this.generation, snapshot.generation)) {
         this.cache.clear(); this.pollAfter.clear(); this.viewer = undefined; this.blockedUntil = 0; this.failures = 0; this.generation = snapshot.generation
       }
-      const key = repositoryPath(repo).toLowerCase()
+      const key = repo === undefined ? 'account' : repositoryPath(repo).toLowerCase()
       if (context.automatic === true) {
         if (snapshot.state === 'anonymous') throw new GitRemoteError('git/remote-unavailable', 'git-remote: anonymous reads require manual refresh')
         if (this.now() < (this.pollAfter.get(key) ?? 0)) throw this.rateError(this.pollAfter.get(key) ?? 0)
@@ -75,6 +76,15 @@ export class GitHubProvider implements GitHubScopedFactsProvider {
     this.pending.add(run)
     void run.finally(() => this.pending.delete(run)).catch(() => {})
     return run
+  }
+
+  async account(context: RemoteReadContext): Promise<RemoteResult<GitRemoteCapabilityOn>> {
+    const snapshot = await this.auth.snapshot(context.signal)
+    if (snapshot.state !== 'authenticated' && snapshot.state !== 'anonymous') {
+      const cap = await this.auth.capability()
+      return { generation: cap.generation, value: cap }
+    }
+    return this.operation(undefined, context, async op => ({ ...await this.auth.capability(), ...(op.viewer === undefined ? {} : { viewer: op.viewer }) }))
   }
 
   private rateError(resetAt: number): GitRemoteError { return new GitRemoteError('git/rate-limited', 'git-remote: request budget is temporarily exhausted', { resetAt }) }

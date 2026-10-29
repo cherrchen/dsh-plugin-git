@@ -86,6 +86,7 @@ export class GitHubLegacyOwner implements LegacyRemoteChannel {
       if (endpoint === 'remote-use-git-credential') { await this.auth.useGitCredential(signal); return this.capability() }
       this.initialized ??= this.auth.establish(signal).catch(error => { this.initialized = undefined; throw error })
       await this.initialized
+      if (endpoint === 'remote-auth-status') return this.provider.account({ signal })
       const root = text(request, 'repository', 16384)
       if (endpoint === 'remote-repositories') return this.git.repositories(root, signal)
       const target = remoteTarget(request)

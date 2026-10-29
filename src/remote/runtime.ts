@@ -29,7 +29,11 @@ export class GitRemoteRuntime {
     this.configurationTimer = setInterval(() => { void this.registry.reconcile().catch(() => {}) }, 1000)
     this.configurationTimer.unref?.()
   }
-  capability() { return this.legacy.capability() }
+  async capability() {
+    const capability = await this.legacy.capability()
+    const instances = await this.registry.list().catch(() => [])
+    return { ...capability, authScopes: [{ provider: 'github' as const, instance: 'https://github.com' }, ...instances.map(({ instance }) => ({ provider: 'gitlab' as const, instance }))] }
+  }
   invalidateRecord(key: string): void { this.legacy.invalidateRecord(key); this.registry.invalidateRecord(key) }
   invalidateReference(ref: string): void { this.legacy.invalidateReference(ref); this.registry.invalidateReference(ref) }
   handle(endpoint: string, payload: unknown, caller: AbortSignal, assertSession: (request: Record<string, unknown>, signal: AbortSignal) => Promise<void>): Promise<unknown> {
