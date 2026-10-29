@@ -35,7 +35,16 @@ export function gitLabWebUrl(instance: string, raw: unknown, image = false): str
   if (!sameInstance && !gravatar) return undefined
   if (target.hash && (!/^#[A-Za-z0-9_-]{1,128}$/u.test(target.hash) || image)) return undefined
   // No arbitrary query string is allowed to become a link or an image request.
-  if (target.search && !(image && [...target.searchParams].length === 1 && target.searchParams.has('s') && /^[1-9][0-9]{0,2}$/u.test(target.searchParams.get('s') ?? ''))) return undefined
+  if (target.search) {
+    if (!image) return undefined
+    const allowed = new Map([['s', /^[1-9][0-9]{0,2}$/u], ['d', /^(?:404|mp|identicon|monsterid|wavatar|retro|robohash|blank)$/u], ['r', /^(?:g|pg|r|x)$/u]])
+    const seen = new Set<string>()
+    for (const [key, value] of target.searchParams) {
+      const pattern = allowed.get(key)
+      if (pattern === undefined || seen.has(key) || !pattern.test(value)) return undefined
+      seen.add(key)
+    }
+  }
   return target.href
 }
 

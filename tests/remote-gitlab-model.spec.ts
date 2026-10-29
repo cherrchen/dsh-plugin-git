@@ -54,7 +54,18 @@ describe('GitLab provider projections', () => {
   it('uses a separate narrow policy for avatars and permits a same-instance note fragment', () => {
     expect(gitLabWebUrl(instance, `${instance}/group/repo/-/issues/7#note_12`)).toBe(`${instance}/group/repo/-/issues/7#note_12`)
     expect(gitLabWebUrl(instance, 'https://secure.gravatar.com/avatar/hash?s=80', true)).toBe('https://secure.gravatar.com/avatar/hash?s=80')
+    expect(gitLabWebUrl(instance, 'https://secure.gravatar.com/avatar/hash?s=80&d=identicon&r=g', true)).toBe('https://secure.gravatar.com/avatar/hash?s=80&d=identicon&r=g')
     expect(gitLabWebUrl(instance, 'https://secure.gravatar.com/avatar/hash?d=https%3A%2F%2Fevil.example', true)).toBeUndefined()
     expect(gitLabWebUrl(instance, 'https://secure.gravatar.com/avatar/hash?s=80')).toBeUndefined()
+    expect(gitLabWebUrl(instance, `${instance}/uploads/avatar.png?s=80`)).toBeUndefined()
   })
+  it.each([
+    'https://secure.gravatar.com/avatar/hash?s=1&s=2',
+    'https://secure.gravatar.com/avatar/hash?x=1',
+    'https://secure.gravatar.com/avatar/hash?constructor=1',
+    'https://secure.gravatar.com/avatar/hash?d=evil',
+    'https://secure.gravatar.com/avatar/hash?d=identicon&d=retro',
+    'https://secure.gravatar.com/avatar/hash?r=safe',
+    'https://secure.gravatar.com/avatar/hash?s=0',
+  ])('drops an avatar URL outside the image query allowlist %s', value => expect(gitLabWebUrl(instance, value, true)).toBeUndefined())
 })

@@ -133,7 +133,7 @@ Device Flow uses per-instance clientId and api scope; actual expires_in controls
 | Device initiation | POST `<prefix>/oauth/authorize_device`, App/scope only without API bearer |
 | Token exchange/refresh | POST `<prefix>/oauth/token`, protocol body only, never forwarded to other pages/redirects |
 | Verification web page | Exact HTTPS `<prefix>/oauth/device`; plain URI has no query, complete URI permits one user_code matching the attempt; no bearer |
-| Browser/avatar | Web paths belong to the selected instance, excluding another registered prefix on the same origin; avatars use safe instance paths or secure.gravatar.com, without bearer, with no-referrer and initial-letter fallback |
+| Browser/avatar | Web paths belong to the selected instance, excluding another registered prefix on the same origin; avatars use safe instance paths or secure.gravatar.com, whose query may carry only allowlisted `s`/`d`/`r` values, without bearer, with no-referrer and initial-letter fallback; the GitLab viewer (current account) avatar is projected from `/user` under the same policy |
 
 Links/cursors cannot replace instance, project, query or comparison snapshot. Client treats them as opaque handles; Host binds context/generation/query and validates rather than trusting external_url. Retain bounded upstream pages per call with no total list ceiling. Authenticated caches include scope/viewer/generation/project id/path/full query. Send conditional requests only with ETags, never budgeting around free 304s. Anonymous refresh stays manual; authenticated polling is ≥60s with longer Retry-After/reset honored, and explicit rate limits/429 cause backoff.
 

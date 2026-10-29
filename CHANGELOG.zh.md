@@ -11,6 +11,10 @@
 - 将 DSH 兼容范围扩展至 `0.2.1-rc.4` 与 `0.2.2-alpha.2`（含可选 credentials seam），接受其宿主 Cordis/schemastery 副本，保留全部旧版支持与 `0.2.0-rc.2` 开发 pin。见[兼容评估](docs/reference/dsh-compatibility.md)。
 - 隔离本地矩阵支持未列入清单的候选验证；联网车道使用干净依赖树并检查 peer，避免遗留 Cordis 配套包。0.2.2 alpha CI 车道使用 Node 24.9，并修正开发锁文件的 include peer 解析。
 
+### Fixed
+
+- GitLab 认证账号与作者头像现可显示（含 Gravatar 默认头像）。
+
 ## [0.2.8] — 2026-10-25
 
 ### Added

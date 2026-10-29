@@ -133,7 +133,7 @@ Device Flow 使用每实例 clientId、api scope；OAuth token body 的实际 ex
 | Device 初始化 | POST `<prefix>/oauth/authorize_device`；仅 App/scope，无 API bearer |
 | Token 交换/刷新 | POST `<prefix>/oauth/token`；仅对应协议 body，禁止泄露到其他网页或跳转 |
 | 验证网页 | 精确 HTTPS `<prefix>/oauth/device`；verification_uri 无 query，complete URI 仅单个 user_code 且匹配当前 attempt，不带 bearer |
-| 浏览器与头像 | 网页限定已选实例 web 路径，不将同 origin 下其他配置前缀当本实例；头像仅同实例安全路径或 secure.gravatar.com，无 bearer、no-referrer，失败回退首字母 |
+| 浏览器与头像 | 网页限定已选实例 web 路径，不将同 origin 下其他配置前缀当本实例；头像仅同实例安全路径或 secure.gravatar.com，Gravatar query 仅允许 s/d/r 白名单取值，无 bearer、no-referrer，失败回退首字母；GitLab viewer（当前账号）头像同样经该策略从 `/user` 投影 |
 
 Link/cursor 不得改变实例、项目、查询或比较快照；Client 视为不透明 handle，Host 关联 context/generation/query 后校验，不能直接信任响应中的 external_url。按当前单请求页数上限续取；无总体列表天花板。认证缓存键含 scope、viewer、generation、项目 id/path 与完整查询；有 ETag 才条件请求，不依赖 304 免配额。匿名手动刷新，认证轮询至少60s且遵守更长 Retry-After/reset，429/明确限流响应退避。
 

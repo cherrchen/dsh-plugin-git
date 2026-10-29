@@ -135,6 +135,12 @@ describe('RemoteAvatar', () => {
     fireEvent.error(img)
     expect(container.querySelector('img')).toBeNull()
     expect(container.textContent).toBe('A')
+    rerender(<RemoteAvatar login="alice" url="https://secure.gravatar.com/avatar/h?s=80&d=identicon" size={20} />)
+    const retry = container.querySelector('img')!
+    expect(retry.getAttribute('src')).toBe('https://secure.gravatar.com/avatar/h?s=40&d=identicon')
+    fireEvent.error(retry)
+    expect(container.querySelector('img')).toBeNull()
+    expect(container.textContent).toBe('A')
     rerender(<RemoteAvatar login="bob" url={undefined} size={20} />)
     expect(container.querySelector('img')).toBeNull()
     expect(container.textContent).toBe('B')

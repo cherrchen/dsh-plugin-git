@@ -6,6 +6,7 @@ import { AuthSelectionStore, authMethod, hasOAuthRecord } from './auth-selection
 import { GitRemoteError, remoteAuthError } from './errors.ts'
 import { GitRemoteHttp, GitRemoteHttpError } from './http.ts'
 import { gitLabGrantRecord, parseGitLabGrant, type GitLabGrant } from './gitlab-grant.ts'
+import { gitLabWebUrl } from './gitlab-model.ts'
 import { GITLAB_COM, gitLabGrantKey, type GitLabInstance } from './instances.ts'
 import type { ResolvedRemoteSettings } from './settings.ts'
 import type { GitRemoteGeneration, GitRemoteViewer, ScopedRemoteCapabilityOn, ScopedRemoteResult } from './types.ts'
@@ -150,7 +151,8 @@ export class GitLabAuth {
     if ((await this.selectionStore().read()).revision !== this.selectionRevision) { this.setState('unauthenticated'); throw remoteAuthError('source-changed') }
     signal.throwIfAborted()
     this.checkCurrent()
-    const viewer: GitRemoteViewer = { host: this.deps.instance.hostname, userId: String(id), login }
+    const avatarUrl = gitLabWebUrl(this.deps.instance.instance, body?.['avatar_url'], true)
+    const viewer: GitRemoteViewer = { host: this.deps.instance.hostname, userId: String(id), login, ...(avatarUrl === undefined ? {} : { avatarUrl }) }
     this.context = { state: 'authenticated', source, token, fingerprint, viewer, refreshable, ...(ref === undefined ? {} : { ref }), ...(refSource === undefined ? {} : { refSource }) }
     this.adopted = { source, ...(ref === undefined ? {} : { ref }) }; this.serverVersion = undefined; this.bump()
   }

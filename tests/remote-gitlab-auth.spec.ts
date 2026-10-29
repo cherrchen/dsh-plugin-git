@@ -209,6 +209,18 @@ describe('GitLab per-instance authentication', () => {
     expect(JSON.stringify([ca, cb])).not.toContain('token')
     await Promise.all([a.engine.dispose(), b.engine.dispose()])
   })
+  it.each([
+    ['https://one.example/gitlab/uploads/avatar.png', 'https://one.example/gitlab/uploads/avatar.png'],
+    ['https://secure.gravatar.com/avatar/abc?s=80&d=identicon', 'https://secure.gravatar.com/avatar/abc?s=80&d=identicon'],
+    ['https://evil.example/avatar.png', undefined],
+  ])('adopts a viewer avatar only under the avatar URL policy (%s)', async (raw, expected) => {
+    const s = store(); s.refs.set('OFFICE', { value: 'token', source: 'test' })
+    const f = fixture(s, undefined, { ref: 'OFFICE', fetch: async () => json({ id: 9, username: 'viewer', avatar_url: raw }) })
+    const viewer = (await f.engine.snapshot(SIG)).viewer
+    if (expected === undefined) expect(viewer).not.toHaveProperty('avatarUrl')
+    else expect(viewer?.avatarUrl).toBe(expected)
+    await f.engine.dispose()
+  })
   it('distinguishes first missing ref from invalid, vanished and failed sources without falling through', async () => {
     const s = store(), f = fixture(s, undefined, { ref: 'OFFICE' })
     await f.engine.establish(SIG); expect((await f.engine.capability()).value.auth.state).toBe('anonymous')
