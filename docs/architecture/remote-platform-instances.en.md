@@ -225,3 +225,5 @@ GL1 now affects Host assembly, auth/HTTP descriptors, ScopedRemote* types and Gi
 - [Current RPC contracts](../reference/remote-platform-rpc.en.md)
 - [Current architecture](overview.en.md)
 - Official endpoint sources: [REST](https://docs.gitlab.com/api/rest/), [MR](https://docs.gitlab.com/api/merge_requests/), [Approvals](https://docs.gitlab.com/api/merge_request_approvals/), [Discussions](https://docs.gitlab.com/api/discussions/), [Todos](https://docs.gitlab.com/api/todos/), [Metadata](https://docs.gitlab.com/api/metadata/), [relative-URL deployment](https://docs.gitlab.com/omnibus/settings/configuration/#configure-a-relative-url-for-gitlab). These do not establish real-environment or historical exact-version acceptance.
+
+Verified GitLab viewers and authors both project validated `avatar_url` values. HTTPS images are limited to the same instance and secure.gravatar.com. Avatar queries allow only unique s sizes, built-in d fallback styles, and r ratings; external fallback URLs and arbitrary query parameters are rejected. Failed Client images fall back to initials, and a new avatar URL can load again.

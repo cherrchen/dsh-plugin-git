@@ -54,6 +54,8 @@ describe('GitLab provider projections', () => {
   it('uses a separate narrow policy for avatars and permits a same-instance note fragment', () => {
     expect(gitLabWebUrl(instance, `${instance}/group/repo/-/issues/7#note_12`)).toBe(`${instance}/group/repo/-/issues/7#note_12`)
     expect(gitLabWebUrl(instance, 'https://secure.gravatar.com/avatar/hash?s=80', true)).toBe('https://secure.gravatar.com/avatar/hash?s=80')
+    expect(gitLabWebUrl(instance, 'https://secure.gravatar.com/avatar/hash?s=80&d=identicon', true)).toBe('https://secure.gravatar.com/avatar/hash?s=80&d=identicon')
+    expect(gitLabWebUrl(instance, 'https://secure.gravatar.com/avatar/hash?s=80&s=90', true)).toBeUndefined()
     expect(gitLabWebUrl(instance, 'https://secure.gravatar.com/avatar/hash?d=https%3A%2F%2Fevil.example', true)).toBeUndefined()
     expect(gitLabWebUrl(instance, 'https://secure.gravatar.com/avatar/hash?s=80')).toBeUndefined()
   })

@@ -35,6 +35,13 @@ function fixture(s: ReturnType<typeof store>, url = 'https://one.example/gitlab'
 const payload = (instance: string, extra: Record<string, unknown> = {}): CredentialRecord => ({ kind: 'grant', payload: { v: 2, provider: 'gitlab', instance, revision: 'old', state: 'authenticated', clientId: 'app', accessToken: 'old-token', refreshToken: 'old-refresh', expiresAt: 1, ...extra } })
 
 describe('GitLab CLI identity discovery lifecycle', () => {
+  it.each(['https://gitlab.com/uploads/avatar.png', 'https://secure.gravatar.com/avatar/hash?s=80&d=identicon', 'https://untrusted.example/avatar.png'])('projects the verified viewer avatar safely (%s)', async avatar => {
+    const f = fixture(store(), 'https://gitlab.com', { discover: async () => 'cli-token', fetch: async () => json({ id: 9, username: 'viewer', avatar_url: avatar }) })
+    const snapshot = await f.engine.snapshot(SIG)
+    expect(snapshot.viewer?.avatarUrl).toBe(avatar.includes('untrusted') ? undefined : avatar)
+    expect((await f.engine.capability(SIG)).value.viewer).toEqual(snapshot.viewer)
+    await f.engine.dispose()
+  })
   it.each(['sequential', 'concurrent'] as const)('shares one probe and verified viewer across %s snapshots', async mode => {
     const discover = vi.fn(async () => 'cli-token'), f = fixture(store(), 'https://gitlab.com', { discover })
     const snapshots = []
