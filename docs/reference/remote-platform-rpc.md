@@ -159,3 +159,5 @@ checkout 抓取到含 base repo hash 的私有 ref，核验 API head SHA；同�
 错误码为 `git/remote-unavailable`、`git/unauthenticated`、`git/signed-out`、`git/insufficient-scope`、`git/head-moved`、`git/rate-limited`（resetAt）、`git/write-result-unknown`、`git/remote-identity-mismatch`。无 seam 时其余已知/未知 remote 端点均在解析 payload 前 fail-closed。
 
 自动化证据分布在 `tests/remote-*.spec.ts` 与 `tests/remote-surface.client.spec.tsx`。真实 OAuth/SSO、远端写入、平台手工验收和完整 release 矩阵的执行状态以[计划日志](../plans/active/remote-platform-integration.md#进度与验证日志)为准；mock 与开发 pin 通过不能代替这些验收。
+
+GitLab 详情中的认证切换、重试与 OAuth 授权完成后，在新身份下重新读取原 MR/Issue 及对象权限，保留详情导航目标；退出时撤回旧身份数据。

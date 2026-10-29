@@ -95,6 +95,18 @@ describe('GitLab scoped controller', () => {
     expect(endpoints.slice(0, 2)).toEqual(['remote-clear-grant', 'remote-retry-auth'])
     expect(f.controller.getSnapshot().error).toBeUndefined()
   })
+  it.each(['cli', 'oauth'] as const)('reopens the same detail after switching to %s', async method => {
+    const f = fixture(endpoint => endpoint === 'remote-select-auth' ? { ok: true, value: { remoteProtocol: 2, scope, generation, value: { state: 'on', generation, auth: { state: 'authenticated', source: method === 'cli' ? 'glab' : 'grant' } } } } : undefined)
+    await ready(f.controller)
+    // Expose the method-selection extension after the initial instance capability.
+    const state = f.controller.getSnapshot()
+    Object.assign(state.scopedCapability!, { authSelection: { method: 'auto', cliAvailable: true, oauthCached: true } })
+    f.call.mockClear()
+    await f.controller.selectAuthMethod(method)
+    expect(f.controller.getSnapshot()).toMatchObject({ detail: { number: 7 }, facts: { actionScope: { object: { kind: 'pull', number: 7 } } }, error: undefined })
+    expect(f.call.mock.calls.some(args => args[1] === 'remote-pr')).toBe(true)
+    expect(f.call.mock.calls.some(args => args[1] === 'remote-list-prs')).toBe(false)
+  })
   describe.each(['pulls', 'issues'] as const)('%s target changes', kind => {
     it.each(['pagination', 'failure'] as const)('clears the previous target rows before %s on an uncached target', async mode => {
       const other = { ...target, path: 'group/other' }

@@ -159,3 +159,5 @@ Sent-request response loss/timeout/cancellation/5xx yield git/write-result-unkno
 Codes: git/remote-unavailable, git/unauthenticated, git/signed-out, git/insufficient-scope, git/head-moved, git/rate-limited with resetAt, git/write-result-unknown, git/remote-identity-mismatch. Without the seam all other known/unknown remote endpoints fail closed before payload parsing.
 
 Automated evidence lives in tests/remote-*.spec.ts and tests/remote-surface.client.spec.tsx. The [plan log](../plans/active/remote-platform-integration.en.md#progress-and-validation-log) records real OAuth/SSO, remote-write, platform-manual and full-release-matrix status. Mocks and the development pin cannot substitute for those checks.
+
+Authentication switches, retries, and completed OAuth login from a GitLab detail view reload the original MR/Issue and its object permissions under the new identity, preserving the navigation target; logout withdraws the previous identity’s data.

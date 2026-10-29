@@ -210,6 +210,7 @@ export class GitRemoteController {
   private listKind: 'pulls' | 'issues' = 'pulls'
   private listState: 'open' | 'closed' | 'all' = 'open'
   private listAttempt: { key: string; at: number } | undefined
+  private authDetail: { number: number; kind: 'pulls' | 'issues' } | undefined
   private detailAttempt: { key: string; at: number } | undefined
   private listValidatedAt = 0
   private readonly lists = new Map<string, { state: RemoteClientState; at: number; collected: readonly unknown[] | undefined }>()
@@ -255,6 +256,7 @@ export class GitRemoteController {
     void this.cancel()
     this.invalidate(); this.notifications.clear()
     this.listValidatedAt = 0
+    this.authDetail = undefined
     this.state = { capability: this.feature.getSnapshot(), ...(repository === undefined ? {} : { repository }), remotes: [], unresolved: [], items: [], comments: [], inline: [], commits: [], reviews: [], unavailable: [], outcomeSeq: 0, busy: false, streaming: false, unknown: false, blocked: false, reconciled: false, discovery: undefined }
   }
   setRepository(repository: string | undefined, autoload = true): void { if (repository === this.state.repository) return; this.clear(repository); this.patch({}); if (repository !== undefined && autoload) void this.load() }
@@ -691,6 +693,16 @@ export class GitRemoteController {
     }, 'auth', true)
     return restored
   }
+  private rememberAuthDetail(): void {
+    const detail = this.state.detail
+    if (detail !== undefined) this.authDetail = { number: detail.number, kind: 'head' in detail ? 'pulls' : 'issues' }
+  }
+  private async reloadAfterAuth(epoch: number): Promise<void> {
+    const detail = this.authDetail
+    if (detail === undefined) await this.loadListScoped(epoch, this.listKind, this.listState)
+    else await this.openScoped(epoch, detail.number, detail.kind, false)
+    if (epoch === this.epoch) this.authDetail = undefined
+  }
   async authAction(...endpoints: string[]): Promise<void> {
     this.patch({ loginStatus: undefined, loginBrowser: undefined, loginCopy: undefined })
     const gitlab = this.state.target?.provider === 'gitlab' && this.feature.scoped.available
@@ -699,12 +711,13 @@ export class GitRemoteController {
     if (gitlab) {
       if (this.state.blocked && endpoints[0] === 'remote-retry-auth') return
       if (endpoints[0] !== 'remote-retry-auth' && this.state.target?.provider === 'gitlab') this.notifications.clearInstance(this.state.target.scope.instance)
+      this.rememberAuthDetail()
       void this.cancel(); this.patch({ confirmation: undefined, detail: undefined, facts: undefined, items: [], blocked: false, reconciled: false, blockedAction: undefined, outcome: undefined })
       await this.run(async epoch => {
         for (const endpoint of endpoints) await this.scopedCall(endpoint, {}, epoch)
         const cap = await this.scopedCall<ScopedRemoteCapabilityOn>('remote-capability', {}, epoch)
         this.patch({ scopedCapability: cap.value, generation: cap.generation })
-        if (endpoints[0] !== 'remote-sign-out') await this.loadListScoped(epoch, this.listKind, this.listState)
+        if (endpoints[0] !== 'remote-sign-out') await this.reloadAfterAuth(epoch)
       }, 'auth', true)
       return
     }
@@ -734,6 +747,7 @@ export class GitRemoteController {
   }
   private async changeAuthMethod(endpoint: 'remote-select-auth' | 'remote-oauth-logout', method?: 'cli' | 'oauth'): Promise<void> {
     const gitlab = this.state.target?.provider === 'gitlab' && this.feature.scoped.available
+    this.rememberAuthDetail()
     void this.cancel(); this.invalidate(); this.notifications.clear()
     const epoch = this.epoch
     this.patch({ error: undefined, errorDetails: undefined, loginStatus: undefined, loginBrowser: undefined, loginCopy: undefined,
@@ -750,7 +764,7 @@ export class GitRemoteController {
       if (method === 'oauth' && (selected.auth.state !== 'authenticated' || selected.auth.source !== 'grant')) { needsLogin = true; return }
       if (selected.auth.state === 'signed-out') return
       if (this.state.repository !== undefined) {
-        if (this.feature.scoped.available && this.state.target !== undefined) await this.loadListScoped(current, this.listKind, this.listState)
+        if (this.feature.scoped.available && this.state.target !== undefined) await this.reloadAfterAuth(current)
         else await this.loadV1(current, this.listKind, this.state.target as RemoteRepository | undefined, this.listState)
       }
     }, 'auth', true)
@@ -787,6 +801,7 @@ export class GitRemoteController {
     const target = this.state.target, gitlab = target?.provider === 'gitlab' && this.feature.scoped.available
     const capability = gitlab ? this.state.scopedCapability : this.state.capability.state === 'on' ? this.state.capability : undefined
     if (capability?.loginAvailable !== true) return
+    if (gitlab) this.rememberAuthDetail()
     const scope = gitlab ? target.scope : GITHUB_SCOPE
     let attempt: RemoteLoginAttempt | undefined
     let epoch = this.epoch
@@ -839,7 +854,7 @@ export class GitRemoteController {
             const cap = await this.scopedCall<ScopedRemoteCapabilityOn>('remote-capability', {}, epoch)
             if (cap.value.auth.state !== 'authenticated') throw new Error('login-not-authenticated')
             this.patch({ scopedCapability: cap.value, generation: cap.generation })
-            await this.loadListScoped(epoch, this.listKind, this.listState)
+            await this.reloadAfterAuth(epoch)
           } else {
             const cap = await this.call<{ auth?: { state?: string } }>('remote-retry-auth')
             if (current !== this.epoch || this.disposed) return
