@@ -66,14 +66,18 @@ function ThreadCard({ thread, labels, detailsLabel, instance, t }: BodyProps & {
   readonly t: (key: GitLocaleKey) => string
 }): ReactNode {
   const { root } = thread
+  const ref = root.path !== undefined || root.line !== undefined ? `${root.path ?? ''}:${root.line ?? '—'}` : undefined
+  const head = ref !== undefined || root.outdated || root.resolved === true || root.url !== undefined
   return (
     <article className={css.tlCard}>
-      <header className={css.tlCardHead}>
-        <code className={css.commentRef}>{root.path ?? ''}:{root.line ?? '—'}</code>
-        {root.outdated && <Tag tone="quiet">{t('remote.outdated')}</Tag>}
-        {root.resolved === true && <Tag tone="quiet">{t('gitlab.resolved')}</Tag>}
-        {root.url !== undefined && <ExternalLink url={root.url} label={t('remote.openBrowser')} />}
-      </header>
+      {head && (
+        <header className={css.tlCardHead}>
+          {ref !== undefined && <code className={css.commentRef}>{ref}</code>}
+          {root.outdated && <Tag tone="quiet">{t('remote.outdated')}</Tag>}
+          {root.resolved === true && <Tag tone="quiet">{t('gitlab.resolved')}</Tag>}
+          {root.url !== undefined && <ExternalLink url={root.url} label={t('remote.openBrowser')} />}
+        </header>
+      )}
       {[root, ...thread.replies].map((comment, index) => (
         <div key={comment.id} className={index === 0 ? css.tlReply : `${css.tlReply} ${css.tlReplyNext}`}>
           <div className={css.tlReplyHead}>

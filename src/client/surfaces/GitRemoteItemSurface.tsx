@@ -189,7 +189,7 @@ export function GitRemoteItemSurface({ gitSessions, remoteFeature, sessionId, us
               )}
               <RemoteTimeline
                 comments={state.comments}
-                inline={pr === undefined ? [] : state.inline}
+                inline={state.inline}
                 commits={pr === undefined ? [] : state.commits}
                 reviews={pr === undefined ? [] : state.reviews}
                 labels={labels}

@@ -167,6 +167,39 @@ describe('portable remote surface', () => {
     expect(f.controller.getSnapshot().blocked).toBe(false)
     expect(f.call.mock.calls.filter(args => args[1] === f.endpointForAction)).toHaveLength(1)
   })
+  it('renders GitLab issue discussions on the shared timeline', async () => {
+    const scope = { provider: 'gitlab', instance: 'https://git.example.com' } as const
+    const target = { ...scope, path: 'team/repo', scope }
+    const viewer = { host: 'git.example.com', userId: '9', login: 'alice' }
+    const actions = { canComment: true, canReview: true, canMerge: true, canClose: true, canCreatePr: true }
+    const operationSupport = { comment: { supported: true }, 'inline-comment': { supported: false }, review: { supported: true }, 'close-pr': { supported: true }, 'merge-pr': { supported: true }, 'create-pr': { supported: true } }
+    const issue = { number: 3, title: 'Example issue', body: 'Issue body', state: 'open', rawState: 'opened', author: { userId: '2', login: 'bob' } }
+    const discussion = { id: 'd1', notes: [
+      { id: '501', body: 'thread root body', author: { userId: '2', login: 'bob' }, system: false, resolvable: true, resolved: false, createdAt: '2024-01-01T00:00:00Z' },
+      { id: '502', body: 'thread reply body', author: { userId: '9', login: 'alice' }, system: false, createdAt: '2024-01-02T00:00:00Z' },
+    ] }
+    const { base } = fixture(false, (endpoint, raw) => {
+      const request = raw as { remoteProtocol?: number; object?: unknown }
+      const capability = { state: 'on', remoteProtocol: 2, generation, viewer, auth: { state: 'authenticated' }, credential: { configured: true, writable: true }, actions, loginAvailable: false }
+      if (request.remoteProtocol !== 2) return endpoint === 'remote-capability' ? { ok: true, value: capability } : undefined
+      if (endpoint === 'remote-repositories') return { ok: true, value: { remoteProtocol: 2, value: { state: 'supported', remotes: [{ name: 'origin', identity: target }] } } }
+      const facts = { actionScope: { path: target.path, projectId: '42', ...(request.object === undefined ? {} : { object: request.object }) }, viewer, permissions: {}, actions, operationSupport, supportedMergeMethods: ['merge'], supportedReviewEvents: ['COMMENT'], reviewPermissions: { COMMENT: true, APPROVE: false, REQUEST_CHANGES: false } }
+      const page = { items: [], truncated: false }
+      const values: Record<string, unknown> = { 'remote-capability': capability, 'remote-repository': facts, 'remote-list-issues': { items: [issue], truncated: false }, 'remote-issue': issue, 'remote-comments': page, 'remote-discussions': { items: [discussion], truncated: false } }
+      return { ok: true, value: { remoteProtocol: 2, scope, generation, value: values[endpoint] } }
+    })
+    const navigation = {
+      address: `dsh-resource://git-remote/gitlab/${encodeURIComponent(scope.instance)}/${encodeURIComponent(target.path)}/issues/3`,
+      params: { provider: 'gitlab', instance: scope.instance, path: target.path, kind: 'issues', number: 3 },
+      revision: 0,
+    }
+    render(<GitRemoteItemSurface {...{ ...base, useTabInfo: () => ({ tab: { navigation } }) } as unknown as ComponentProps<typeof GitRemoteItemSurface>} />)
+    await screen.findByText('Issue body')
+    await screen.findByText('thread root body')
+    expect(screen.getByText('thread reply body')).not.toBeNull()
+    // Position-less issue threads carry no file ref chip.
+    expect(screen.queryByText(':—')).toBeNull()
+  })
   it('keeps lists, selected filters and completed pages across tab unmount/remount without reads', async () => {
     const { base, call } = fixture(false, endpoint => endpoint === 'remote-list-issues'
       ? { ok: true, value: { generation, value: { items: [{ number: 2, title: 'Example issue', body: '', state: 'open', rawState: 'open', author: null }], truncated: false } } } : undefined)
