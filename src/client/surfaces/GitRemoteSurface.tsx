@@ -16,7 +16,7 @@ import { RemoteItemList } from '../remote/RemoteItemList.tsx'
 import { RemoteCreateDialog } from '../remote/RemoteCreateDialog.tsx'
 import { RemoteNotices } from '../remote/RemoteNotices.tsx'
 import { RemoteLoading, RemoteListSkeleton } from '../remote/RemoteLoading.tsx'
-import { RemoteBlockedGate, RemoteOutcome } from '../remote/RemoteOutcome.tsx'
+import { RemoteBlockedToast, RemoteOutcomeToast } from '../remote/RemoteOutcome.tsx'
 import css from '../GitRemoteSurface.module.css'
 
 type Props = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'git'> & {
@@ -79,13 +79,15 @@ export function GitRemoteSurface({ gitSessions, remoteFeature, openRemoteItem, s
     </div>
     <div className={css.body}>
       <div className={css.pad}>
-        {state.outcome !== undefined && <RemoteOutcome value={state.outcome} t={t} />}
+        {state.outcome !== undefined && state.outcome.outcome === 'succeeded' && <RemoteOutcomeToast outcome={state.outcome} action={state.outcomeAction} seq={state.outcomeSeq} onDone={() => { controller.dismissOutcome() }} t={t} />}
         {state.blocked && (
-          <RemoteBlockedGate
-            blockedAction={state.blockedAction}
+          <RemoteBlockedToast
+            outcome={state.outcome}
+            action={state.blockedAction}
+            error={state.error}
             errorDetails={state.errorDetails}
             reconciled={state.reconciled}
-            busy={state.busy}
+            seq={state.outcomeSeq}
             onAcknowledge={() => { controller.acknowledgeReconciliation() }}
             t={t}
           />
@@ -123,7 +125,7 @@ export function GitRemoteSurface({ gitSessions, remoteFeature, openRemoteItem, s
           {!state.busy && !state.streaming && state.itemsNext === undefined && state.error === undefined && state.target !== undefined && state.items.length === 0 && <p className={css.empty}>{t('remote.noItems')}</p>}
         </>}
         {state.streamError !== undefined && <p className={css.error} role="alert">{state.streamError}</p>}
-        {state.error !== undefined && <p className={css.error} role="alert">{state.error}{state.errorDetails?.['reason'] === undefined ? '' : ` · ${String(state.errorDetails['reason'])}`}</p>}
+        {state.error !== undefined && !state.blocked && <p className={css.error} role="alert">{state.error}{state.errorDetails?.['reason'] === undefined ? '' : ` · ${String(state.errorDetails['reason'])}`}</p>}
         {state.unknown && <p className={css.error} role="alert">{t('remote.unknown')}</p>}
       </div>
     </div>

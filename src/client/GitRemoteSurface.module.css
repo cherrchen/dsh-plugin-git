@@ -439,6 +439,13 @@
   white-space: nowrap;
 }
 
+.commitRow .commentRef {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+
 /* Write actions and the two-step confirmation card. */
 .actionsRow {
   display: flex;

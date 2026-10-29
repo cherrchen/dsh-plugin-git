@@ -172,6 +172,10 @@ export interface RemoteClientState {
   readonly unavailable: readonly string[]
   readonly checkout?: RemoteCheckoutReceipt | undefined
   readonly outcome?: RemoteWriteOutcome | undefined
+  /** Mutation action that produced `outcome`; drives the transient success notice copy. */
+  readonly outcomeAction?: string | undefined
+  /** Monotonic sequence bumped per reported outcome; remounts the notice so it replays. */
+  readonly outcomeSeq: number
   readonly busy: boolean
   readonly pending?: RemotePending | undefined
   /** True while a background page pull appends to an already-rendered list. */
@@ -214,7 +218,7 @@ export class GitRemoteController {
   private readonly lane: string
   constructor(private readonly feature: GitRemoteFeature, private readonly sessionId: string, view = 'list') {
     this.lane = `${sessionId}:${view}`
-    this.state = { capability: feature.getSnapshot(), remotes: [], unresolved: [], items: [], comments: [], inline: [], commits: [], reviews: [], unavailable: [], busy: false, streaming: false, unknown: false, blocked: false, reconciled: false }
+    this.state = { capability: feature.getSnapshot(), remotes: [], unresolved: [], items: [], comments: [], inline: [], commits: [], reviews: [], unavailable: [], outcomeSeq: 0, busy: false, streaming: false, unknown: false, blocked: false, reconciled: false }
     this.unsubscribe = feature.subscribe(() => {
       const capability = feature.getSnapshot()
       const gitlab = this.state.target?.provider === 'gitlab'
@@ -251,7 +255,7 @@ export class GitRemoteController {
     void this.cancel()
     this.invalidate(); this.notifications.clear()
     this.listValidatedAt = 0
-    this.state = { capability: this.feature.getSnapshot(), ...(repository === undefined ? {} : { repository }), remotes: [], unresolved: [], items: [], comments: [], inline: [], commits: [], reviews: [], unavailable: [], busy: false, streaming: false, unknown: false, blocked: false, reconciled: false, discovery: undefined }
+    this.state = { capability: this.feature.getSnapshot(), ...(repository === undefined ? {} : { repository }), remotes: [], unresolved: [], items: [], comments: [], inline: [], commits: [], reviews: [], unavailable: [], outcomeSeq: 0, busy: false, streaming: false, unknown: false, blocked: false, reconciled: false, discovery: undefined }
   }
   setRepository(repository: string | undefined, autoload = true): void { if (repository === this.state.repository) return; this.clear(repository); this.patch({}); if (repository !== undefined && autoload) void this.load() }
   /** Restore a filter immediately, validating stale data while it remains visible. */
@@ -953,7 +957,7 @@ export class GitRemoteController {
       if (expected === undefined) { this.patch({ confirmation: undefined, error: 'stale-confirmation' }); return }
       await this.run(async epoch => {
         const result = await this.mutation(confirmation.action === 'close' ? 'remote-close-pr' : 'remote-merge-pr', { ...expected, ...(this.state.target!.provider === 'gitlab' ? { objectKind: 'pull' } : { object: { kind: 'pull', number: confirmation.number } }), number: confirmation.number, expectedHeadSha: confirmation.sha, ...(confirmation.method === undefined ? {} : { method: confirmation.method }) }, epoch, this.state.generation, confirmation.action === 'merge' ? 'merge-pr' : 'close-pr', confirmation.number)
-        this.patch({ outcome: result.value, blocked: true, blockedAction: confirmation.action === 'merge' ? 'merge-pr' : 'close-pr', reconciled: false, confirmation: undefined })
+        this.patch({ outcome: result.value, outcomeAction: confirmation.action === 'merge' ? 'merge-pr' : 'close-pr', outcomeSeq: this.state.outcomeSeq + 1, blocked: true, blockedAction: confirmation.action === 'merge' ? 'merge-pr' : 'close-pr', reconciled: false, confirmation: undefined })
       })
       return
     }
@@ -986,7 +990,7 @@ export class GitRemoteController {
       const outcome = result.value
       const blocked = outcome.outcome === 'partial' || outcome.outcome === 'unknown' || endpoint === 'remote-review' && values['event'] === 'APPROVE'
       const receipt = isRecord(outcome.receipt) ? outcome.receipt : undefined
-      this.patch({ outcome, blocked, blockedAction: blocked ? endpoint : undefined, reconciled: false, confirmation: undefined, ...(endpoint === 'remote-checkout-pr' && receipt !== undefined ? { checkout: receipt as unknown as RemoteCheckoutReceipt, ...('error' in receipt ? { error: 'Git checkout needs attention' } : {}) } : {}) })
+      this.patch({ outcome, outcomeAction: endpoint, outcomeSeq: this.state.outcomeSeq + 1, blocked, blockedAction: blocked ? endpoint : undefined, reconciled: false, confirmation: undefined, ...(endpoint === 'remote-checkout-pr' && receipt !== undefined ? { checkout: receipt as unknown as RemoteCheckoutReceipt, ...('error' in receipt ? { error: 'Git checkout needs attention' } : {}) } : {}) })
     })
   }
   async createPr(values: { title: string; body: string; headRef: string; baseRef: string; headOwner?: string; headRepo?: string; source?: RemoteTarget & { provider: 'gitlab' }; draft?: boolean }): Promise<void> {
@@ -1002,7 +1006,7 @@ export class GitRemoteController {
           const sourceFacts = await this.feature.scoped.call<ScopedRemoteRepositoryFacts>('remote-repository', source.scope, { repository: this.state.repository, sessionId: this.sessionId, path: source.path, ...(source.projectId === undefined ? {} : { projectId: source.projectId }) }, this.active.signal, this.lane)
           if (epoch !== this.epoch || !equal(sourceFacts.generation, this.state.generation) || sourceFacts.value.actionScope.path !== source.path || !/^[1-9][0-9]{0,39}$/u.test(sourceFacts.value.actionScope.projectId ?? '') || sourceFacts.value.viewer?.host !== scopedFacts.viewer?.host || sourceFacts.value.viewer?.userId !== scopedFacts.viewer?.userId) throw new ScopedProtocolError('stale-generation')
           const result = await this.mutation('remote-create-pr', { ...expected, head: { provider: 'gitlab', instance: source.scope.instance, path: source.path, projectId: sourceFacts.value.actionScope.projectId }, headRef: values.headRef, baseRef: values.baseRef, title: values.title, body: values.body, draft: values.draft === true }, epoch, this.state.generation, 'create-pr')
-          this.patch({ outcome: result.value, blocked: result.value.outcome !== 'succeeded', blockedAction: result.value.outcome !== 'succeeded' ? 'create-pr' : undefined, reconciled: false })
+          this.patch({ outcome: result.value, outcomeAction: 'create-pr', outcomeSeq: this.state.outcomeSeq + 1, blocked: result.value.outcome !== 'succeeded', blockedAction: result.value.outcome !== 'succeeded' ? 'create-pr' : undefined, reconciled: false })
         })
         return
       }
@@ -1010,7 +1014,7 @@ export class GitRemoteController {
       await this.run(async epoch => {
         const head = { provider: 'github', host: 'github.com', owner: values.headOwner === undefined || values.headOwner === '' ? github.owner : values.headOwner, repo: values.headRepo === undefined || values.headRepo === '' ? github.repo : values.headRepo, scope: GITHUB_SCOPE }
         const result = await this.mutation('remote-create-pr', { ...expected, head, headRef: values.headRef, baseRef: values.baseRef, title: values.title, body: values.body, draft: values.draft === true }, epoch, this.state.generation, 'create-pr')
-        this.patch({ outcome: result.value, blocked: result.value.outcome !== 'succeeded', blockedAction: result.value.outcome !== 'succeeded' ? 'create-pr' : undefined, reconciled: false })
+        this.patch({ outcome: result.value, outcomeAction: 'create-pr', outcomeSeq: this.state.outcomeSeq + 1, blocked: result.value.outcome !== 'succeeded', blockedAction: result.value.outcome !== 'succeeded' ? 'create-pr' : undefined, reconciled: false })
       })
       return
     }
@@ -1029,6 +1033,8 @@ export class GitRemoteController {
     await this.load(this.listKind, undefined, this.listState)
   }
   acknowledgeReconciliation(): void { if (this.state.blocked && this.state.reconciled) this.patch({ blocked: false, reconciled: false, blockedAction: undefined, error: undefined, errorDetails: undefined, outcome: undefined }) }
+  /** Dismiss the transient success notice once the toast finishes. */
+  dismissOutcome(): void { this.patch({ outcome: undefined, outcomeAction: undefined }) }
   dispose(): void { void this.cancel(); this.disposed = true; if (this.streamResume !== undefined) clearTimeout(this.streamResume); this.notifications.clear(); this.unsubscribe(); this.listeners.clear() }
 }
 
