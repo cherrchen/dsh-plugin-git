@@ -19,6 +19,7 @@ All notable changes to this package are recorded here. The format follows [Keep 
 - Extend DSH compatibility to `0.2.1-rc.5`, a manifest-only republish whose reasoning body slot contract change stays outside this plugin's surface; the host runtime floors, Node lane and development pin are unchanged. See the [compatibility assessment](docs/reference/dsh-compatibility.md).
 - Copy `oauth-apps.json` into isolated DSH matrix lanes so lane installs can run the standalone bundle build.
 - Validate unlisted candidates in the isolated local matrix; resolve online lanes from clean dependency trees and check peers to prevent stale Cordis companion packages. Use Node 24.9 for the 0.2.2 alpha CI lane and repair the development lockfile's include peer resolution.
+- Patch development-tree advisories through dev-dependency upgrades and scoped pnpm overrides: vitest 4.1.12, katex 0.19.1, jsdom's undici, css-tree's source-map-js, the development pin's undici and ajv's fast-uri. The one remaining advisory (`zod` via `dsh-llm`) is exact-pinned by the upstream host and outside this plugin's ownership.
 
 ### Fixed
 

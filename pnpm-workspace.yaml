@@ -2,6 +2,14 @@
 # the pin per release so older hosts still see 3.18.2, which has no volatile.
 overrides:
   '@deepseek-ai/schemastery': 3.18.4
+  # Dev-only chains: patch advisories without touching the host runtime copies.
+  'jsdom>undici': '>=7.30.1 <8'
+  'css-tree>source-map-js': '>=1.2.2'
+  'micromark-extension-math>katex': '>=0.19.1'
+  # The development pin declares a floating undici range; scope the patched
+  # floor to this host only so newer lanes keep their exact published pin.
+  '@deepseek-ai/dsh-http-proxy@0.2.0-rc.2>undici': '>=8.12.2'
+  'ajv>fast-uri': '>=3.1.9'
 
 allowBuilds:
   '@deepseek-ai/dsh-subprocess-local': true
