@@ -16,6 +16,8 @@
 
 - 平台认证弹窗重构为“{平台} 账号”：身份卡 + 带说明的连接方式卡片；“已移除实例的授权清理”从弹窗“高级”折叠区移至设置页“平台账号”分区。
 - 将 DSH 兼容范围扩展至 `0.2.1-rc.4` 与 `0.2.2-alpha.2`（含可选 credentials seam），接受其宿主 Cordis/schemastery 副本，保留全部旧版支持与 `0.2.0-rc.2` 开发 pin。见[兼容评估](docs/reference/dsh-compatibility.md)。
+- 将 DSH 兼容范围扩展至 `0.2.1-rc.5`：该版本仅有 manifest 重发，其推理块 Slot 契约变化不在本插件使用面内；宿主运行时下限、Node 车道与开发 pin 均不变。见[兼容评估](docs/reference/dsh-compatibility.md)。
+- 隔离 DSH 矩阵车道快照补上 `oauth-apps.json`，使车道安装可以执行独立 bundle 构建。
 - 隔离本地矩阵支持未列入清单的候选验证；联网车道使用干净依赖树并检查 peer，避免遗留 Cordis 配套包。0.2.2 alpha CI 车道使用 Node 24.9，并修正开发锁文件的 include peer 解析。
 
 ### Fixed

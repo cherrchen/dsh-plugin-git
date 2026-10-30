@@ -4,7 +4,7 @@
 
 ## 适配波次状态
 
-自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.2.2-alpha.2` 的兼容晋级已完成，区间内二十个已发布精确 prerelease 全部纳入支持。清单写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。
+自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.2.2-alpha.2` 的兼容晋级已完成，区间内二十一个已发布精确 prerelease 全部纳入支持。清单写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。
 
 ## 2026-10-28 适配：0.2.1-rc.4 / 0.2.2-alpha.2
 
@@ -42,6 +42,34 @@ git diff dsh-v0.2.1-rc.4 dsh-v0.2.2-alpha.2 -- packages/client packages/api pack
 
 开发 pin 与主安装树保留 `0.2.0-rc.2` / Cordis `4.0.4` / schemastery `3.18.4`。本地没有重跑 Linux/Windows；CI 中旧宿主继续使用 Node `22.19.0`，新 alpha 车道使用 `24.9.0`，当前分支的 CI 结果仍待运行。完整 DSH Web/Desktop 宿主、ui-theme sprite 实际显示、原生增强卸载、真实远程账号和 Linux/Windows 不由本地 fixture 签收。
 
+## 2026-10-30 适配：0.2.1-rc.5
+
+本轮先比较本地上游标签，再验证 npm 发布包。可复现 diff：
+
+```sh
+git diff dsh-v0.2.1-rc.4 dsh-v0.2.1-rc.5 -- packages/client packages/api packages/core/agent packages/core/agent-default-model packages/session/working-directory packages/credentials packages/llm packages/settings packages/subprocess vendor
+```
+
+上述命令在上游仓库运行。标签对应 commit：rc.4 为 `504a01a9578abc2c6f1fb896b1dc322c9fe24f66`，rc.5 为 `b830ec950faba0a46dda564be3e2d854afed94f1`。全仓 diff 为 368 文件（+529/-399），其中 343 个只有 `"0.2.1-rc.4" → "0.2.1-rc.5"` 的 manifest 版本号重发；唯一实质变更是 `dsh-client-ui-chat` 的 thinking 块渲染（上游 #7484）与 `dsh-client-ui-translation` 的配套调整。
+
+| 接缝 | rc.4 → rc.5 与处置 |
+| --- | --- |
+| Host Git / credentials / subprocess | 相关服务只有版本号重发；继续标准服务注入、独立 argv 与缺失能力关闭 |
+| 提交信息 / LLM | `dsh-llm` 与 `dsh-agent-default-model` 只有版本号重发，`currentSelection()`、`GenerateOptions`、`text-delta` 调用不变 |
+| Client 推理块契约 | 唯一实质变更：`conversation.chat.reasoning.body` owner props 新增必填 `rawText`，既有 `text` 改承载展示文本，`ReasoningContentInput` 不再继承完整 props（上游升级指南 `docs/upgrade-guide/v0.2.1-rc.4/reasoning-body-props/`）。Git 不注册也不读取该 Slot 与 props，无需 `src/compat/` 分支 |
+| 侧栏 / 插槽 / 设置 / primitives / locale / session / RPC | 相关包只有版本号重发；`openTab` / `openResource`、`configForms.get`、`useSessions(...).byId[id].cwd`、`connection.rpc` 调用契约不变 |
+| 共享运行时 | Cordis `~4.0.5` / schemastery `~3.18.5` 与 include `~1.0.10` / group `~1.0.5` / loader `~1.0.6` / timer `~1.1.7` 均与 rc.4 相同，解析下限不变；`@deepseek-ai/dsh` 与 `dsh-app-boot` 仍不声明 Node engines，rc 车道继续使用 Node `22.19.0` |
+| 本地矩阵脚本 | `run-dsh-matrix.mjs` 快照文件清单补上 `oauth-apps.json`（#25 引入、`tsdown.standalone.config.ts` 加载必需），否则车道 bootstrap 的 `prepare` 构建因缺文件失败 |
+
+开发 pin、锁文件与 vendor override 不变；peer 的 Cordis / schemastery 范围已覆盖该宿主副本，无需新增 OR。2026-10-30 在 macOS arm64 / Node `24.18.0` / pnpm `11.7.0` 完成正式矩阵；逐车道退出码、vendor pin、测试摘要、日志与包哈希、最终源码指纹见[本轮机器证据](dsh-adaptation-20261030.json)。
+
+| 验证组 | 结果 |
+| --- | --- |
+| 全部二十一个精确版本 | 全部通过冻结 bootstrap、适用的 upgrade/install、peer/compat/test/docs/build/artifact/pack；正式门禁未使用 warn |
+| 开发 pin 与 rc.5 隔离浏览器 | 各 28 项通过，共 56 项 |
+
+本地没有重跑 Linux/Windows；CI 中 rc.5 与旧宿主继续使用 Node `22.19.0`，`0.2.2-alpha.2` 车道使用 `24.9.0`，当前分支的 CI 结果仍待运行。完整 DSH Web/Desktop 宿主与真实远程账号不由本地 fixture 签收。
+
 ## 已验证并承诺支持的版本
 
 唯一版本清单位于 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)：
@@ -65,12 +93,13 @@ git diff dsh-v0.2.1-rc.4 dsh-v0.2.2-alpha.2 -- packages/client packages/api pack
 - `0.2.1-rc.2`
 - `0.2.1-rc.3`
 - `0.2.1-rc.4`
+- `0.2.1-rc.5`
 - `0.2.2-alpha.2`
 
 每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。`engines.dsh` 声明与 peer OR 完全相同的精确 OR：自 `0.2.1-alpha.4` 起宿主准入预检在该字段存在时只读它，更早宿主继续读 peer OR；`pnpm compat:check` 强制两者与唯一清单一致。开发依赖与提交锁文件统一 pin 到 `0.2.0-rc.2`。主 CI 使用冻结锁文件与 `pnpm peers check` 验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行 peer 检查、兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。清单按版本顺序排列并只增不减，已承诺版本不会被后续晋级移除；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
 本地可用 `node scripts/run-dsh-matrix.mjs --offline <仓库外新目录>` 按唯一清单逐车道复制当前源码、沿用 `upgrade-dsh.mjs`、冻结安装和正式门禁，记录每车道退出码与日志。离线模式只读取公开版本元数据，安装及其 Node 脚本禁止网络，并使用独立 store/cache；缺失的离线元数据或包会使该车道保持未验证。需要联网安装时，须另获授权后显式使用 `--online-install`，不改变主工作树 pin/锁文件。`compat:check` 的声明检查不能替代这些车道。
 
-跨版本运行时：0.1.5-rc.2 至 0.1.6-alpha.2 使用 Cordis `4.0.2` / schemastery `3.18.2`；0.1.7-alpha.1 使用 `4.0.3` / `3.18.3`；0.1.7-alpha.2 至 0.2.0-rc.2 使用 `4.0.4` / `3.18.4`；0.2.1-alpha.1 与 0.2.1-alpha.2 使用 `4.0.5-alpha.1` / `3.18.5-alpha.1`；0.2.1-alpha.3 至 0.2.1-alpha.5 使用 `4.0.5-alpha.2` / `3.18.5-alpha.2`；0.2.1-rc.1 至 0.2.1-rc.4 改用正式版 `4.0.5` / `3.18.5`；0.2.2-alpha.2 使用 `4.0.6-alpha.1` / `3.18.6-alpha.1`，由新增 `|| ~4.0.6-alpha.1` / `|| ~3.18.6-alpha.1` 接受。0.2.1 宿主声明的 prerelease 下限分别由 peer `|| ~4.0.5-alpha.1 || ~4.0.5-alpha.2` 与 dependency `|| ~3.18.5-alpha.1 || ~3.18.5-alpha.2` 接受；rc 车道的正式版副本落在 `>=4.0.2 <5` 与 `>=3.18.2 <4` 基础范围内，无需新增 OR 子句；开发 pin 保持 `0.2.0-rc.2`。0.1.5-rc.3 把 Cordis 与 schemastery 从 caret 改写为精确 `4.0.2` / `3.18.2`，与 rc.2 是同一对副本；`scripts/upgrade-dsh.mjs` 与 `scripts/check-dsh-compat.mjs` 的下限解析把 caret、波浪号与精确 pin 统一按声明下限处理。
+跨版本运行时：0.1.5-rc.2 至 0.1.6-alpha.2 使用 Cordis `4.0.2` / schemastery `3.18.2`；0.1.7-alpha.1 使用 `4.0.3` / `3.18.3`；0.1.7-alpha.2 至 0.2.0-rc.2 使用 `4.0.4` / `3.18.4`；0.2.1-alpha.1 与 0.2.1-alpha.2 使用 `4.0.5-alpha.1` / `3.18.5-alpha.1`；0.2.1-alpha.3 至 0.2.1-alpha.5 使用 `4.0.5-alpha.2` / `3.18.5-alpha.2`；0.2.1-rc.1 至 0.2.1-rc.5 改用正式版 `4.0.5` / `3.18.5`；0.2.2-alpha.2 使用 `4.0.6-alpha.1` / `3.18.6-alpha.1`，由新增 `|| ~4.0.6-alpha.1` / `|| ~3.18.6-alpha.1` 接受。0.2.1 宿主声明的 prerelease 下限分别由 peer `|| ~4.0.5-alpha.1 || ~4.0.5-alpha.2` 与 dependency `|| ~3.18.5-alpha.1 || ~3.18.5-alpha.2` 接受；rc 车道的正式版副本落在 `>=4.0.2 <5` 与 `>=3.18.2 <4` 基础范围内，无需新增 OR 子句；开发 pin 保持 `0.2.0-rc.2`。0.1.5-rc.3 把 Cordis 与 schemastery 从 caret 改写为精确 `4.0.2` / `3.18.2`，与 rc.2 是同一对副本；`scripts/upgrade-dsh.mjs` 与 `scripts/check-dsh-compat.mjs` 的下限解析把 caret、波浪号与精确 pin 统一按声明下限处理。
 
 
 `dsh-client-ui-primitives` 的发布 bundle 导入 `diff`，但上游没有将其声明为运行时依赖。本插件将 `diff`（`>=9 <10`）声明为 peer。alpha.2 的 bundle 还导入 `simple-icons@16.31.0`，同样未声明运行时依赖；本插件将 `simple-icons`（`>=16.31.0 <17`）声明为 peer，并以 `16.31.0` 做开发依赖 pin。这样严格依赖解析器也能满足上游 bundle 的导入。
