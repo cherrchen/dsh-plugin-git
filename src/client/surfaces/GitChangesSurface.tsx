@@ -15,7 +15,7 @@ import { useGitWorkspace } from '../use-git-workspace.ts'
 import { ChangesTab } from '../details/ChangesTab.tsx'
 import { CommitRegion } from '../details/CommitRegion.tsx'
 import css from '../GitDetailsSurface.module.css'
-import { describeLocalError, ErrorToast, useErrorToast } from '../error-feedback.tsx'
+import { LocalGitErrorToast } from '../local-error-feedback.tsx'
 
 
 /** Full composed props for the Git Changes tab body. */
@@ -28,7 +28,6 @@ export function GitChangesSurface({
 }: GitChangesSurfaceProps): ReactNode {
   const controller = resolveGitController({ controller: controllerProp, gitSessions, sessionId })
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
-  const errorToast = useErrorToast(state.error)
   const workspacePath = useSessions(list => effectiveWorkspacePath(list.byId[sessionId]))
 
   useGitWorkspace(controller, workspacePath)
@@ -74,14 +73,14 @@ export function GitChangesSurface({
       {!state.loading && workspacePath === undefined && <p className={css.empty}>{t('details.noWorkspace')}</p>}
       {!state.loading && repository === null && <p className={css.empty}>{t('details.notRepository')}</p>}
       {repository == null && state.error !== undefined && <p className={css.empty}>{t('error.local.loadChanges')}</p>}
-      {errorToast.active && state.error !== undefined && <ErrorToast key={errorToast.seq} report={describeLocalError('error.local.loadChanges', state.error, t)} onDone={errorToast.dismiss} t={t} />}
+      <LocalGitErrorToast controller={controller} t={t} />
       {repository !== undefined && repository !== null && (
         <>
           <CommitRegion
             repository={repository}
             controller={controller}
             t={t}
-            error={state.error}
+            error={state.errorOperation === 'commit' ? state.error : undefined}
             commitMessage={state.commitMessage}
             generating={state.generating}
             generationAvailable={state.generationAvailable}

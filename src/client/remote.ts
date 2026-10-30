@@ -257,6 +257,7 @@ export class GitRemoteController {
   private detailAttempt: { key: string; at: number } | undefined
   private listValidatedAt = 0
   private readonly lists = new Map<string, { state: RemoteClientState; at: number; collected: readonly unknown[] | undefined }>()
+  private readonly listGenerations = new Map<string, GitRemoteGeneration>()
   private readonly collections = new Map<string, readonly unknown[]>()
   private readonly unsubscribe: () => void
   private readonly lane: string
@@ -305,6 +306,7 @@ export class GitRemoteController {
   private clear(repository?: string): void {
     void this.cancel()
     this.invalidate(); this.notifications.clear()
+    this.listGenerations.clear()
     this.listValidatedAt = 0
     this.authDetail = undefined
     this.state = { capability: this.feature.getSnapshot(), ...(repository === undefined ? {} : { repository }), remotes: [], unresolved: [], items: [], comments: [], inline: [], commits: [], reviews: [], unavailable: [], outcomeSeq: 0, busy: false, streaming: false, unknown: false, blocked: false, reconciled: false, discovery: undefined }
@@ -465,8 +467,22 @@ export class GitRemoteController {
     if (target === undefined) return
     await this.loadListScoped(epoch, kind, state)
   }
+  /** Rows and cached filters may only be reused within the same authentication generation. */
+  private adoptListGeneration(generation: GitRemoteGeneration): void {
+    const scope = remoteTargetScope(this.state.target!), key = JSON.stringify(scope)
+    const previous = this.listGenerations.get(key)
+    this.listGenerations.set(key, generation)
+    if (previous === undefined || equal(previous, generation)) return
+    this.invalidate(); this.collections.clear(); this.notifications.clearInstance(scope.instance)
+    this.listValidatedAt = 0
+    this.patch({ generation, facts: undefined, scopedCapability: undefined, items: [], itemsNext: undefined,
+      detail: undefined, comments: [], commentsNext: undefined, inline: [], inlineNext: undefined,
+      commits: [], commitsNext: undefined, reviews: [], reviewsNext: undefined, approvals: undefined,
+      unavailable: [], confirmation: undefined, outcome: undefined, checkout: undefined })
+  }
   private async loadListScoped(epoch: number, kind: 'pulls' | 'issues', filter: 'open' | 'closed' | 'all', reconcile = false): Promise<void> {
     const initialCapability = await this.scopedCall<ScopedRemoteCapabilityOn>('remote-capability', {}, epoch)
+    this.adoptListGeneration(initialCapability.generation)
     this.patch({ scopedCapability: initialCapability.value, generation: initialCapability.generation })
     if (initialCapability.value.auth.state === 'signed-out') {
       this.patch({ facts: undefined, detail: undefined, items: [], itemsNext: undefined, comments: [], commentsNext: undefined, inline: [], inlineNext: undefined,
@@ -474,6 +490,7 @@ export class GitRemoteController {
       return
     }
     const facts = await this.scopedCall<ScopedRemoteRepositoryFacts>('remote-repository', {}, epoch)
+    this.adoptListGeneration(facts.generation)
     this.validateFacts(facts.value)
     const rawTarget = this.state.target!
     const resolvedProjectId = facts.value.actionScope.projectId

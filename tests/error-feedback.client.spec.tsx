@@ -3,9 +3,44 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describeRemoteError, describeLocalError, ErrorToast, useErrorToast } from '../src/client/error-feedback.tsx'
 import { en } from '../src/client/locales.ts'
+import { LocalGitErrorToast } from '../src/client/local-error-feedback.tsx'
+import type { GitClientController } from '../src/client/controller.ts'
 
-afterEach(() => { cleanup(); vi.unstubAllGlobals() })
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers() })
 const t = (key: Parameters<typeof describeRemoteError>[3] extends (k: infer K) => string ? K : never) => en[key]
+
+describe('shared local error feedback', () => {
+  it('dismisses across presenters, preserves dismissal on takeover and reopens for a repeated failure', async () => {
+    vi.useFakeTimers()
+    let state = { error: 'hook rejected', errorOperation: 'commit', errorSequence: 1 }
+    const listeners = new Set<() => void>()
+    const controller = {
+      getSnapshot: () => state,
+      subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } },
+    } as unknown as GitClientController
+    const copy = vi.fn(async () => {})
+    vi.stubGlobal('navigator', { clipboard: { writeText: copy } })
+    const view = render(<>
+      <LocalGitErrorToast key="a" controller={controller} t={t} />
+      <LocalGitErrorToast key="b" controller={controller} t={t} />
+    </>)
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: en['error.copyDetails'] })) })
+    expect(copy).toHaveBeenCalledWith('hook rejected')
+    expect(screen.getByRole('alert').textContent).toContain(en['error.copyDone'])
+    await act(async () => { await vi.advanceTimersByTimeAsync(7100) })
+    expect(screen.queryByRole('alert')).toBeNull()
+    view.rerender(<LocalGitErrorToast key="b" controller={controller} t={t} />)
+    expect(screen.queryByRole('alert')).toBeNull()
+    act(() => {
+      // The same message can recur without an observable intervening clear.
+      state = { ...state, errorSequence: 2 }
+      for (const listener of listeners) listener()
+    })
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+    expect(screen.getByRole('alert').textContent).toContain(en['error.local.commitFailed'])
+  })
+})
 
 describe('describeRemoteError', () => {
   it.each([

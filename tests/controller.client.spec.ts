@@ -31,6 +31,25 @@ describe('changedPathCount', () => {
 })
 
 describe('GitClientController', () => {
+  it('records the failed operation, including a push after a successful commit', async () => {
+    const rpc = { call: vi.fn(async (_channel: string, endpoint: string): Promise<GitRpcResult> => {
+      if (endpoint === 'discover') return { ok: true, value: '/repo' }
+      if (endpoint === 'status' || endpoint === 'commit') return { ok: true, value: snapshot() }
+      if (endpoint === 'log') return { ok: true, value: [] }
+      if (endpoint === 'switch-branch' || endpoint === 'push') return { ok: false, error: { message: 'Host denied the operation' } }
+      return { ok: true, value: { available: false } }
+    }) }
+    const controller = new GitClientController(rpc)
+    try {
+      await controller.setWorkspace('/repo')
+      await expect(controller.switchBranch('other')).rejects.toThrow('Host denied')
+      expect(controller.getSnapshot()).toMatchObject({ errorOperation: 'switch-branch', error: 'Host denied the operation' })
+      await controller.refresh()
+      expect(controller.getSnapshot().error).toBeUndefined()
+      await expect(controller.commit('message', { followUp: 'push' })).rejects.toThrow('Host denied')
+      expect(controller.getSnapshot()).toMatchObject({ errorOperation: 'push', error: 'Host denied the operation' })
+    } finally { controller.dispose() }
+  })
   it('reuses recent workspace and diff reads, while expiry, navigation and repository refresh invalidate them', async () => {
     const now = vi.spyOn(Date, 'now').mockReturnValue(1000)
     const rpc = { call: vi.fn(async (_channel: string, endpoint: string) => {

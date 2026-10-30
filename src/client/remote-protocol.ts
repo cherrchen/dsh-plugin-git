@@ -122,7 +122,8 @@ export class ScopedRemoteClient {
     if (!this.enabled || this.capabilityEpoch !== epoch || this.sequence.get(key) !== seq) throw new ScopedProtocolError('stale-response')
     if (!reply.ok) throw new ScopedProtocolError('control-error')
     const data = record(reply.value), value = record(data?.['value'])
-    if (data?.['remoteProtocol'] !== 2 || data['scope'] !== undefined || data['generation'] !== undefined || !Array.isArray(value?.['accounts']) || value['accounts'].length > 17) throw new ScopedProtocolError('invalid-accounts')
+    // Sixteen explicit GitLab entries plus the built-in GitLab.com and GitHub accounts.
+    if (data?.['remoteProtocol'] !== 2 || data['scope'] !== undefined || data['generation'] !== undefined || !Array.isArray(value?.['accounts']) || value['accounts'].length > 18) throw new ScopedProtocolError('invalid-accounts')
     const seen = new Set<string>(), accounts: RemoteAccountDescriptor[] = []
     for (const raw of value['accounts'] as unknown[]) {
       const entry = record(raw), provider = entry?.['provider'], instance = entry?.['instance'], label = entry?.['label']

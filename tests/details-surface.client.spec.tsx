@@ -21,6 +21,8 @@ import { layoutGitGraph } from '../src/client/graph/layout.ts'
 import { GIT_GRAPH_LANE_GAP, GIT_GRAPH_ROW_HEIGHT } from '../src/client/graph-geometry.ts'
 import { gitDiffAddress } from '../src/client/contract.ts'
 import { GitPageTitle } from '../src/client/GitPageTitle.tsx'
+import { GitBranchControl } from '../src/client/GitBranchControl.tsx'
+import { StrictMode } from 'react'
 import { en, formatLocale, zh } from '../src/client/locales.ts'
 
 function snapshot(overrides: Partial<GitRepositorySnapshot> = {}): GitRepositorySnapshot {
@@ -163,10 +165,30 @@ describe('GitChangesSurface', () => {
   })
 
   it('shows discovery failures before a repository snapshot exists', () => {
-    const controller = controllerOf(baseState({ repository: undefined, error: 'Git executable unavailable' }))
+    const controller = controllerOf(baseState({ repository: undefined, error: 'Git executable unavailable', errorOperation: 'status' }))
     render(<GitChangesSurface {...props(controller)} />)
-    expect(screen.getByRole('alert').textContent).toContain(en['error.local.loadChanges'])
+    expect(screen.getByRole('alert').textContent).toContain(en['error.local.readRepository'])
     expect(screen.getByRole('alert').textContent).not.toContain('Git executable unavailable')
+  })
+
+  it.each([
+    ['commit', 'error.local.commitFailed'], ['switch-branch', 'error.local.switchBranch'],
+    ['stage', 'error.local.stage'], ['push', 'error.local.push'], ['status', 'error.local.readRepository'],
+  ] as const)('reports one %s failure across the composer and multiple panels', (operation, key) => {
+    const controller = controllerOf(baseState({ error: 'raw Host failure', errorOperation: operation, graphLoaded: true }))
+    const branchProps = { ...props(controller), openDetails: () => {} } as unknown as Parameters<typeof GitBranchControl>[0]
+    const { rerender } = render(<StrictMode>
+      <GitBranchControl {...branchProps} />
+      <GitChangesSurface {...props(controller)} />
+      <GitGraphSurface {...props(controller)} />
+    </StrictMode>)
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+    expect(screen.getByRole('alert').textContent).toContain(en[key])
+    expect(screen.getByRole('alert').textContent).not.toContain('raw Host failure')
+    // Removing the first presenter must leave one remaining presenter, including in StrictMode.
+    rerender(<StrictMode><GitChangesSurface {...props(controller)} /><GitGraphSurface {...props(controller)} /></StrictMode>)
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+    expect(screen.getByRole('alert').textContent).toContain(en[key])
   })
 
   it('labels a linked checkout and enters another worktree for this session', () => {
@@ -393,7 +415,7 @@ describe('GitGraphSurface', () => {
   })
 
   it('shows repository discovery failures independently of history failures', () => {
-    const controller = controllerOf(baseState({ repository: undefined, error: 'Git executable unavailable' }))
+    const controller = controllerOf(baseState({ repository: undefined, error: 'Git executable unavailable', errorOperation: 'status' }))
     render(<GitGraphSurface {...props(controller)} />)
     expect(screen.getByRole('alert').textContent).toContain(en['error.local.readRepository'])
     expect(screen.getByRole('alert').textContent).not.toContain('Git executable unavailable')

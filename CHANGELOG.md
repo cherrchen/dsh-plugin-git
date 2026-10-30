@@ -20,6 +20,9 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ### Fixed
 
+- GitLab authentication generation changes now withdraw old rows, cursors and filter caches even if the new read or pagination fails.
+- Local Git failures show one shared toast per controller, with copy matching the failed operation across the composer and sidebar panels.
+- Platform accounts accepts the full configuration of sixteen self-hosted instances plus built-in GitLab.com and GitHub.
 - GitHub scoped write reconciliation now waits for every refreshed detail page before allowing acknowledgement; failed or superseded continuations keep repeat writes locked.
 - Platform account rediscovery refreshes visible GitLab capabilities after same-URL configuration changes and on settings reentry, without interrupting device login or triggering a polling loop.
 

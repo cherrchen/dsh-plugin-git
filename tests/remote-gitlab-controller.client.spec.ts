@@ -42,6 +42,48 @@ async function ready(controller: ReturnType<typeof fixture>['controller']) {
   expect(controller.getSnapshot().detail?.number).toBe(7)
 }
 describe('GitLab scoped controller', () => {
+  it.each([
+    ['revision', 'capability', 'first'], ['revision', 'capability', 'continuation'],
+    ['revision', 'repository', 'first'], ['revision', 'repository', 'continuation'],
+    ['instanceId', 'capability', 'first'], ['instanceId', 'capability', 'continuation'],
+    ['instanceId', 'repository', 'first'], ['instanceId', 'repository', 'continuation'],
+  ] as const)('withdraws old rows and filter caches after %s changes at %s despite a failed %s page', async (change, detectedAt, failure) => {
+    const nextGeneration = change === 'revision' ? { ...generation, revision: generation.revision + 1 } : { instanceId: 'replacement', revision: 0 }
+    let changed = false, recovered = false, capabilityReads = 0
+    const freshPull = { ...pull, number: 8, title: 'New account MR' }
+    const newViewer = { ...viewer, userId: '10', login: 'bob' }
+    const f = fixture((endpoint, payload) => {
+      if (!changed) return undefined
+      const actual = endpoint === 'remote-capability' && detectedAt === 'repository' && capabilityReads++ === 0 ? generation : nextGeneration
+      const echo = (value: unknown): Reply => ({ ok: true, value: { remoteProtocol: 2, scope, generation: actual, value } })
+      if (endpoint === 'remote-capability') return echo({ state: 'on', generation: actual, auth: { state: 'authenticated' }, actions, credential: { configured: true, writable: true } })
+      if (endpoint === 'remote-repository') return echo({ actionScope: { path: target.path, projectId: '12' }, viewer: newViewer, actions })
+      if (endpoint === 'remote-list-prs') {
+        if (failure === 'first' || payload['cursor'] !== undefined) return { ok: false, error: { code: 'git/remote-unavailable' } }
+        return echo({ items: [freshPull], truncated: true, next: 'continuation' })
+      }
+      if (endpoint === 'remote-list-issues' && recovered) return echo({ items: [{ number: 20, title: 'New account issue', body: '', state: 'open' }], truncated: false })
+      return undefined
+    })
+    f.feature.refresh()
+    await vi.waitFor(() => expect(f.feature.getSnapshot().state).toBe('on'))
+    f.controller.setRepository('/repo', false)
+    await f.controller.load('issues', undefined, 'closed')
+    await f.controller.load('pulls')
+    expect(f.controller.getSnapshot().items).toEqual([pull])
+    changed = true
+    await f.controller.refresh()
+    await vi.waitFor(() => expect(f.controller.getSnapshot().streaming).toBe(false))
+    expect(f.controller.getSnapshot().items.map(item => item.number)).toEqual(failure === 'first' ? [] : [8])
+    expect(f.controller.getSnapshot().generation).toEqual(nextGeneration)
+    expect(f.controller.getSnapshot().facts?.viewer).toEqual(newViewer)
+    expect(failure === 'first' ? f.controller.getSnapshot().error : f.controller.getSnapshot().streamError).toBeDefined()
+    recovered = true
+    const before = f.call.mock.calls.filter(args => args[1] === 'remote-list-issues').length
+    await f.controller.ensureList('issues', undefined, 'closed')
+    expect(f.call.mock.calls.filter(args => args[1] === 'remote-list-issues')).toHaveLength(before + 1)
+    expect(f.controller.getSnapshot().items.map(item => item.number)).toEqual([20])
+  })
   it.each(['COMMENT', 'APPROVE'] as const)('keeps the GitLab %s head-SHA requirement specific to the event', async event => {
     const f = fixture()
     await ready(f.controller)

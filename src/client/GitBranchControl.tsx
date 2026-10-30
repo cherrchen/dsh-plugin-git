@@ -15,7 +15,7 @@ import { resolveGitController, type GitSessionControllers } from './session-cont
 import { effectiveWorkspacePath } from './workspace-path.ts'
 import { formatLocale } from './locales.ts'
 import css from './GitBranchControl.module.css'
-import { describeLocalError, ErrorToast, useErrorToast } from './error-feedback.tsx'
+import { LocalGitErrorToast } from './local-error-feedback.tsx'
 
 export type GitBranchControlProps = PropsRuntime<'conversation.input.left'> & PropsLocale<'git'>
   & {
@@ -60,8 +60,6 @@ export function GitBranchControl({
   const [creating, setCreating] = useState(false)
   const [branchName, setBranchName] = useState('')
   const [createError, setCreateError] = useState<string>()
-  const errorToast = useErrorToast(state.error)
-  const createToast = useErrorToast(createError)
 
   useEffect(() => {
     void controller.setWorkspace(workspacePath)
@@ -180,10 +178,10 @@ export function GitBranchControl({
         )}
       />
       {checkoutKind === undefined ? null : <span className={css.checkoutKind}>{checkoutKind}</span>}
-      {state.error !== undefined && menuOpen && (
+      {state.error !== undefined && state.errorOperation === 'switch-branch' && menuOpen && (
         <span className={css.menuHint}>{t('error.local.switchBranch')}</span>
       )}
-      {errorToast.active && state.error !== undefined && <ErrorToast key={errorToast.seq} report={describeLocalError('error.local.switchBranch', state.error, t)} onDone={errorToast.dismiss} t={t} />}
+      <LocalGitErrorToast controller={controller} t={t} />
       <Tooltip label={changesLabel} side="top" delayMs={200}>
         <ComposerToolTrigger
           metric
@@ -229,7 +227,6 @@ export function GitBranchControl({
               />
             </label>
             {createError === undefined ? null : <p className={css.createHint}>{unborn ? createError : t('error.local.createBranch')}</p>}
-            {createToast.active && createError !== undefined && <ErrorToast key={createToast.seq} report={describeLocalError(unborn ? 'error.local.createBranch' : 'error.local.createBranch', createError, t)} onDone={createToast.dismiss} t={t} />}
           </div>
         )}
       </Modal>

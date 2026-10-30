@@ -23,6 +23,7 @@ import { RefBadge } from './RefBadge.tsx'
 import { useGitWorkspace } from '../use-git-workspace.ts'
 import css from '../GitGraphSurface.module.css'
 import { describeLocalError, ErrorToast, useErrorToast } from '../error-feedback.tsx'
+import { LocalGitErrorToast } from '../local-error-feedback.tsx'
 
 
 /** Full composed props for the Git Graph tab body. */
@@ -72,7 +73,6 @@ export function GitGraphSurface({
 }: GitGraphSurfaceProps): ReactNode {
   const controller = resolveGitController({ controller: controllerProp, gitSessions, sessionId })
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
-  const errorToast = useErrorToast(state.error)
   const graphToast = useErrorToast(state.graphError)
   const workspacePath = useSessions(list => effectiveWorkspacePath(list.byId[sessionId]))
   const [hoveredRowIndex, setHoveredRowIndex] = useState<number | undefined>(undefined)
@@ -201,7 +201,7 @@ export function GitGraphSurface({
         {!state.graphLoading && state.repository === null && <p className={css.empty}>{t('details.notRepository')}</p>}
         {state.error !== undefined && <p className={css.empty}>{t('error.local.readRepository')}</p>}
         {state.graphError !== undefined && <p className={css.empty}>{t('error.local.loadGraph')}</p>}
-        {errorToast.active && state.error !== undefined && <ErrorToast key={errorToast.seq} report={describeLocalError('error.local.readRepository', state.error, t)} onDone={errorToast.dismiss} t={t} />}
+        <LocalGitErrorToast controller={controller} t={t} />
         {graphToast.active && state.graphError !== undefined && <ErrorToast key={graphToast.seq} report={describeLocalError('error.local.loadGraph', state.graphError, t)} onDone={graphToast.dismiss} t={t} />}
         {state.graphLoaded && state.repository != null && state.graphRows.length === 0 && !state.graphLoading && (
           <p className={css.empty}>{t('graph.empty')}</p>

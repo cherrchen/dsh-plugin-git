@@ -20,6 +20,7 @@ import { useGitWorkspace } from '../use-git-workspace.ts'
 import type { GitWorktreeFeature } from '../worktree-feature.ts'
 import css from '../GitDetailsSurface.module.css'
 import { describeLocalError, ErrorToast, useErrorToast } from '../error-feedback.tsx'
+import { LocalGitErrorToast } from '../local-error-feedback.tsx'
 
 
 /** Full composed props for the Git Worktrees tab body. */
@@ -37,7 +38,6 @@ export function GitWorktreesSurface({
   const [name, setName] = useState('')
   const [from, setFrom] = useState('')
   const [createError, setCreateError] = useState<string>()
-  const errorToast = useErrorToast(state.error)
   const createToast = useErrorToast(createError)
 
   useEffect(() => {
@@ -139,7 +139,7 @@ export function GitWorktreesSurface({
         </div>
       )}
       {state.error === undefined ? null : <p className={css.empty}>{t('error.local.loadWorktrees')}</p>}
-      {errorToast.active && state.error !== undefined && <ErrorToast key={errorToast.seq} report={describeLocalError('error.local.loadWorktrees', state.error, t)} onDone={errorToast.dismiss} t={t} />}
+      <LocalGitErrorToast controller={controller} t={t} />
       <Modal
         open={creating}
         onClose={closeCreate}

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ScopedRemoteClient } from '../src/client/remote-protocol.ts'
 import type { GitRpcClient } from '../src/client/controller.ts'
+import { resolveGitLabInstances } from '../src/remote/instances.ts'
 const scope = { provider: 'gitlab', instance: 'https://git.example.com' } as const
 const gen = { instanceId: 'opaque', revision: 1 }
 const answer = (extra: Record<string, unknown> = {}) => ({ remoteProtocol: 2, scope, generation: gen, value: { generation: gen }, ...extra })
@@ -127,7 +128,7 @@ describe('platform accounts list', () => {
     accounts([{ provider: 'gitlab', instance: 'not-a-url' }]),
     accounts([{ provider: 'gitlab', instance: 'https://git.example.com', label: 'bad\nlabel' }]),
     accounts([{ provider: 'gitlab', instance: 'https://git.example.com', label: 3 }]),
-    accounts(new Array(18).fill({ provider: 'gitlab', instance: 'https://git.example.com' })),
+    accounts(new Array(19).fill({ provider: 'gitlab', instance: 'https://git.example.com' })),
     accounts(['https://git.example.com']),
   ])('rejects a malformed accounts reply %j', async value => {
     const c = client(value); c.scoped.observeCapability({ state: 'on', remoteProtocol: 2 })
@@ -137,5 +138,12 @@ describe('platform accounts list', () => {
     const c = client()
     await expect(c.scoped.accounts()).rejects.toMatchObject({ reason: 'host-not-negotiated' })
     expect(c.call).not.toHaveBeenCalled()
+  })
+  it('accepts sixteen self-hosted instances plus built-in GitLab.com and GitHub', async () => {
+    const instances = resolveGitLabInstances(Array.from({ length: 16 }, (_, index) => ({ url: `https://git${index}.example.com` })))
+    const entries = [{ provider: 'github', instance: 'https://github.com' }, ...instances.map(item => ({ provider: item.provider, instance: item.instance }))]
+    expect(entries).toHaveLength(18)
+    const c = client(accounts(entries)); c.scoped.observeCapability({ state: 'on', remoteProtocol: 2 })
+    expect(await c.scoped.accounts()).toEqual(entries)
   })
 })

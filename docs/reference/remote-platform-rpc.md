@@ -27,7 +27,7 @@ Host 在完整 seam 的无作用域 capability 中宣告 `remoteProtocol:2`；Cl
 
 v2 `remote-repositories` 带 `repository/sessionId?`，返回 `{remoteProtocol:2,value:{state,remotes,unresolved?}}`，每个已识别 identity 含 scope。只读取本地 origin/upstream、显式登记实例和内建 GitLab.com；陌生域名不探测。HTTPS 前缀和 SSH endpoint 分别匹配，同一 SSH 映射无法唯一归属时返回脱敏 `ambiguous`。未知 URL 不回传；无 seam 仍为全局 off。
 
-无作用域 v2 `remote-accounts` 只接受 `{remoteProtocol:2}`（任何附加键按 invalid-request 拒绝），不需要会话或仓库；返回 `{remoteProtocol:2,value:{accounts}}`，列出 GitHub 固定项与每个已登记 GitLab 实例的 `{provider,instance,label?}`，不含 clientId、credentialRef、sshHost 等配置或秘密。有作用域 v2 `remote-account` 仅需 scope、不需要仓库：按首次读取相同的发现规则非交互建立身份，返回该 scope 的 `ScopedRemoteCapabilityOn`（认证时含 viewer）；GitHub 经旧 owner 的按 generation 共享 viewer 缓存读取，每 generation 至多一次 GET /user，未认证时不发网络请求。插件设置页的“平台账号”分区列出这些账号并打开与 Remote 页相同的认证对话框。
+无作用域 v2 `remote-accounts` 只接受 `{remoteProtocol:2}`（任何附加键按 invalid-request 拒绝），不需要会话或仓库；返回 `{remoteProtocol:2,value:{accounts}}`，列出 GitHub 固定项与每个已登记 GitLab 实例的 `{provider,instance,label?}`，不含 clientId、credentialRef、sshHost 等配置或秘密。响应最多 18 项，包含显式配置之外的内建 GitLab.com 与固定 GitHub 项。有作用域 v2 `remote-account` 仅需 scope、不需要仓库：按首次读取相同的发现规则非交互建立身份，返回该 scope 的 `ScopedRemoteCapabilityOn`（认证时含 viewer）；GitHub 经旧 owner 的按 generation 共享 viewer 缓存读取，每 generation 至多一次 GET /user，未认证时不发网络请求。插件设置页的“平台账号”分区列出这些账号并打开与 Remote 页相同的认证对话框。
 
 设置页打开时，进入页面和后续 capability 轮询都会重新发现实例列表；每次成功发现后，即使列表描述和全局 GitHub generation 不变，也会重读已显示的 GitLab 账号能力与 viewer，以反映同一 URL 的 App/ref 配置变化或实例 owner 重建。未挂载的账号、忙碌操作和等待中的 Device Flow 不触发后台账号重读；后台重读不会再次触发全局 capability 轮询。
 
@@ -137,7 +137,7 @@ GitLab 读取遇到 `git/signed-out` 或 `git/unauthenticated` 时仍撤回仓�
 
 刷新仍从首页起逐页校验，复用 Host 已有的 ETag / `If-None-Match`：未变化页以 304 复用正文，仅变化页重新传输正文；这是分页级条件更新，并非依赖上游变更游标的逐条增量同步。Client 按稳定 id 合并并保留未变化行的对象引用；刷新期间保留尚未校验的旧尾页，最后一页完成后移除本轮已不存在的记录，覆盖关闭、删除及排序/分页位置变化。
 
-仓库重绑定、功能 off、登录身份/generation 变化会清空视图和筛选缓存并取消旧请求；远端写入（含失败或未知结果）使同本地仓库的其他缓存过期。未知写结果门禁不会因切 tab、缓存命中或自动校验而解除，仍须显式定向刷新；不自动重放写请求。
+同一 GitLab 目标的 capability 或仓库事实报告新 generation 时，在加载新列表前撤回旧条目、游标与全部筛选缓存；首页或续页失败也不能保留旧身份内容。仓库重绑定、功能 off、登录身份/generation 变化会清空视图和筛选缓存并取消旧请求；远端写入（含失败或未知结果）使同本地仓库的其他缓存过期。未知写结果门禁不会因切 tab、缓存命中或自动校验而解除，仍须显式定向刷新；不自动重放写请求。
 
 Device Flow 授权等待或后台分页进行期间暂停控制器的通知轮询，避免同一 scoped 通道的新请求作废在途登录或续页响应；分页结束后的下一次轮询可正常执行，授权成功后刷新认证与列表。GitLab 操作在途时切换方式或退出 OAuth，会取消旧操作并保留原目标作用域用于认证请求；旧操作的迟到响应不能覆盖新状态。
 
