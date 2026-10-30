@@ -19,6 +19,7 @@
 - 将 DSH 兼容范围扩展至 `0.2.1-rc.5`：该版本仅有 manifest 重发，其推理块 Slot 契约变化不在本插件使用面内；宿主运行时下限、Node 车道与开发 pin 均不变。见[兼容评估](docs/reference/dsh-compatibility.md)。
 - 隔离 DSH 矩阵车道快照补上 `oauth-apps.json`，使车道安装可以执行独立 bundle 构建。
 - 隔离本地矩阵支持未列入清单的候选验证；联网车道使用干净依赖树并检查 peer，避免遗留 Cordis 配套包。0.2.2 alpha CI 车道使用 Node 24.9，并修正开发锁文件的 include peer 解析。
+- 通过 devDependencies 升级与按作用域限定的 pnpm override 修复开发树公告：vitest 4.1.12、katex 0.19.1、jsdom 的 undici、css-tree 的 source-map-js、开发 pin 的 undici 与 ajv 的 fast-uri；剩余一条公告（`dsh-llm` 的 `zod`）由上游宿主精确锁定，不在本插件可处置范围。
 
 ### Fixed
 
