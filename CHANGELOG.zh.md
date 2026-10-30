@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [0.2.9] — 2026-10-30
+
 ### Added
 
 - 插件设置页新增“平台账号”分区，可查看并管理 GitHub/GitLab 登录。
@@ -202,7 +204,8 @@
 - 可选的 `ctx.inject(['desktop'], ...)` child fiber，使用 `shell.showItemInFolder`、`shell.openPath` 与 `notification.show`。
 - `docs/` 文档库、`pnpm docs:check` 机器校验、`version:set` 脚本、tag 触发的 release 工作流、双语 README 配对及其 `README.i18n.yaml` hash 记录。
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.8...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.9...HEAD
+[0.2.9]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.5...v0.2.6
