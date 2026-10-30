@@ -24,7 +24,9 @@ export interface GitDesktopCapability {
   shell: {
     showItemInFolder(path: string): Promise<void>
     openPath(path: string): Promise<string>
+    openExternal?(url: string): Promise<void>
   }
+  clipboard?: { writeText(text: string): Promise<void> }
   notification: {
     show(options: { title: string; body?: string }): Promise<{ shown: boolean }>
   }
@@ -41,6 +43,10 @@ export interface GitClientState {
   readonly repository: GitRepositorySnapshot | null | undefined
   readonly loading: boolean
   readonly error: string | undefined
+  /** Failed Host operation, so every surface reports the same localized summary. */
+  readonly errorOperation?: string | undefined
+  /** Distinguishes repeated failures even when React batches the intervening clear. */
+  readonly errorSequence?: number | undefined
   readonly desktopAvailable: boolean
   /** Commit history page, newest first. */
   readonly graph: readonly GitCommitSummary[]
@@ -402,7 +408,7 @@ export class GitClientController {
       } catch (error) {
         if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) return
         const message = error instanceof Error ? error.message : String(error)
-        this.patch({ error: message })
+        this.patch({ error: message, errorOperation: 'set-directory' })
         throw error instanceof Error ? error : new Error(message)
       } finally {
         this.directoryEntries -= 1
@@ -731,7 +737,7 @@ export class GitClientController {
       })
     } catch (error) {
       if (signal.aborted || !this.isWorkspaceCurrent(generation)) return
-      this.patch({ loading: false, error: error instanceof Error ? error.message : String(error) })
+      this.patch({ loading: false, error: error instanceof Error ? error.message : String(error), errorOperation: 'status' })
     }
   }
 
@@ -767,7 +773,7 @@ export class GitClientController {
       } catch (error) {
         if (signal.aborted || !this.isBindingCurrent(generation, repositoryRoot)) return false
         const message = error instanceof Error ? error.message : String(error)
-        this.patch({ loading: false, error: message })
+        this.patch({ loading: false, error: message, errorOperation: endpoint })
         throw error instanceof Error ? error : new Error(message)
       }
     }
@@ -813,7 +819,7 @@ export class GitClientController {
   }
 
   private patch(patch: Partial<GitClientState>): void {
-    this.state = { ...this.state, ...patch }
+    this.state = { ...this.state, ...patch, ...(patch.error === undefined ? {} : { errorSequence: (this.state.errorSequence ?? 0) + 1 }) }
     for (const listener of [...this.listeners]) listener()
   }
 }

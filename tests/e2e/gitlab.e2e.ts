@@ -4,9 +4,29 @@ async function openGitLab(page: Page, scenario = 'gitlab', lang = 'en') {
   await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort())
   await page.goto(`/?scenario=${scenario}&lang=${lang}`)
   await page.getByRole('button', { name: /Fixture merge request/ }).click()
-  await expect(page.getByRole('heading', { name: '#7 · Fixture merge request' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '#7 Fixture merge request' })).toBeVisible()
   await expect(page.getByRole('button', { name: lang === 'en' ? 'Checkout verified PR head' : '检出已核验的 PR 提交' })).toBeEnabled()
 }
+test('keeps GitLab copy and both authentication methods together with notification coverage in the dialog', async ({ page }) => {
+  for (const lang of ['en', 'zh']) {
+    await openGitLab(page, 'gitlab', lang)
+    const coverage = lang === 'en' ? 'Notifications cover merge requests awaiting your review and state changes of loaded merge requests you opened' : '通知仅包含待你审阅的合并请求，以及已加载的你创建的合并请求的状态变化'
+    const apiHint = lang === 'en' ? 'This sign-in is only used for GitLab content; git fetch and push keep using your local Git credentials' : '这里的登录只用于读取和操作 GitLab 内容；git fetch/push 仍使用本机的 Git 凭据'
+    await expect(page.getByText(coverage)).toHaveCount(0)
+    const title = lang === 'en' ? 'Platform authentication' : '平台认证'
+    const dialogTitle = lang === 'en' ? 'GitLab account' : 'GitLab 账号'
+    await page.getByRole('button', { name: title, exact: true }).first().click()
+    const dialog = page.getByRole('dialog', { name: dialogTitle })
+    await expect(dialog.getByText(lang === 'en' ? /Connected to GitLab/ : /已连接 GitLab/)).toBeVisible()
+    await expect(dialog.getByRole('radio', { name: lang === 'en' ? 'GitLab CLI (glab)' : 'GitLab CLI（glab）' })).toBeVisible()
+    await expect(dialog.getByRole('radio', { name: lang === 'en' ? 'GitLab OAuth (device login)' : 'GitLab OAuth（设备码登录）' })).toBeDisabled()
+    await expect(dialog.getByText(coverage)).toBeVisible()
+    await expect(dialog.getByText(apiHint)).toBeVisible()
+    for (const item of await dialog.getByRole('radio').all()) expect(await item.getAttribute('aria-describedby')).not.toBeNull()
+    expect(await dialog.innerText()).not.toContain('GitHub')
+    await page.screenshot({ path: test.info().outputPath(`gitlab-auth-${lang}.png`), animations: 'disabled' })
+  }
+})
 test('browses a scoped GitLab merge request and posts one comment with an isolated Host', async ({ page }) => {
   const replies: Promise<string>[] = []
   page.on('response', response => { if (response.url().endsWith('/__test/rpc')) replies.push(response.text().catch(() => '')) })
@@ -15,7 +35,7 @@ test('browses a scoped GitLab merge request and posts one comment with an isolat
   await expect(page.getByText('Current approvals')).toBeVisible()
   await page.getByLabel('Comment / description').fill('Isolated comment')
   await page.getByRole('button', { name: 'Post comment', exact: true }).click()
-  await expect(page.getByText('Action result: Succeeded')).toBeVisible()
+  await expect(page.getByRole('alert')).toHaveText('Comment published')
   const id = await page.getByRole('status', { name: 'Fixture ID' }).textContent()
   const info = await page.request.post('/__test/inspect', { data: { id } }).then(response => response.json())
   expect(info.calls.filter((call: string) => call === 'gitlab:POST:/gitlab/api/v4/projects/42/merge_requests/7/notes')).toHaveLength(1)
@@ -29,7 +49,7 @@ test('keeps an unknown approval blocked until the comment and current approval a
   await expect(page.getByText('评论已发送；核对审批时不要再次发送该评论。')).toBeVisible()
   await expect(page.getByRole('button', { name: '批准', exact: true })).toBeDisabled()
   const id = await page.getByRole('status', { name: 'Fixture ID' }).textContent()
-  await page.getByRole('button', { name: '刷新 GitLab' }).click()
+  await page.getByRole('button', { name: '刷新', exact: true }).last().click()
   await expect(page.locator('article').filter({ hasText: '只发送一次' })).toBeVisible()
   await page.getByRole('button', { name: '我已核对刷新后的结果' }).click()
   await expect(page.getByRole('button', { name: '批准', exact: true })).toBeEnabled()

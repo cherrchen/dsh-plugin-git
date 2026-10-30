@@ -5,7 +5,7 @@ import { GitRemoteError } from './errors.ts'
 import { GitRemoteGit, type RemoteCheckoutReceipt, type RemoteGitRun } from './git.ts'
 import { gitLabPrivateRef } from './gitlab-git.ts'
 import { GitRemoteHttpError, gitLabContinuation, type GitRemoteHttp, type GitRemoteHttpResponse } from './http.ts'
-import { gitLabApprovals, gitLabCommit, gitLabDiscussion, gitLabFile, gitLabIssue, gitLabNote, gitLabPull, gitLabWebUrl } from './gitlab-model.ts'
+import { gitLabApprovals, gitLabCommit, gitLabDiscussion, gitLabFile, gitLabIndividualNote, gitLabIssue, gitLabPull, gitLabWebUrl } from './gitlab-model.ts'
 import { gitLabRepositoryFacts } from './gitlab-facts.ts'
 import { GitLabCursorStore, type GitLabCursorBinding } from './gitlab-read-boundaries.ts'
 import type { GitLabInstance } from './instances.ts'
@@ -25,6 +25,7 @@ function limitDeadline(headers: { get(name: string): string | null }, now: numbe
 }
 function record(value: unknown): Record<string, unknown> | undefined { return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : undefined }
 interface Operation { readonly snapshot: GitLabAuthSnapshot; readonly signal: AbortSignal; readonly projectId: string; readonly path: string; readonly project: Record<string, unknown>; readonly query: string; readonly revalidate: (name?: 'origin' | 'upstream') => Promise<'origin' | 'upstream'>; readonly authorizePath: (path: string, name?: 'origin' | 'upstream') => Promise<'origin' | 'upstream'>; readonly comparison?: string }
+interface RequestBudget { blockedUntil: number; failures: number; pollInterval: number }
 interface CacheEntry { readonly body: unknown; readonly link: string | null; readonly nextPage: string | null; readonly etag?: string }
 interface Submission { readonly fingerprint: string; readonly projectId: string; readonly result: Promise<unknown>; state: 'pending' | 'completed' | 'failed' | 'unknown' }
 interface ExpectedMutation { readonly instanceId: string; readonly revision: number; readonly host: string; readonly userId: string; readonly requestId: string }
@@ -45,9 +46,7 @@ export function interruptedGitLabMutation(endpoint: string, request: Record<stri
 }
 
 export class GitLabProjectReader {
-  private blockedUntil = 0
-  private failures = 0
-  private pollInterval = 60_000
+  private readonly budgets = new Map<string, RequestBudget>()
   private generationKey = ''
   private readonly pollAfter = new Map<string, number>()
   private readonly cache = new Map<string, CacheEntry>()
@@ -57,23 +56,35 @@ export class GitLabProjectReader {
   private readonly git: GitRemoteGit
   constructor(private readonly instance: GitLabInstance, private readonly auth: GitLabAuth, private readonly http: GitRemoteHttp, private readonly run: RemoteGitRun, private readonly now: () => number = Date.now) { this.git = new GitRemoteGit(run) }
 
-  private checkBudget(): void {
-    if (this.now() < this.blockedUntil) throw new GitRemoteError('git/rate-limited', 'git-remote: request budget is temporarily exhausted', { resetAt: this.blockedUntil })
+  private budget(snapshot: GitLabAuthSnapshot): RequestBudget {
+    // Never retain a raw token as a map key or expose this Host-only fingerprint.
+    const key = snapshot.token === undefined ? 'anonymous' : createHash('sha256').update(snapshot.token).digest('hex')
+    const current = this.budgets.get(key)
+    if (current !== undefined) return current
+    // Keep the same budget across generation changes and in-flight credential switches.
+    const budget = { blockedUntil: 0, failures: 0, pollInterval: 60_000 }
+    this.budgets.set(key, budget)
+    return budget
+  }
+  private checkBudget(snapshot: GitLabAuthSnapshot): void {
+    const budget = this.budget(snapshot)
+    if (this.now() < budget.blockedUntil) throw new GitRemoteError('git/rate-limited', 'git-remote: request budget is temporarily exhausted', { resetAt: budget.blockedUntil })
   }
   private checkResponse(response: GitRemoteHttpResponse, snapshot: GitLabAuthSnapshot): void {
     if (response.status === 401 && snapshot.token !== undefined) { this.auth.markInvalid(snapshot); throw new GitRemoteError('git/unauthenticated', 'git-remote: authentication needs repair') }
+    const budget = this.budget(snapshot)
     const now = this.now(), remaining = response.headers.get('ratelimit-remaining') ?? response.headers.get('x-ratelimit-remaining')
     if (response.status === 429 || response.status >= 500 || (response.status === 403 && (remaining === '0' || response.headers.get('retry-after') !== null))) {
-      this.failures++
-      this.blockedUntil = Math.max(this.blockedUntil, limitDeadline(response.headers, now), now + Math.min(3_600_000, 60_000 * 2 ** Math.min(this.failures - 1, 6)))
-      throw new GitRemoteError('git/rate-limited', 'git-remote: request budget is temporarily exhausted', { resetAt: this.blockedUntil })
+      budget.failures++
+      budget.blockedUntil = Math.max(budget.blockedUntil, limitDeadline(response.headers, now), now + Math.min(3_600_000, 60_000 * 2 ** Math.min(budget.failures - 1, 6)))
+      throw new GitRemoteError('git/rate-limited', 'git-remote: request budget is temporarily exhausted', { resetAt: budget.blockedUntil })
     }
-    if (remaining === '0') this.blockedUntil = Math.max(this.blockedUntil, limitDeadline(response.headers, now))
+    if (remaining === '0') budget.blockedUntil = Math.max(budget.blockedUntil, limitDeadline(response.headers, now))
     const interval = Number(response.headers.get('x-poll-interval'))
-    if (Number.isFinite(interval) && interval > 0) this.pollInterval = Math.max(this.pollInterval, interval * 1000)
+    if (Number.isFinite(interval) && interval > 0) budget.pollInterval = Math.max(budget.pollInterval, interval * 1000)
     if (response.status === 403) throw new GitRemoteError('git/insufficient-scope', 'git-remote: provider denied access')
     if (response.status !== 304 && response.status !== 200) throw invalid('read-failed')
-    this.failures = 0
+    budget.failures = 0
   }
   private headers(snapshot: GitLabAuthSnapshot): Record<string, string> {
     return { accept: 'application/json', ...(snapshot.token === undefined ? {} : { authorization: `Bearer ${snapshot.token}` }) }
@@ -93,9 +104,9 @@ export class GitLabProjectReader {
     if (request['automatic'] === true && snapshot.state === 'anonymous') throw invalid('anonymous-manual-only')
     const key = JSON.stringify([path, pollKey]), waitUntil = request['automatic'] === true ? this.pollAfter.get(key) ?? 0 : 0
     if (this.now() < waitUntil) throw new GitRemoteError('git/rate-limited', 'git-remote: request budget is temporarily exhausted', { resetAt: waitUntil })
-    this.checkBudget()
+    this.checkBudget(snapshot)
     // Reserve the interval before the first await so simultaneous polls cannot bypass it.
-    this.pollAfter.set(key, Math.max(this.pollAfter.get(key) ?? 0, this.now() + this.pollInterval))
+    this.pollAfter.set(key, Math.max(this.pollAfter.get(key) ?? 0, this.now() + this.budget(snapshot).pollInterval))
     const response = await this.http.gitLabProjectLookup(path, this.headers(snapshot), operationSignal)
     operationSignal.throwIfAborted(); this.checkResponse(response, snapshot)
     if (response.status !== 200 || typeof response.body !== 'object' || response.body === null || Array.isArray(response.body)) throw invalid('invalid-project-response')
@@ -111,12 +122,12 @@ export class GitLabProjectReader {
       if (current.generation.instanceId !== snapshot.generation.instanceId || current.generation.revision !== snapshot.generation.revision) throw new GitRemoteError('git/remote-identity-mismatch', 'git-remote: credentials changed during the operation')
       operationSignal.throwIfAborted()
     } catch (error) { throw interrupted?.(value) ?? error }
-    this.pollAfter.set(key, Math.max(this.pollAfter.get(key) ?? 0, this.now() + this.pollInterval))
+    this.pollAfter.set(key, Math.max(this.pollAfter.get(key) ?? 0, this.now() + this.budget(snapshot).pollInterval))
     return { generation: snapshot.generation, value }
   }
   private async get(path: string, op: Operation, fresh = false): Promise<CacheEntry> {
     await op.revalidate()
-    this.checkBudget()
+    this.checkBudget(op.snapshot)
     const cacheKey = JSON.stringify([this.instance.instance, op.snapshot.viewer?.userId ?? 'anonymous', op.snapshot.generation, op.projectId, op.path, op.query, path, op.comparison ?? ''])
     const previous = fresh || op.snapshot.token === undefined ? undefined : this.cache.get(cacheKey)
     const response = await this.http.request({ role: 'api', method: 'GET', path, signal: op.signal, headers: { ...this.headers(op.snapshot), ...(previous?.etag === undefined ? {} : { 'if-none-match': previous.etag }) } })
@@ -161,7 +172,7 @@ export class GitLabProjectReader {
   }
   private async approvalPolicy(op: Operation): Promise<boolean | 'unknown'> {
     if (op.snapshot.token === undefined) return 'unknown'
-    await op.revalidate(); this.checkBudget()
+    await op.revalidate(); this.checkBudget(op.snapshot)
     let response: GitRemoteHttpResponse
     try { response = await this.http.request({ role: 'api', method: 'GET', path: `${this.instance.prefix}/api/v4/projects/${op.projectId}/approvals`, headers: this.headers(op.snapshot), signal: op.signal }) }
     catch { op.signal.throwIfAborted(); return 'unknown' }
@@ -178,7 +189,7 @@ export class GitLabProjectReader {
   }
   private async approvalPermission(op: Operation, number: number): Promise<{ permission: boolean | 'unknown'; reauthentication: boolean | 'unknown' }> {
     if (op.snapshot.token === undefined) return { permission: false, reauthentication: 'unknown' }
-    await op.revalidate(); this.checkBudget()
+    await op.revalidate(); this.checkBudget(op.snapshot)
     let response: GitRemoteHttpResponse
     try { response = await this.http.request({ role: 'api', method: 'GET', path: `${this.instance.prefix}/api/v4/projects/${op.projectId}/merge_requests/${number}/approvals`, headers: this.headers(op.snapshot), signal: op.signal }) }
     catch { op.signal.throwIfAborted(); return { permission: 'unknown', reauthentication: 'unknown' } }
@@ -265,7 +276,8 @@ export class GitLabProjectReader {
     if (typeof number !== 'number' || !Number.isSafeInteger(number) || number < 1 || (objectKind !== 'pull' && objectKind !== 'issue') || (kind === 'comments' && request['inline'] === true)) throw invalid('invalid-object')
     return this.operation(request, signal, context, JSON.stringify([kind, objectKind, number]), async op => {
       const initial = `${this.instance.prefix}/api/v4/projects/${op.projectId}/${objectKind === 'pull' ? 'merge_requests' : 'issues'}/${number}/${kind === 'comments' ? 'notes' : kind}?per_page=50&page=1`
-      return this.page<ScopedRemoteCommit | ScopedRemoteNote | ScopedRemoteDiscussion>(op, request, initial, JSON.stringify([kind, objectKind, number]), raw => kind === 'commits' ? gitLabCommit(raw, this.instance.instance) : kind === 'comments' ? gitLabNote(raw, this.instance.instance) : gitLabDiscussion(raw, this.instance.instance))
+      const projected = await this.page<ScopedRemoteCommit | ScopedRemoteNote | ScopedRemoteDiscussion | null>(op, request, initial, JSON.stringify([kind, objectKind, number]), raw => kind === 'commits' ? gitLabCommit(raw, this.instance.instance) : kind === 'comments' ? gitLabIndividualNote(raw, this.instance.instance) : gitLabDiscussion(raw, this.instance.instance))
+      return { ...projected, items: projected.items.filter((item): item is ScopedRemoteCommit | ScopedRemoteNote | ScopedRemoteDiscussion => item !== null) }
     })
   }
   approvals(request: Record<string, unknown>, signal: AbortSignal, context: ScopedRequestContext | undefined): Promise<ScopedRemoteResult<ScopedRemoteApprovalFacts>> {
@@ -329,7 +341,7 @@ export class GitLabProjectReader {
     await op.revalidate(remoteName)
     const current = await this.auth.snapshot(op.signal)
     if (current.generation.instanceId !== expected.instanceId || current.generation.revision !== expected.revision || current.viewer?.host !== expected.host || current.viewer.userId !== expected.userId) throw new GitRemoteError('git/remote-identity-mismatch', 'git-remote: mutation confirmation changed')
-    this.checkBudget()
+    this.checkBudget(op.snapshot)
     const response = await this.http.gitLabProjectLookup(op.path, this.headers(op.snapshot), op.signal)
     this.checkResponse(response, op.snapshot)
     const project = record(response.body)
@@ -373,7 +385,7 @@ export class GitLabProjectReader {
     if (snapshot.state !== 'authenticated' || snapshot.generation.instanceId !== expected.instanceId || snapshot.generation.revision !== expected.revision || snapshot.viewer?.host !== expected.host || snapshot.viewer.userId !== expected.userId) throw new GitRemoteError('git/remote-identity-mismatch', 'git-remote: mutation confirmation changed')
     // An unknown result is returned as an error without attempting another network call.
     if (entry.state === 'unknown') return { generation: snapshot.generation, value: await entry.result as T }
-    this.checkBudget()
+    this.checkBudget(snapshot)
     const response = await this.http.gitLabProjectLookup(path, this.headers(snapshot), AbortSignal.any([signal, snapshot.signal]))
     this.checkResponse(response, snapshot)
     const project = record(response.body)
@@ -383,7 +395,7 @@ export class GitLabProjectReader {
       const source = record(request['head']), sourcePath = source?.['path'], sourceId = projectId(source?.['projectId'])
       if (typeof sourcePath !== 'string' || sourceId === undefined) throw invalid('invalid-request')
       await context.assertRepository(scope, sourcePath, request, signal)
-      this.checkBudget()
+      this.checkBudget(snapshot)
       const sourceResponse = await this.http.gitLabProjectLookup(sourcePath, this.headers(snapshot), AbortSignal.any([signal, snapshot.signal]))
       this.checkResponse(sourceResponse, snapshot)
       const sourceProject = record(sourceResponse.body)
@@ -476,7 +488,8 @@ export class GitLabProjectReader {
     }, value => interruptedGitLabMutation('remote-issue-branch', request, value))
   }
   private async sendWrite(op: Operation, method: 'POST' | 'PUT', path: string, payload: Record<string, unknown>, action: string, number?: number): Promise<Record<string, unknown>> {
-    this.checkBudget()
+    this.checkBudget(op.snapshot)
+    const budget = this.budget(op.snapshot)
     let sent = false, response: GitRemoteHttpResponse
     try {
       response = await this.http.request({ role: 'api', method, path, headers: { ...this.headers(op.snapshot), 'content-type': 'application/json' }, body: JSON.stringify(payload), signal: op.signal, onSend: () => { sent = true } })
@@ -485,12 +498,12 @@ export class GitLabProjectReader {
       throw new GitRemoteError('git/write-result-unknown', 'git-remote: write result is unknown; refresh the affected object', { action, ...(number === undefined ? {} : { number }) })
     }
     if (response.status >= 500) {
-      this.blockedUntil = Math.max(this.blockedUntil, limitDeadline(response.headers, this.now()))
+      budget.blockedUntil = Math.max(budget.blockedUntil, limitDeadline(response.headers, this.now()))
       throw new GitRemoteError('git/write-result-unknown', 'git-remote: write result is unknown; refresh the affected object', { action, ...(number === undefined ? {} : { number }) })
     }
     if (response.status === 401) { this.auth.markInvalid(op.snapshot); throw new GitRemoteError('git/unauthenticated', 'git-remote: authentication needs repair') }
     const remaining = response.headers.get('ratelimit-remaining') ?? response.headers.get('x-ratelimit-remaining')
-    if (response.status === 429 || (response.status === 403 && (remaining === '0' || response.headers.get('retry-after') !== null))) { this.blockedUntil = Math.max(this.blockedUntil, limitDeadline(response.headers, this.now())); throw new GitRemoteError('git/rate-limited', 'git-remote: provider rate limited the write', { resetAt: this.blockedUntil }) }
+    if (response.status === 429 || (response.status === 403 && (remaining === '0' || response.headers.get('retry-after') !== null))) { budget.blockedUntil = Math.max(budget.blockedUntil, limitDeadline(response.headers, this.now())); throw new GitRemoteError('git/rate-limited', 'git-remote: provider rate limited the write', { resetAt: budget.blockedUntil }) }
     if (response.status === 403) throw new GitRemoteError('git/insufficient-scope', 'git-remote: provider denied the write')
     if (response.status === 409 && (action === 'approve' || action === 'merge-pr')) throw new GitRemoteError('git/head-moved', 'git-remote: merge request head changed')
     if (response.status < 200 || response.status >= 300) throw invalid(action === 'approve' ? 'approval-rejected-or-reauth-required' : 'provider-rejected')
@@ -501,7 +514,7 @@ export class GitLabProjectReader {
   }
   private async sourceProject(op: Operation, path: string, suppliedId?: string, requiredRemote?: 'origin' | 'upstream'): Promise<{ id: string; name: 'origin' | 'upstream' }> {
     const name = await op.authorizePath(path, requiredRemote)
-    this.checkBudget()
+    this.checkBudget(op.snapshot)
     const response = await this.http.gitLabProjectLookup(path, this.headers(op.snapshot), op.signal)
     this.checkResponse(response, op.snapshot)
     const data = record(response.body), id = projectId(data?.['id'])
@@ -510,7 +523,7 @@ export class GitLabProjectReader {
     return { id, name }
   }
   private async verifyBranch(op: Operation, project: string, branch: string): Promise<void> {
-    this.checkBudget()
+    this.checkBudget(op.snapshot)
     const response = await this.http.gitLabBranchLookup(project, branch, this.headers(op.snapshot), op.signal)
     this.checkResponse(response, op.snapshot)
     const value = record(response.body), commit = record(value?.['commit'])

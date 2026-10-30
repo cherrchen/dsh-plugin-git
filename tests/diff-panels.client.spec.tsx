@@ -198,7 +198,7 @@ describe('concurrent Diff panels', () => {
     const panelA = container.querySelector<HTMLElement>('[data-panel="a"]')!
     await waitFor(() => { expect(within(panelA).getByText('a-line')).toBeTruthy() })
     await harness.controller.refresh()
-    await waitFor(() => { expect(within(panelA).getByText('status exploded')).toBeTruthy() })
+    await waitFor(() => { expect(within(panelA).getByText(en['error.local.loadDiff'])).toBeTruthy() })
     // The diff is not refetched: the repository snapshot never changed.
     expect(harness.diffs).toHaveLength(0)
   })
@@ -215,10 +215,10 @@ describe('concurrent Diff panels', () => {
     await waitFor(() => { expect(harness.diffs).toHaveLength(1) })
     fail(harness, 'src/a.ts', false, 'diff exploded')
     const panelA = container.querySelector<HTMLElement>('[data-panel="a"]')!
-    await waitFor(() => { expect(within(panelA).getByText('diff exploded')).toBeTruthy() })
+    await waitFor(() => { expect(within(panelA).getByText(en['error.local.loadDiff'])).toBeTruthy() })
     await harness.controller.refresh()
-    await waitFor(() => { expect(within(panelA).getByText(/status exploded/)).toBeTruthy() })
-    expect(within(panelA).getByText(/diff exploded/)).toBeTruthy()
+    await waitFor(() => { expect(within(panelA).getByText(en['error.local.loadDiff'])).toBeTruthy() })
+    expect(within(panelA).queryByText(/status exploded|diff exploded/)).toBeNull()
     // The diff is not refetched: the repository snapshot never changed.
     expect(harness.diffs).toHaveLength(0)
   })

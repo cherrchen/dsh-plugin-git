@@ -47,6 +47,12 @@ export class GitRemoteRuntime {
         signal.throwIfAborted()
         return { remoteProtocol: 2, value }
       }
+      if (endpoint === 'remote-accounts') {
+        if (Object.keys(request).some(key => key !== 'remoteProtocol')) throw new GitRemoteError('git/remote-unavailable', 'git-remote: invalid accounts request', { reason: 'invalid-request' })
+        const instances = await this.registry.list()
+        signal.throwIfAborted()
+        return { remoteProtocol: 2, value: { accounts: [{ provider: 'github' as const, instance: 'https://github.com' }, ...instances.map(item => ({ provider: 'gitlab' as const, instance: item.instance, ...(item.label === undefined ? {} : { label: item.label }) }))] } }
+      }
       if (request['provider'] === 'gitlab' && endpoint === 'remote-retire-grant') {
         if (Object.keys(request).some(key => key !== 'remoteProtocol' && key !== 'provider' && key !== 'instance')) throw new GitRemoteError('git/remote-unavailable', 'git-remote: invalid retirement request', { reason: 'invalid-request' })
         return this.registry.retire(request['instance'])

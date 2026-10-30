@@ -22,6 +22,9 @@ import { refBadges } from '../ref-badge.ts'
 import { RefBadge } from './RefBadge.tsx'
 import { useGitWorkspace } from '../use-git-workspace.ts'
 import css from '../GitGraphSurface.module.css'
+import { describeLocalError, ErrorToast, useErrorToast } from '../error-feedback.tsx'
+import { LocalGitErrorToast } from '../local-error-feedback.tsx'
+
 
 /** Full composed props for the Git Graph tab body. */
 export type GitGraphSurfaceProps = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'git'>
@@ -70,6 +73,7 @@ export function GitGraphSurface({
 }: GitGraphSurfaceProps): ReactNode {
   const controller = resolveGitController({ controller: controllerProp, gitSessions, sessionId })
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
+  const graphToast = useErrorToast(state.graphError)
   const workspacePath = useSessions(list => effectiveWorkspacePath(list.byId[sessionId]))
   const [hoveredRowIndex, setHoveredRowIndex] = useState<number | undefined>(undefined)
   const [cardState, setCardState] = useState<{ index: number; x: number; y: number } | null>(null)
@@ -195,8 +199,10 @@ export function GitGraphSurface({
       <div className={css.body} ref={bodyRef}>
         {!state.graphLoading && state.workspacePath === undefined && <p className={css.empty}>{t('details.noWorkspace')}</p>}
         {!state.graphLoading && state.repository === null && <p className={css.empty}>{t('details.notRepository')}</p>}
-        {state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
-        {state.graphError !== undefined && <p className={css.error} role="alert">{state.graphError}</p>}
+        {state.error !== undefined && <p className={css.empty}>{t('error.local.readRepository')}</p>}
+        {state.graphError !== undefined && <p className={css.empty}>{t('error.local.loadGraph')}</p>}
+        <LocalGitErrorToast controller={controller} t={t} />
+        {graphToast.active && state.graphError !== undefined && <ErrorToast key={graphToast.seq} report={describeLocalError('error.local.loadGraph', state.graphError, t)} onDone={graphToast.dismiss} t={t} />}
         {state.graphLoaded && state.repository != null && state.graphRows.length === 0 && !state.graphLoading && (
           <p className={css.empty}>{t('graph.empty')}</p>
         )}

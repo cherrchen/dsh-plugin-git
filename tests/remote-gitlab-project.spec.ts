@@ -107,6 +107,28 @@ describe('scoped GitLab project identity', () => {
       expect(fetch).toHaveBeenCalledOnce()
     } finally { await f.runtime.dispose() }
   })
+  it('isolates credential cooldowns and retains the old cooldown when returning to the limited credential', async () => {
+    const f = fixture(); f.refs.set('FIRST', { value: 'limited-cli-token', source: 'fixture' })
+    const projectCalls: string[] = []
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+      if (String(url).endsWith('/user')) return json({ id: 9, username: 'viewer' })
+      const authorization = new Headers(init?.headers).get('authorization')!
+      projectCalls.push(authorization)
+      return authorization === 'Bearer limited-cli-token' ? json({}, 429, { 'retry-after': '120' }) : json({ id: 42, path_with_namespace: 'group/sub/repo' })
+    })
+    try {
+      await expect(f.runtime.handle('remote-repository', f.request, signal, async () => {})).rejects.toMatchObject({ code: 'git/rate-limited' })
+      // The account can be the same while the server accepts this other credential.
+      f.refs.set('FIRST', { value: 'valid-oauth-token', source: 'fixture' }); f.runtime.invalidateReference('FIRST')
+      await expect(f.runtime.handle('remote-repository', f.request, signal, async () => {})).resolves.toMatchObject({ value: { viewer: { userId: '9' } } })
+      f.refs.set('FIRST', { value: 'limited-cli-token', source: 'fixture' }); f.runtime.invalidateReference('FIRST')
+      await expect(f.runtime.handle('remote-repository', f.request, signal, async () => {})).rejects.toMatchObject({ code: 'git/rate-limited' })
+      // A fresh auth generation with the same token also cannot bypass the cooldown.
+      f.runtime.invalidateReference('FIRST')
+      await expect(f.runtime.handle('remote-repository', f.request, signal, async () => {})).rejects.toMatchObject({ code: 'git/rate-limited' })
+      expect(projectCalls).toEqual(['Bearer limited-cli-token', 'Bearer valid-oauth-token'])
+    } finally { await f.runtime.dispose() }
+  })
   it('reserves the automatic polling interval before an in-flight request completes', async () => {
     const f = fixture(); f.refs.set('FIRST', { value: 'private-token', source: 'fixture' })
     let release!: () => void, started!: () => void

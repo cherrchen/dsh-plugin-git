@@ -63,7 +63,11 @@ export interface GitRemoteCapabilityOff {
   readonly auth: { readonly state: 'off' }
 }
 
+export type RemoteAuthMethod = 'auto' | 'cli' | 'oauth'
+export interface RemoteAuthSelection { readonly method: RemoteAuthMethod; readonly cliAvailable: boolean; readonly oauthCached: boolean }
+
 export interface GitRemoteCapabilityOn {
+  readonly authSelection?: RemoteAuthSelection
   readonly state: 'on'
   readonly generation: GitRemoteGeneration
   readonly credential: GitRemoteCredentialInfo
@@ -106,6 +110,7 @@ export interface ScopedRemoteScope { readonly provider: 'github' | 'gitlab'; rea
 export interface ScopedRemoteResult<T> { readonly generation: GitRemoteGeneration; readonly value: T }
 export interface ScopedRemoteEnvelope<T> extends ScopedRemoteResult<T> { readonly remoteProtocol: 2; readonly scope: ScopedRemoteScope }
 export interface ScopedRemoteCapabilityOn {
+  readonly authSelection?: RemoteAuthSelection
   readonly state: 'on'
   readonly generation: GitRemoteGeneration
   readonly credential: GitRemoteCredentialInfo

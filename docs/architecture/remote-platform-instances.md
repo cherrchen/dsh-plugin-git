@@ -26,7 +26,7 @@
 
 注册表锁内只发布配置快照、移除旧 owner 并同步触发取消，不等待请求 drain。旧业务请求的仓库守护可重入 list/guard 并有界结束；同实例 replacement 在锁外等待旧 owner drain 后，重新锁定并复核配置再创建。卸载关闭准入后，在锁外等待当前与已移除 owner 的全部 drain，不能把 drain Promise 接到准入串行链上。Client 切换目标或作废身份时同步清除登录设备码/链接，取消请求使用原实例 scope 与独立清理通道，旧轮询回复按 epoch 丢弃；同实例切换也不能由清理请求作废新读取或新登录。
 
-credentials seam 仍为整功能硬门禁；单个实例配置/认证/网络失败只影响其自身，不关闭其他实例或本地 UI。所有 portable UI 属于主 fiber；Desktop 子 fiber 仅承载可卸载通知增强。
+credentials seam 仍为整功能硬门禁；单个实例配置/认证/网络失败只影响其自身，不关闭其他实例或本地 UI。所有 portable UI 属于主 fiber；Desktop 子 fiber 承载可卸载通知、授权浏览器打开与用户码复制增强。
 
 ### D2 配置与实例身份（GL-R2、GL-R9、GL-R13）
 
@@ -45,7 +45,7 @@ credentials seam 仍为整功能硬门禁；单个实例配置/认证/网络失�
 }
 ```
 
-remote.clientId 继续只表示 GitHub；instances[] 只登记 GitLab，不消费旧 clientId。GitLab.com 的 remote 识别与匿名默认描述内建，同 URL 的单条配置补充 App 等覆盖值而不新建第二个 context；未登记的自建 remote 不触发网络发现。取消可编辑 id 字段，新增可选 label 仅展示；url 为安全身份。clientId/credentialRef 可选，credentialRef 仅为符合现有 ref 语法的引用名，设置中不得出现 token/secret。sshHost 缺省为 URL hostname、sshPort 缺省 22；用户改写仅影响显式 SSH 映射，不改变 API 身份。相同 SSH 映射和仓库路径归属有歧义时拒绝。
+发行默认 App ID、显式覆盖及空值禁用以 [RPC 配置参考](../reference/remote-platform-rpc.md#配置与认证)为准；自建实例不继承 GitLab.com 的应用。remote.clientId 继续只表示 GitHub；instances[] 只登记 GitLab，不消费旧 clientId。GitLab.com 的 remote 识别与匿名默认描述内建，同 URL 的单条配置补充 App 等覆盖值而不新建第二个 context；未登记的自建 remote 不触发网络发现。取消可编辑 id 字段，新增可选 label 仅展示；url 为安全身份。clientId/credentialRef 可选，credentialRef 仅为符合现有 ref 语法的引用名，设置中不得出现 token/secret。sshHost 缺省为 URL hostname、sshPort 缺省 22；用户改写仅影响显式 SSH 映射，不改变 API 身份。相同 SSH 映射和仓库路径归属有歧义时拒绝。
 
 规范化算法：先对原始输入校验，再构造 URL，禁止解析器先吞掉 dot segments。仅 HTTPS；拒绝 userinfo、query、fragment、反斜杠、重复路径分隔、`.`/`..`（含编码形式）、编码斜杠及嵌套编码；域名经 URL/IDNA 转小写、IP 使用 URL 标准序列化（IPv6 保留方括号），443 省略、其他端口保留。前缀逐段以 ASCII URL-unreserved 字符表达并保留大小写；暂不支持需百分号编码的部署前缀，项目 namespace 编码由仓库模型单独处理。根路径和末尾斜杠统一移除；规范 URL UTF-8 最多 512 bytes，超出拒绝，不截断。
 
@@ -111,7 +111,11 @@ GitHub v1 host/owner/repo、viewer.host、expectedViewer.host 和 grant v1 均�
 
 本轮每实例单账号，追加实例绑定而非复用全局账号。GitLab grant 新增 v2 payload，保留 ADR 的状态/revision/attempt/refresh marker，并以 provider、instance、clientId 绑定；不搬运或覆盖 GitHub v1。authorizing/authenticated OAuth 状态必须匹配 clientId；未配置 App 时 signed-out 抑制记录可不带 clientId，但仍绑定 provider/instance。refs 发现的 token 保持外部来源，不伪装写成 OAuth grant。读取 v2 时遇到未知/畸形/实例或 App 不符即 invalid，不回退发现。选择改 URL 为删除旧 context + 新建，旧 grant 留在原 key，不自动迁移 token；即使 scope 已移除，仍可按 D2 G1 的独立操作显式清除其秘密。
 
+认证方式的持久偏好与 OAuth grant 分开存储，显式 CLI/OAuth 切换不删除授权；新增端点、仅 OAuth 退出、旧 Host 兼容及秘密边界以 [RPC 参考](../reference/remote-platform-rpc.md#配置与认证) 为准。
+
 发现候选顺序：authenticated grant → 实例配置的 credentialRef → GitLab.com 专用 GITLAB_TOKEN/GL_TOKEN refs → GitLab.com 的非交互 glab 探针 → 匿名。自建实例不消费通用 refs 或 CLI；本轮自建 git credential fill 禁用，避免含部署前缀时 helper 共享其他实例 token。CLI 仅身份建立事件 ≤一轮、≤5s；单行无空白/控制字符且有界输出后仍须 GET /user 验证，不要求固定 token 前缀。缺命令/帮助输出不等于有效凭据；接受过身份后 401 不切账号。来源不证明 token 类型或过期时间。
+
+CLI 探针使用 `glab config get token --host gitlab.com`，由 glab 自己解析每 host 的配置及 OS keyring；不使用不存在的 `glab auth token`，也不解析包含凭据的人类可读 status 输出。候选只在 Host 内存中用于 API 验证，不通过 RPC、日志或错误透传。
 
 glab 探测结果（含无凭据或非取消的探测失败）仅缓存在所属实例 owner 内；同一身份建立周期的连续/并发业务快照复用候选及已验证身份，不重复启动 CLI。凭据记录/引用失效事件或显式 retry 开启新探测周期；登出、清除 grant 和实例卸载清除缓存。取消或失效后迟到的探测/身份验证结果不得写回。401 保留所选来源与失效 token 指纹，普通快照不得重探测并切换 CLI 账号；显式修复后才重新发现。缓存不改变每操作的 grant 读取/到期刷新、ref 解析、signed-out 抑制或 generation 守护。
 
@@ -129,7 +133,7 @@ Device Flow 使用每实例 clientId、api scope；OAuth token body 的实际 ex
 | Device 初始化 | POST `<prefix>/oauth/authorize_device`；仅 App/scope，无 API bearer |
 | Token 交换/刷新 | POST `<prefix>/oauth/token`；仅对应协议 body，禁止泄露到其他网页或跳转 |
 | 验证网页 | 精确 HTTPS `<prefix>/oauth/device`；verification_uri 无 query，complete URI 仅单个 user_code 且匹配当前 attempt，不带 bearer |
-| 浏览器与头像 | 网页限定已选实例 web 路径，不将同 origin 下其他配置前缀当本实例；头像仅同实例安全路径或 secure.gravatar.com，无 bearer、no-referrer，失败回退首字母 |
+| 浏览器与头像 | 网页限定已选实例 web 路径，不将同 origin 下其他配置前缀当本实例；头像仅同实例安全路径或 secure.gravatar.com，Gravatar query 仅允许 s/d/r 白名单取值，无 bearer、no-referrer，失败回退首字母；GitLab viewer（当前账号）头像同样经该策略从 `/user` 投影 |
 
 Link/cursor 不得改变实例、项目、查询或比较快照；Client 视为不透明 handle，Host 关联 context/generation/query 后校验，不能直接信任响应中的 external_url。按当前单请求页数上限续取；无总体列表天花板。认证缓存键含 scope、viewer、generation、项目 id/path 与完整查询；有 ETag 才条件请求，不依赖 304 免配额。匿名手动刷新，认证轮询至少60s且遵守更长 Retry-After/reset，429/明确限流响应退避。
 
@@ -143,7 +147,7 @@ operationSupport、supportedMergeMethods、supportedReviewEvents 的**权威位�
 
 v2 remote-repository 请求可带 `object:{kind:'pull'|'issue',number}`；facts 增加 `actionScope:{path,projectId,object?}`，Client 对匹配对象才使用。无 object 时只提供仓库事实，依赖作者、目标分支或具体 MR 状态的权限保持 unknown，不能用来确认对象级写入；确认前需获取匹配对象 facts。已确认支持而权限仍 unknown 时，继续采用 ADR 的乐观尝试/服务端裁决规则。写端点重新以该命令对象计算事实并进行守护，不信任 Client 缓存的 support/method/event 集。审批需要额外认证时可收窄 review 事件集，不能连带禁用可用的普通 comment。
 
-v2 实例级 capability value 必须提供 `authMethods.deviceFlow.supported:true|false|'unknown'` 与可选脱敏 reason，来自 provider 描述和已有初始化结果。v2 loginAvailable = clientId 合法存在且 credential.writable 且 deviceFlow.supported 不为 false；unknown 仅表示允许用户显式尝试/验证，并不保证远端 flow 成功，UI 标明待确认；已知不支持/无 App/不可写则隐藏或禁用方法并说明原因。该计算不发网络；具体 flow 失败在显式登录后更新已知事实。capability 中保留的 actions 仅是旧形态兼容默认值（已知全局不支持为 false，其余 unknown），不含仓库授权、merge 方法或 review 事件集；Client 在收到对应 facts 前不开放仓库写入。
+v2 实例级 capability value 必须提供 `authMethods.deviceFlow.supported:true|false|'unknown'` 与可选脱敏 reason，来自 provider 描述和已有初始化结果。v2 loginAvailable = clientId 合法存在且 credential.writable 且 deviceFlow.supported 不为 false；unknown 仅表示允许用户显式尝试/验证，并不保证远端 flow 成功，UI 标明待确认；已知不支持/无 App/不可写则保留禁用的 OAuth 选项并说明原因；CLI 已认证不影响 OAuth 选项展示。该计算不发网络；具体 flow 失败在显式登录后更新已知事实。capability 中保留的 actions 仅是旧形态兼容默认值（已知全局不支持为 false，其余 unknown），不含仓库授权、merge 方法或 review 事件集；Client 在收到对应 facts 前不开放仓库写入。
 
 ```json
 {"remoteProtocol":2,"scope":{"provider":"gitlab","instance":"https://git.example.com"},"generation":{"instanceId":"runtime-a","revision":2},"value":{"actionScope":{"path":"group/project","projectId":"42","object":{"kind":"pull","number":7}},"viewer":{"host":"git.example.com","userId":"9","login":"reviewer"},"permissions":{},"actions":{"canComment":"unknown","canReview":"unknown","canMerge":"unknown","canClose":"unknown","canCreatePr":"unknown"},"operationSupport":{"comment":{"supported":true},"inline-comment":{"supported":false,"reason":"not-implemented"},"review":{"supported":true},"close-pr":{"supported":true},"merge-pr":{"supported":true},"create-pr":{"supported":true}},"supportedMergeMethods":["merge"],"supportedReviewEvents":["COMMENT","APPROVE"]}}
@@ -161,7 +165,7 @@ v2 实例级 capability value 必须提供 `authMethods.deviceFlow.supported:tru
 
 v2 写响应 value 为 `{outcome:'succeeded'|'partial'|'unknown',steps:[{kind,state,id?,reason?}],receipt?}`，step state 为 succeeded/failed/unknown/not-sent。已发未知仍用 git/write-result-unknown 的现有错误码及脱敏 flat details，Client 刷新具体对象对账；已知部分成功回 value.outcome=partial，不伪装全成功。approval 失败时不得再次发送已成功 comment；重新确认只重试明确未发送/已知失败的动作。回执不包含原始 HTTP body。
 
-Client 按会话保留 GitLab 待对账状态，侧栏卸载/重挂载不清除。平台切换受当前显示平台的忙碌、登录或待对账状态约束；隐藏平台保留的状态不得阻止进入该平台完成处理。返回待对账 GitLab 面板后继续禁止离开平台与重复写，直到刷新相关对象并由用户确认核对结果；成功的 approve、close、merge 同样遵守此流程。
+Client 按会话保留 GitLab 待对账状态，侧栏卸载/重挂载不清除。统一控制器按会话+视图（列表与各详情 tab 独立 RPC lane）保留；返回待对账详情页后继续禁止重复写，直到刷新相关对象并由用户确认核对结果；成功的 approve、close、merge 同样遵守此流程。Client 不再有手工平台切换：provider 由 remote-repositories v2 发现的远端 URL 身份自动决定，GitHub/GitLab 共享同一列表/详情/tab UI 组件；无法匹配的远端按 unregistered/ambiguous 逐条提示，不匹配任何受支持 provider 的仓库明确报 unsupported 而非默认 GitHub。GitLab 详情地址使用 `dsh-resource://git-remote/gitlab/<instance>/<path>/<kind>/<number>` 五段语法，GitHub 保留原四段语法，tab 身份互不碰撞。
 
 去重键包含 session/root、scope、project、generation、viewer、requestId；同时保存提交内容指纹，仅进程内比较不记录日志，同 id 不同内容拒绝。去重不承诺 Host 重启或服务端跨请求幂等性；重启后待确认操作仍需对账。
 
@@ -182,7 +186,7 @@ Client 按会话保留 GitLab 待对账状态，侧栏卸载/重挂载不清除�
 
 | 能力 | GitHub v1 | GitLab.com / 自建目标 | 负向/受限结果 |
 | --- | --- | --- | --- |
-| Device Flow | 旧行为保留 | 注册 App + 受支持 flow | 无 App 隐藏；服务端无 flow 不自动转 PKCE |
+| Device Flow | 旧行为保留 | 注册 App + 受支持 flow | 无 App 时保留禁用选项并说明；服务端无 flow 不自动转 PKCE |
 | API 读/分页 | 旧契约 | MR/Issue/commits/discussions/审批当前事实 | 无权限/缺字段/续页越界分类错误，不捏造空数据 |
 | 评论/审批/创建/关闭 | 旧契约 | 逐动作支持与权限守护 | scope/策略拒绝或额外审批认证明确原因 |
 | merge / checkout | SHA/CAS 原样保留 | 直接 merge、目标 MR ref checkout | locked/draft/head-moved/ref 缺失不盲重试 |

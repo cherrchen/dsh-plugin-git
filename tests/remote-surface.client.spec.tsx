@@ -7,7 +7,7 @@ import { GitRemoteItemSurface } from '../src/client/surfaces/GitRemoteItemSurfac
 import { GitRemoteFeature } from '../src/client/remote.ts'
 import { GitSessionControllers } from '../src/client/session-controllers.ts'
 import type { GitRpcClient } from '../src/client/controller.ts'
-import { en } from '../src/client/locales.ts'
+import { en, zh } from '../src/client/locales.ts'
 import { RemoteLoading } from '../src/client/remote/RemoteLoading.tsx'
 const generation = { instanceId: 'host', revision: 1 }
 const repo = { provider: 'github', host: 'github.com', owner: 'owner', repo: 'repo' } as const
@@ -54,6 +54,25 @@ function mountItem(unknown = false) {
   render(<GitRemoteItemSurface {...props} />)
   return { call }
 }
+function githubScopedFixture() {
+  const scope = { provider: 'github', instance: 'https://github.com' } as const
+  const viewer = { host: 'github.com', userId: '1', login: 'alice' }
+  const actions = { canComment: 'unknown', canReview: 'unknown', canMerge: 'unknown', canClose: 'unknown', canCreatePr: 'unknown' }
+  return fixture(false, (endpoint, raw) => {
+    const request = raw as { remoteProtocol?: number; object?: unknown }
+    const capability = { state: 'on', remoteProtocol: 2, generation, viewer, auth: { state: 'authenticated' }, credential: { configured: true, writable: true }, actions, loginAvailable: false }
+    if (request.remoteProtocol !== 2) return endpoint === 'remote-capability' ? { ok: true, value: capability } : undefined
+    if (endpoint === 'remote-repositories') return { ok: true, value: { remoteProtocol: 2, value: { state: 'supported', remotes: [{ name: 'origin', identity: { ...repo, scope } }] } } }
+    // Match GitHubScopedProvider: GitHub advertises all review events without GitLab reviewPermissions.
+    const facts = { actionScope: { path: 'owner/repo', ...(request.object === undefined ? {} : { object: request.object }) }, viewer, permissions: {}, actions,
+      operationSupport: Object.fromEntries(['comment', 'inline-comment', 'review', 'close-pr', 'merge-pr', 'create-pr'].map(action => [action, { supported: true }])),
+      supportedMergeMethods: ['merge', 'squash'], supportedReviewEvents: ['COMMENT', 'APPROVE', 'REQUEST_CHANGES'] }
+    const page = { items: [], truncated: false }
+    const values: Record<string, unknown> = { 'remote-capability': capability, 'remote-repository': facts, 'remote-list-prs': { items: [pull], truncated: false }, 'remote-pr': pull,
+      'remote-comments': page, 'remote-commits': page, 'remote-reviews': page, 'remote-review': { outcome: 'succeeded', steps: [{ kind: 'review', state: 'succeeded' }] } }
+    return { ok: true, value: { remoteProtocol: 2, scope, generation, value: values[endpoint] } }
+  })
+}
 function gitlabFixture(action: 'approve' | 'close' | 'merge', outcome: 'succeeded' | 'partial' | 'unknown') {
   const scope = { provider: 'gitlab', instance: 'https://git.example.com' } as const
   const target = { ...scope, path: 'team/repo', scope }
@@ -73,39 +92,113 @@ function gitlabFixture(action: 'approve' | 'close' | 'merge', outcome: 'succeede
     const values: Record<string, unknown> = { 'remote-capability': capability, 'remote-repository': facts, 'remote-list-prs': { items: [item], truncated: false }, 'remote-pr': item, 'remote-comments': page, 'remote-discussions': page, 'remote-commits': page, 'remote-approvals': { approved: false, approvedBy: [] }, 'remote-files': { files: page, baseSha: sha, startSha: sha, headSha: sha, serverCompleteness: 'unknown' }, [endpointForAction]: { outcome, steps: [] } }
     return { ok: true, value: { remoteProtocol: 2, scope, generation, value: values[endpoint] } }
   })
-  return { ...f, controller: f.base.remoteFeature.gitlabControllerFor('s'), endpointForAction }
+  const navigation = {
+    address: `dsh-resource://git-remote/gitlab/${encodeURIComponent(scope.instance)}/${encodeURIComponent(target.path)}/pulls/7`,
+    params: { provider: 'gitlab', instance: scope.instance, path: target.path, kind: 'pulls', number: 7 },
+    revision: 0,
+  }
+  const controller = f.base.remoteFeature.controllerFor('s', 'item:gitlab/https://git.example.com/team/repo:pulls:7')
+  return { ...f, navigation, controller, endpointForAction }
 }
 describe('portable remote surface', () => {
+  it.each([
+    ['remote-comment', 'remote.comment', undefined],
+    ['remote-review', 'remote.reviewComment', 'COMMENT'],
+    ['remote-review', 'remote.approve', 'APPROVE'],
+    ['remote-review', 'remote.requestChanges', 'REQUEST_CHANGES'],
+    ['remote-checkout-pr', 'remote.checkout', undefined],
+    ['remote-issue-branch', 'remote.issueBranch', undefined],
+  ] as const)('preserves object context for legacy GitHub %s (%s)', async (endpoint, label, event) => {
+    const issue = endpoint === 'remote-issue-branch'
+    const { base, call } = fixture(false, name => {
+      if (name === 'remote-issue') return { ok: true, value: { generation, value: { number: 2, title: 'Example issue', body: 'Issue body', state: 'open', rawState: 'open', author: null } } }
+      if (name === 'remote-list-issues') return { ok: true, value: { generation, value: { items: [], truncated: false } } }
+      return undefined
+    })
+    const navigation = { address: `dsh-resource://git-remote/owner/repo/${issue ? 'issues/2' : 'pulls/1'}`, revision: 0 }
+    render(<GitRemoteItemSurface {...{ ...base, useTabInfo: () => ({ tab: { navigation } }) } as unknown as ComponentProps<typeof GitRemoteItemSurface>} />)
+    await screen.findByText(issue ? 'Issue body' : 'Description')
+    if (!issue) fireEvent.change(screen.getByRole('textbox', { name: en['remote.body'] }), { target: { value: 'Review body' } })
+    await waitFor(() => expect((screen.getByRole('button', { name: en[label], exact: true }) as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(screen.getByRole('button', { name: en[label], exact: true }))
+    await waitFor(() => expect(call.mock.calls.filter(args => args[1] === endpoint)).toHaveLength(1))
+    const request = call.mock.calls.find(args => args[1] === endpoint)?.[2]
+    expect(request).toMatchObject({ number: issue ? 2 : 1, expectedGeneration: generation, expectedViewer: { host: 'github.com', userId: '1' } })
+    expect(request).not.toHaveProperty('remoteProtocol')
+    if (endpoint === 'remote-review' || endpoint === 'remote-checkout-pr') expect(request).toMatchObject({ expectedHeadSha: sha })
+    if (event !== undefined) expect(request).toMatchObject({ event, body: 'Review body' })
+    if (endpoint === 'remote-comment') expect(request).toMatchObject({ body: 'Review body' })
+  })
+  it.each([
+    ['COMMENT', 'remote.reviewComment'], ['APPROVE', 'remote.approve'], ['REQUEST_CHANGES', 'remote.requestChanges'],
+  ] as const)('submits GitHub v2 %s with the displayed head and no GitLab permission facts', async (event, label) => {
+    const { base, call } = githubScopedFixture()
+    const navigation = { address: 'dsh-resource://git-remote/owner/repo/pulls/1', revision: 0 }
+    render(<GitRemoteItemSurface {...{ ...base, useTabInfo: () => ({ tab: { navigation } }) } as unknown as ComponentProps<typeof GitRemoteItemSurface>} />)
+    await screen.findByText('Description')
+    fireEvent.change(screen.getByRole('textbox', { name: en['remote.body'] }), { target: { value: 'Review body' } })
+    await waitFor(() => expect((screen.getByRole('button', { name: en[label], exact: true }) as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(screen.getByRole('button', { name: en[label], exact: true }))
+    await waitFor(() => expect(call.mock.calls.filter(args => args[1] === 'remote-review')).toHaveLength(1))
+    expect(call.mock.calls.find(args => args[1] === 'remote-review')?.[2]).toMatchObject({ remoteProtocol: 2, provider: 'github', instance: 'https://github.com',
+      object: { kind: 'pull', number: 1 }, number: 1, expectedHeadSha: sha, expectedGeneration: generation, expectedViewer: { host: 'github.com', userId: '1' }, event, body: 'Review body' })
+  })
   it.each([
     ['approve', 'succeeded'], ['close', 'succeeded'], ['merge', 'succeeded'], ['approve', 'partial'], ['approve', 'unknown'],
   ] as const)('keeps retained GitLab %s reconciliation accessible after remount for %s outcomes', async (action, outcome) => {
     const f = gitlabFixture(action, outcome)
-    const props = { ...f.base, openRemoteItem: vi.fn() } as unknown as ComponentProps<typeof GitRemoteSurface>
-    const first = render(<GitRemoteSurface {...props} />)
-    await screen.findByRole('button', { name: /Example PR/ })
-    fireEvent.click(screen.getByRole('button', { name: 'GitLab', exact: true }))
-    fireEvent.click(await screen.findByRole('button', { name: /Fixture MR/ }))
+    const props = { ...f.base, useTabInfo: () => ({ tab: { navigation: f.navigation } }) } as unknown as ComponentProps<typeof GitRemoteItemSurface>
+    const first = render(<GitRemoteItemSurface {...props} />)
+    await screen.findByText('Description')
     await waitFor(() => expect((screen.getByRole('button', { name: en['remote.close'] }) as HTMLButtonElement).disabled).toBe(false))
-    fireEvent.click(screen.getByRole('button', { name: action === 'approve' ? en['remote.approve'] : action === 'close' ? en['remote.close'] : en['gitlab.directMerge'] }))
+    fireEvent.click(screen.getByRole('button', { name: action === 'approve' ? en['remote.approve'] : action === 'close' ? en['remote.close'] : en['remote.merge'] }))
     if (action !== 'approve') fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: en['remote.confirm'] }))
     await waitFor(() => { expect(f.controller.getSnapshot().blocked).toBe(true); expect(f.controller.getSnapshot().busy).toBe(false) })
-    expect((screen.getByRole('button', { name: 'GitHub', exact: true }) as HTMLButtonElement).disabled).toBe(true)
     first.unmount()
-    render(<GitRemoteSurface {...props} />)
-    const gitlab = screen.getByRole('button', { name: 'GitLab', exact: true }) as HTMLButtonElement
-    expect(gitlab.disabled).toBe(false)
-    fireEvent.click(gitlab)
-    expect(screen.getByRole('heading', { name: '#7 · Fixture MR' })).not.toBeNull()
+    render(<GitRemoteItemSurface {...props} />)
+    expect(screen.getByRole('heading', { name: /Fixture MR/ })).not.toBeNull()
     expect(f.controller.getSnapshot().blocked).toBe(true)
     expect((screen.getByRole('button', { name: en['remote.close'] }) as HTMLButtonElement).disabled).toBe(true)
-    expect((screen.getByRole('button', { name: en['gitlab.reconcile'] }) as HTMLButtonElement).disabled).toBe(true)
-    fireEvent.click(screen.getByRole('button', { name: en['gitlab.refresh'] }))
-    await waitFor(() => expect((screen.getByRole('button', { name: en['gitlab.reconcile'] }) as HTMLButtonElement).disabled).toBe(false))
-    expect((screen.getByRole('button', { name: 'GitHub', exact: true }) as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.queryByRole('button', { name: en['gitlab.reconcile'] })).toBeNull()
+    expect(screen.getAllByRole('alert').some(el => el.textContent?.includes(en['gitlab.partial']) ?? false)).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: en['details.refresh'] }))
+    await screen.findByRole('button', { name: en['gitlab.reconcile'] })
     fireEvent.click(screen.getByRole('button', { name: en['gitlab.reconcile'] }))
     expect(f.controller.getSnapshot().blocked).toBe(false)
-    expect((screen.getByRole('button', { name: 'GitHub', exact: true }) as HTMLButtonElement).disabled).toBe(false)
     expect(f.call.mock.calls.filter(args => args[1] === f.endpointForAction)).toHaveLength(1)
+  })
+  it('renders GitLab issue discussions on the shared timeline', async () => {
+    const scope = { provider: 'gitlab', instance: 'https://git.example.com' } as const
+    const target = { ...scope, path: 'team/repo', scope }
+    const viewer = { host: 'git.example.com', userId: '9', login: 'alice' }
+    const actions = { canComment: true, canReview: true, canMerge: true, canClose: true, canCreatePr: true }
+    const operationSupport = { comment: { supported: true }, 'inline-comment': { supported: false }, review: { supported: true }, 'close-pr': { supported: true }, 'merge-pr': { supported: true }, 'create-pr': { supported: true } }
+    const issue = { number: 3, title: 'Example issue', body: 'Issue body', state: 'open', rawState: 'opened', author: { userId: '2', login: 'bob' } }
+    const discussion = { id: 'd1', notes: [
+      { id: '501', body: 'thread root body', author: { userId: '2', login: 'bob' }, system: false, resolvable: true, resolved: false, createdAt: '2024-01-01T00:00:00Z' },
+      { id: '502', body: 'thread reply body', author: { userId: '9', login: 'alice' }, system: false, createdAt: '2024-01-02T00:00:00Z' },
+    ] }
+    const { base } = fixture(false, (endpoint, raw) => {
+      const request = raw as { remoteProtocol?: number; object?: unknown }
+      const capability = { state: 'on', remoteProtocol: 2, generation, viewer, auth: { state: 'authenticated' }, credential: { configured: true, writable: true }, actions, loginAvailable: false }
+      if (request.remoteProtocol !== 2) return endpoint === 'remote-capability' ? { ok: true, value: capability } : undefined
+      if (endpoint === 'remote-repositories') return { ok: true, value: { remoteProtocol: 2, value: { state: 'supported', remotes: [{ name: 'origin', identity: target }] } } }
+      const facts = { actionScope: { path: target.path, projectId: '42', ...(request.object === undefined ? {} : { object: request.object }) }, viewer, permissions: {}, actions, operationSupport, supportedMergeMethods: ['merge'], supportedReviewEvents: ['COMMENT'], reviewPermissions: { COMMENT: true, APPROVE: false, REQUEST_CHANGES: false } }
+      const page = { items: [], truncated: false }
+      const values: Record<string, unknown> = { 'remote-capability': capability, 'remote-repository': facts, 'remote-list-issues': { items: [issue], truncated: false }, 'remote-issue': issue, 'remote-comments': page, 'remote-discussions': { items: [discussion], truncated: false } }
+      return { ok: true, value: { remoteProtocol: 2, scope, generation, value: values[endpoint] } }
+    })
+    const navigation = {
+      address: `dsh-resource://git-remote/gitlab/${encodeURIComponent(scope.instance)}/${encodeURIComponent(target.path)}/issues/3`,
+      params: { provider: 'gitlab', instance: scope.instance, path: target.path, kind: 'issues', number: 3 },
+      revision: 0,
+    }
+    render(<GitRemoteItemSurface {...{ ...base, useTabInfo: () => ({ tab: { navigation } }) } as unknown as ComponentProps<typeof GitRemoteItemSurface>} />)
+    await screen.findByText('Issue body')
+    await screen.findByText('thread root body')
+    expect(screen.getByText('thread reply body')).not.toBeNull()
+    // Position-less issue threads carry no file ref chip.
+    expect(screen.queryByText(':—')).toBeNull()
   })
   it('keeps lists, selected filters and completed pages across tab unmount/remount without reads', async () => {
     const { base, call } = fixture(false, endpoint => endpoint === 'remote-list-issues'
@@ -157,7 +250,7 @@ describe('portable remote surface', () => {
     let release!: (reply: Reply) => void
     const { base } = fixture(false, endpoint => endpoint === 'remote-repository' ? new Promise(resolve => { release = resolve }) : undefined)
     const { container } = render(<GitRemoteSurface {...{ ...base, openRemoteItem: vi.fn() } as unknown as ComponentProps<typeof GitRemoteSurface>} />)
-    await screen.findByText(en['remote.connecting'])
+    await screen.findByText(en['remote.connecting'].replace('{platform}', 'GitHub'))
     expect(container.querySelector('[data-git-remote-skeleton]')).not.toBeNull()
     expect(screen.queryByText(en['remote.noRemote'])).toBeNull()
     await act(async () => { release({ ok: false, error: { code: 'git/remote-unavailable', message: 'Connection timed out' } }) })
@@ -185,16 +278,36 @@ describe('portable remote surface', () => {
     try {
       const t = (key: keyof typeof en) => en[key]
       const view = render(<RemoteLoading pending="repository" t={t} />)
-      expect(screen.queryByText(en['remote.slowConnection'])).toBeNull()
+      expect(screen.queryByText(en['remote.slowConnection'].replace('{platform}', en['remote.platform']))).toBeNull()
       await act(async () => { await vi.advanceTimersByTimeAsync(8000) })
-      expect(screen.getByText(en['remote.slowConnection'])).not.toBeNull()
+      expect(screen.getByText(en['remote.slowConnection'].replace('{platform}', en['remote.platform']))).not.toBeNull()
       view.rerender(<RemoteLoading t={t} />)
       expect(screen.queryByRole('status')).toBeNull()
       expect(vi.getTimerCount()).toBe(0)
       view.rerender(<RemoteLoading pending="authorization" t={t} />)
       await act(async () => { await vi.advanceTimersByTimeAsync(8000) })
-      expect(screen.getByText(en['remote.waitingAuth'])).not.toBeNull()
-      expect(screen.queryByText(en['remote.slowConnection'])).toBeNull()
+      expect(screen.getByText(en['remote.waitingAuth'].replace('{platform}', en['remote.platform']))).not.toBeNull()
+      expect(screen.queryByText(en['remote.slowConnection'].replace('{platform}', en['remote.platform']))).toBeNull()
+    } finally { vi.useRealTimers() }
+  })
+  it.each(['github', 'gitlab', undefined] as const)('uses the detected %s platform for loading, authorization and slow feedback in both locales', async provider => {
+    vi.useFakeTimers()
+    try {
+      for (const messages of [en, zh]) {
+        const platform = provider === 'github' ? 'GitHub' : provider === 'gitlab' ? 'GitLab' : messages['remote.platform']
+        const t = (key: keyof typeof en) => messages[key]
+        const view = render(<RemoteLoading pending="repository" provider={provider} t={t} />)
+        expect(screen.getByText(messages['remote.connecting'].replace('{platform}', platform))).not.toBeNull()
+        await act(async () => { await vi.advanceTimersByTimeAsync(8000) })
+        expect(screen.getByText(messages['remote.slowConnection'].replace('{platform}', platform))).not.toBeNull()
+        view.rerender(<RemoteLoading pending="auth" provider={provider} t={t} />)
+        expect(screen.getByText(messages['remote.loadingAuth'].replace('{platform}', platform))).not.toBeNull()
+        view.rerender(<RemoteLoading pending="authorization" provider={provider} t={t} />)
+        expect(screen.getByText(messages['remote.waitingAuth'].replace('{platform}', platform))).not.toBeNull()
+        view.rerender(<RemoteLoading pending="items" provider={provider} t={t} />)
+        expect(screen.getByText(messages[provider === 'gitlab' ? 'gitlab.loadingItems' : 'remote.loadingItems'])).not.toBeNull()
+        view.unmount()
+      }
     } finally { vi.useRealTimers() }
   })
   it('opens a pull request detail tab from the list row', async () => {
@@ -216,7 +329,7 @@ describe('portable remote surface', () => {
     await screen.findByText('Description')
     fireEvent.click(screen.getByRole('button', { name: en['remote.close'] }))
     fireEvent.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: en['remote.confirm'] }))
-    await screen.findByText(en['remote.unknown'])
+    await screen.findByText(/Couldn't confirm whether the action/)
     expect((screen.getByRole('button', { name: en['remote.comment'] }) as HTMLButtonElement).disabled).toBe(true)
   })
   it('links to the GitHub files page and renders commit and review history without fetching diffs', async () => {

@@ -4,10 +4,12 @@ import type { ReactNode } from 'react'
 import { Tag, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MarkdownLabels, TagTone } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IconRightUpOutline16 } from '../../compat/dsh-icons.tsx'
-import type { RemoteComment, RemoteCommit, RemoteReview, RemoteReviewState } from '../../remote/provider.ts'
+import type { RemoteReview, RemoteReviewState } from '../../remote/provider.ts'
+import type { RemoteCommentView, RemoteCommitView } from './remote-view.ts'
 import type { GitLocaleKey } from '../locales.ts'
 import { remoteTimeline, type RemoteThread, type RemoteTimelineEntry } from './timeline.ts'
 import { RemoteMarkdown } from './RemoteMarkdown.tsx'
+import { GitLabMarkdown } from './GitLabMarkdown.tsx'
 import { RemoteAvatar } from './RemoteAvatar.tsx'
 import css from '../GitRemoteSurface.module.css'
 
@@ -50,47 +52,51 @@ function Card({ head, children }: { readonly head: ReactNode; readonly children?
     </article>
   )
 }
-function CommentBody({ comment, labels, detailsLabel }: {
-  readonly comment: RemoteComment
+interface BodyProps {
   readonly labels: MarkdownLabels
   readonly detailsLabel: string
-}): ReactNode {
+  readonly instance?: string | undefined
+}
+function CommentBody({ comment, labels, detailsLabel, instance }: BodyProps & { readonly comment: { readonly body: string } }): ReactNode {
+  if (instance !== undefined) return <GitLabMarkdown text={comment.body} instance={instance} detailsLabel={detailsLabel} />
   return <RemoteMarkdown text={comment.body} labels={labels} detailsLabel={detailsLabel} />
 }
-function ThreadCard({ thread, labels, detailsLabel, t }: {
+function ThreadCard({ thread, labels, detailsLabel, instance, t }: BodyProps & {
   readonly thread: RemoteThread
-  readonly labels: MarkdownLabels
-  readonly detailsLabel: string
   readonly t: (key: GitLocaleKey) => string
 }): ReactNode {
   const { root } = thread
+  const ref = root.path !== undefined || root.line !== undefined ? `${root.path ?? ''}:${root.line ?? '—'}` : undefined
+  const head = ref !== undefined || root.outdated || root.resolved === true || root.url !== undefined
   return (
     <article className={css.tlCard}>
-      <header className={css.tlCardHead}>
-        <code className={css.commentRef}>{root.path ?? ''}:{root.line ?? '—'}</code>
-        {root.outdated && <Tag tone="quiet">{t('remote.outdated')}</Tag>}
-        {root.url !== undefined && <ExternalLink url={root.url} label={t('remote.openBrowser')} />}
-      </header>
+      {head && (
+        <header className={css.tlCardHead}>
+          {ref !== undefined && <code className={css.commentRef}>{ref}</code>}
+          {root.outdated && <Tag tone="quiet">{t('remote.outdated')}</Tag>}
+          {root.resolved === true && <Tag tone="quiet">{t('gitlab.resolved')}</Tag>}
+          {root.url !== undefined && <ExternalLink url={root.url} label={t('remote.openBrowser')} />}
+        </header>
+      )}
       {[root, ...thread.replies].map((comment, index) => (
         <div key={comment.id} className={index === 0 ? css.tlReply : `${css.tlReply} ${css.tlReplyNext}`}>
           <div className={css.tlReplyHead}>
             <strong>{comment.author?.login}</strong>
             <When at={comment.createdAt} />
           </div>
-          <CommentBody comment={comment} labels={labels} detailsLabel={detailsLabel} />
+          <CommentBody comment={comment} labels={labels} detailsLabel={detailsLabel} instance={instance} />
         </div>
       ))}
     </article>
   )
 }
-function Entry({ entry, labels, detailsLabel, t }: {
+function Entry({ entry, labels, detailsLabel, instance, t }: BodyProps & {
   readonly entry: RemoteTimelineEntry
-  readonly labels: MarkdownLabels
-  readonly detailsLabel: string
   readonly t: (key: GitLocaleKey) => string
 }): ReactNode {
   if (entry.kind === 'commit') {
     const { commit } = entry
+    const author = 'author' in commit ? commit.author?.login : commit.authorName
     return (
       <div className={css.tlItem}>
         <span className={css.tlDot} aria-hidden="true" />
@@ -98,7 +104,7 @@ function Entry({ entry, labels, detailsLabel, t }: {
           <code className={css.commitSha}>{commit.sha.slice(0, 7)}</code>
           <span className={css.commitSubject}>{commit.subject}</span>
           <span className={css.commentRef}>
-            {commit.author?.login ?? ''}<When at={entry.at} />
+            {author ?? ''}<When at={entry.at} />
           </span>
           {commit.url !== undefined && <ExternalLink url={commit.url} label={t('remote.openBrowser')} />}
         </div>
@@ -112,11 +118,11 @@ function Entry({ entry, labels, detailsLabel, t }: {
         <span className={css.tlAvatar}><RemoteAvatar login={comment.author?.login} url={comment.author?.avatarUrl} size={20} /></span>
         <Card head={<>
           <strong>{comment.author?.login}</strong>
-          <span className={css.tlMeta}>{t('remote.commented')}</span>
+          <span className={css.tlMeta}>{comment.system === true ? t('gitlab.systemNote') : t('remote.commented')}</span>
           <When at={entry.at} />
           {comment.url !== undefined && <ExternalLink url={comment.url} label={t('remote.openBrowser')} />}
         </>}>
-          <CommentBody comment={comment} labels={labels} detailsLabel={detailsLabel} />
+          <CommentBody comment={comment} labels={labels} detailsLabel={detailsLabel} instance={instance} />
         </Card>
       </div>
     )
@@ -135,12 +141,12 @@ function Entry({ entry, labels, detailsLabel, t }: {
         {review.body !== '' && (
           <article className={css.tlCard}>
             <div className={css.tlCardBody}>
-              <RemoteMarkdown text={review.body} labels={labels} detailsLabel={detailsLabel} />
+              <CommentBody comment={review} labels={labels} detailsLabel={detailsLabel} instance={instance} />
             </div>
           </article>
         )}
         {threads.map(thread => (
-          <ThreadCard key={thread.root.id} thread={thread} labels={labels} detailsLabel={detailsLabel} t={t} />
+          <ThreadCard key={thread.root.id} thread={thread} labels={labels} detailsLabel={detailsLabel} instance={instance} t={t} />
         ))}
       </div>
     )
@@ -149,17 +155,19 @@ function Entry({ entry, labels, detailsLabel, t }: {
   return (
     <div className={css.tlItem}>
       <span className={css.tlDot} aria-hidden="true" />
-      <ThreadCard thread={thread} labels={labels} detailsLabel={detailsLabel} t={t} />
+      <ThreadCard thread={thread} labels={labels} detailsLabel={detailsLabel} instance={instance} t={t} />
     </div>
   )
 }
 
-export function RemoteTimeline({ comments, inline, commits, reviews, labels, t }: {
-  readonly comments: readonly RemoteComment[]
-  readonly inline: readonly RemoteComment[]
-  readonly commits: readonly RemoteCommit[]
+export function RemoteTimeline({ comments, inline, commits, reviews, labels, instance, t }: {
+  readonly comments: readonly RemoteCommentView[]
+  readonly inline: readonly RemoteCommentView[]
+  readonly commits: readonly RemoteCommitView[]
   readonly reviews: readonly RemoteReview[]
   readonly labels: MarkdownLabels
+  /** GitLab canonical instance; renders bodies through the GitLab link projection. */
+  readonly instance?: string | undefined
   readonly t: (key: GitLocaleKey) => string
 }): ReactNode {
   const entries = useMemo(() => remoteTimeline({ comments, inline, commits, reviews }), [comments, inline, commits, reviews])
@@ -167,7 +175,7 @@ export function RemoteTimeline({ comments, inline, commits, reviews, labels, t }
   return (
     <section className={css.timeline} aria-label={t('remote.timeline')}>
       {entries.map(entry => (
-        <Entry key={entry.key} entry={entry} labels={labels} detailsLabel={detailsLabel} t={t} />
+        <Entry key={entry.key} entry={entry} labels={labels} detailsLabel={detailsLabel} instance={instance} t={t} />
       ))}
     </section>
   )

@@ -120,47 +120,130 @@
   line-height: 16px;
 }
 
-/* Platform authentication: status line, transport hint, and action row. */
-.authSection {
+/* Platform authentication: identity card and method options. */
+.authBody {
   display: grid;
-  gap: 6px;
-  margin-bottom: 12px;
-  padding: 8px;
-  border-radius: 8px;
-  background: var(--dsw-alias-interactive-bg-hover);
+  gap: 16px;
 }
 
-.authStatus {
+.idCard {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 0.5px solid var(--dsw-alias-settings-card-stroke, var(--dsw-alias-border-l4, var(--dsw-alias-border-l2)));
+  border-radius: var(--dsw-radius-xl, 12px);
+  background: var(--dsw-alias-settings-card-fill, var(--dsw-alias-bg-layer-3, transparent));
 }
 
-.authIdentity {
+.idText {
   display: flex;
   min-width: 0;
   flex: 1;
-  align-items: center;
+  flex-direction: column;
+}
+
+.idName {
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.idStatus {
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+}
+
+.idStatusError {
+  color: var(--dsw-alias-label-error, var(--dsw-alias-state-error-primary));
+}
+
+.methodsTitle {
+  margin: 0 0 8px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.authOptions {
+  display: grid;
   gap: 8px;
 }
 
-.authIdentityText {
+.authOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l3, var(--dsw-alias-border-l2));
+  border-radius: var(--dsw-radius-md, 8px);
+  cursor: pointer;
+}
+
+.authOption:hover:not(.authOptionDisabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.authOptionChecked {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.authOptionDisabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.authOption:has(input:focus-visible) {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 4px;
+}
+
+.authOption input {
+  flex: none;
+  margin-top: 2px;
+}
+
+.authOptionText {
   display: flex;
   min-width: 0;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 2px 6px;
+  flex-direction: column;
+}
+
+.authOptionTitle {
   color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.authOptionDesc {
+  color: var(--dsw-alias-label-tertiary);
   font-size: 12px;
   line-height: 18px;
 }
 
-.authLogin {
-  overflow: hidden;
+/* Nested inside the OAuth option while a device login runs: no card-in-card border. */
+.authOption .loginCard {
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+}
+
+.authNotes {
+  display: grid;
+  gap: 4px;
   color: var(--dsw-alias-label-tertiary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.authNotes p {
+  margin: 0;
 }
 
 /* Device-flow prompt while a login attempt is pending. */
@@ -182,6 +265,7 @@
 
 .loginActions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -438,6 +522,13 @@
   white-space: nowrap;
 }
 
+.commitRow .commentRef {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+}
+
 /* Write actions and the two-step confirmation card. */
 .actionsRow {
   display: flex;
@@ -478,6 +569,83 @@
 .confirmActions {
   display: flex;
   gap: 6px;
+}
+
+/* Floating stand-in for the host Toast on releases whose Toast drops `actions`
+   (src/compat/dsh-toast.tsx): same portal, look and hold-driven fade. */
+.toastFallback {
+  position: fixed;
+  top: 40px;
+  left: 50%;
+  z-index: 1100;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  max-width: min(640px, calc(100vw - 48px));
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--dsw-alias-button-contrast-fill);
+  color: var(--dsw-alias-label-primary-inverted);
+  font-size: 14px;
+  line-height: 22px;
+  box-shadow: var(--dsw-shadow-lv3);
+  transform: translateX(-50%);
+  animation:
+    git-toast-in 160ms ease-out,
+    git-toast-fade 1000ms ease var(--git-toast-hold, 3000ms) forwards;
+}
+
+.toastFallbackPersistent {
+  animation: git-toast-in 160ms ease-out;
+}
+
+.toastFallbackIcon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--dsw-alias-state-warn-label);
+}
+
+.toastFallbackText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* The container ignores clicks so the banner never blocks the page; only the
+   action buttons themselves accept pointer input. */
+.toastFallbackAction {
+  pointer-events: auto;
+  margin-left: 6px;
+}
+
+@keyframes git-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes git-toast-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toastFallback {
+    animation: git-toast-fade 1000ms ease var(--git-toast-hold, 3000ms) forwards;
+  }
+
+  .toastFallbackPersistent {
+    animation: none;
+  }
 }
 
 /* Monospace secondary references inside timeline cards (path:line, author · date). */
@@ -677,43 +845,6 @@
 }
 
 /* Authentication dialog: status card and per-method reconnect rows. */
-.authCard {
-  display: grid;
-  gap: 4px;
-  padding: 8px;
-  border: 0.5px solid var(--dsw-alias-border-l2);
-  border-radius: 8px;
-  background: var(--dsw-alias-bg-base);
-}
-
-.authMethods {
-  margin: 0;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.authChoices {
-  display: grid;
-  gap: 6px;
-}
-
-.radioRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--dsw-alias-label-primary);
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.radioHint {
-  padding-left: 24px;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 11px;
-  line-height: 16px;
-}
-
 .methodHint {
   color: var(--dsw-alias-label-secondary);
   font-size: 11px;
@@ -818,13 +949,6 @@
   font-weight: 600;
 }
 
-.error {
-  margin: 0;
-  padding: 0 0 8px;
-  color: var(--dsw-alias-state-error-primary);
-  font-size: 12px;
-  white-space: pre-line;
-}
 
 .empty {
   padding: 24px 8px;
@@ -922,17 +1046,3 @@
     animation: none;
   }
 }
-
-.retireSection { display: grid; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--dsh-color-border, #ddd); }
-.retireSection p { margin: 0; overflow-wrap: anywhere; }
-.retireInput { display: grid; gap: 4px; }
-.retireInput input { min-width: 0; width: 100%; }
-
-/* GitLab uses the same compact sidebar language as the existing remote view. */
-.gitlabControls, .gitlabForm { display: grid; gap: 8px; margin: 8px 0 12px; }
-.gitlabControls label, .gitlabForm label { display: grid; gap: 4px; color: var(--dsw-alias-label-secondary); font-size: 12px; }
-.gitlabControls select, .gitlabForm select, .gitlabForm input:not([type='checkbox']), .gitlabForm textarea { box-sizing: border-box; width: 100%; min-width: 0; padding: 5px 7px; border: 0.5px solid var(--dsw-alias-border-l2); border-radius: 6px; color: var(--dsw-alias-label-primary); background: transparent; font: inherit; }
-.gitlabForm textarea { min-height: 72px; resize: vertical; }
-.gitlabActions { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
-.gitlabNote { overflow-wrap: anywhere; padding: 6px 0; border-bottom: 0.5px solid var(--dsw-alias-border-l2); }
-.gitlabPatch { max-width: 100%; overflow: auto; white-space: pre; }

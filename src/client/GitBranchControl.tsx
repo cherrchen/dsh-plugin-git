@@ -15,6 +15,7 @@ import { resolveGitController, type GitSessionControllers } from './session-cont
 import { effectiveWorkspacePath } from './workspace-path.ts'
 import { formatLocale } from './locales.ts'
 import css from './GitBranchControl.module.css'
+import { LocalGitErrorToast } from './local-error-feedback.tsx'
 
 export type GitBranchControlProps = PropsRuntime<'conversation.input.left'> & PropsLocale<'git'>
   & {
@@ -177,9 +178,10 @@ export function GitBranchControl({
         )}
       />
       {checkoutKind === undefined ? null : <span className={css.checkoutKind}>{checkoutKind}</span>}
-      {state.error !== undefined && menuOpen && (
-        <span className={css.menuError} role="alert">{state.error}</span>
+      {state.error !== undefined && state.errorOperation === 'switch-branch' && menuOpen && (
+        <span className={css.menuHint}>{t('error.local.switchBranch')}</span>
       )}
+      <LocalGitErrorToast controller={controller} t={t} />
       <Tooltip label={changesLabel} side="top" delayMs={200}>
         <ComposerToolTrigger
           metric
@@ -224,7 +226,7 @@ export function GitBranchControl({
                 }}
               />
             </label>
-            {createError === undefined ? null : <p className={css.createError} role="alert">{createError}</p>}
+            {createError === undefined ? null : <p className={css.createHint}>{unborn ? createError : t('error.local.createBranch')}</p>}
           </div>
         )}
       </Modal>

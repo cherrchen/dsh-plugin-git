@@ -81,9 +81,16 @@ describe('credential subprocess probes', () => {
 it('runs a bounded GitLab.com-only CLI probe and rejects help output even on exit zero', async () => {
   const good = fakeSubprocess({ stdout: 'candidate-token\n' })
   expect(await glabAuthToken({ subprocess: good.subprocess, probeTimeoutMs: 5000 }, new AbortController().signal)).toBe('candidate-token')
-  expect(good.spawns[0]?.argv).toEqual(['/usr/bin/glab', 'auth', 'token', '--hostname', 'gitlab.com'])
+  expect(good.spawns[0]?.argv).toEqual(['/usr/bin/glab', 'config', 'get', 'token', '--host', 'gitlab.com'])
   for (const stdout of ['Usage: glab auth token\n', ' token\n', 'token \n', 'token\n\n']) {
     const help = fakeSubprocess({ stdout })
     await expect(glabAuthToken({ subprocess: help.subprocess, probeTimeoutMs: 5000 }, new AbortController().signal)).rejects.toMatchObject({ code: 'git/remote-unavailable' })
   }
+})
+
+it('treats an empty glab config value as absent and redacts keyring/config failures', async () => {
+  const empty = fakeSubprocess({ stdout: '' })
+  expect(await glabAuthToken({ subprocess: empty.subprocess, probeTimeoutMs: 5000 }, new AbortController().signal)).toBeUndefined()
+  const failed = fakeSubprocess({ exitCode: 1, stdout: 'sensitive-config-value' })
+  await expect(glabAuthToken({ subprocess: failed.subprocess, probeTimeoutMs: 5000 }, new AbortController().signal)).rejects.not.toThrow(/sensitive-config-value/)
 })

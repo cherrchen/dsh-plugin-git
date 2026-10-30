@@ -1,6 +1,6 @@
 /** Stable Git right-sidebar tab identities shared by registration and `ctx.sidebarRight`. */
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
-import type { RemoteRepository } from '../remote/provider.ts'
+import type { RemoteRepository, ScopedGitLabRepository } from '../remote/provider.ts'
 
 /** Implementation id (body-seat key) of the Git Changes tab type. */
 export const GIT_CHANGES_ID = '@dsh-electron/dsh-plugin-git/changes' as const
@@ -102,8 +102,8 @@ declare module '@deepseek-ai/dsh-client-ui-sidebar-right/client' {
 /** The resource type remote pull/issue detail tabs are addressed under. */
 export const GIT_REMOTE_ITEM_RESOURCE_PROTOCOL = 'git-remote' as const
 
-/** Open arguments for one remote pull/issue detail tab. */
-export interface GitRemoteItemPayload {
+/** Open arguments for one GitHub remote pull/issue detail tab. */
+export interface GitHubRemoteItemPayload {
   /** Remote owner login; the repository follows the workspace binding. */
   readonly owner: string
   /** Remote repository name. */
@@ -114,17 +114,37 @@ export interface GitRemoteItemPayload {
   readonly number: number
 }
 
+/** Open arguments for one GitLab remote merge-request/issue detail tab. */
+export interface GitLabRemoteItemPayload {
+  readonly provider: 'gitlab'
+  /** Canonical GitLab instance origin (including any sub-path prefix). */
+  readonly instance: string
+  /** Project path with namespace. */
+  readonly path: string
+  /** List kind the item was opened from. */
+  readonly kind: 'pulls' | 'issues'
+  /** Merge-request/issue iid inside the project. */
+  readonly number: number
+}
+
+/** Open arguments for one remote pull/issue detail tab. */
+export type GitRemoteItemPayload = GitHubRemoteItemPayload | GitLabRemoteItemPayload
+
 const REMOTE_ITEM_PREFIX = `dsh-resource://${GIT_REMOTE_ITEM_RESOURCE_PROTOCOL}/`
+const GITLAB_ITEM_SEGMENT = 'gitlab'
 
 /**
  * Address of one remote detail tab: remote identity plus item number. The exact
  * address is the tab identity, so re-opening the same item reveals its tab.
+ * GitHub identities keep the original four-segment form; GitLab identities add
+ * a `gitlab` marker segment so the two grammars never collide.
  * @param target - Remote repository identity owning the item.
  * @param kind - `pulls` or `issues`.
  * @param number - Remote pull/issue number.
  * @returns The `dsh-resource://git-remote/...` address.
  */
-export function gitRemoteItemAddress(target: RemoteRepository, kind: 'pulls' | 'issues', number: number): string {
+export function gitRemoteItemAddress(target: RemoteRepository | ScopedGitLabRepository, kind: 'pulls' | 'issues', number: number): string {
+  if (target.provider === 'gitlab') return `${REMOTE_ITEM_PREFIX}${GITLAB_ITEM_SEGMENT}/${encodeURIComponent(target.instance)}/${encodeURIComponent(target.path)}/${kind}/${number}`
   return `${REMOTE_ITEM_PREFIX}${encodeURIComponent(target.owner)}/${encodeURIComponent(target.repo)}/${kind}/${number}`
 }
 
@@ -136,23 +156,29 @@ export function gitRemoteItemAddress(target: RemoteRepository, kind: 'pulls' | '
 export function parseGitRemoteItemAddress(address: string): GitRemoteItemPayload | undefined {
   if (!address.startsWith(REMOTE_ITEM_PREFIX)) return undefined
   const parts = address.slice(REMOTE_ITEM_PREFIX.length).split('/')
-  if (parts.length !== 4) return undefined
-  const rawOwner = parts[0]
-  const rawRepo = parts[1]
-  const kind = parts[2]
-  const rawNumber = parts[3]
-  if (rawOwner === undefined || rawRepo === undefined || rawNumber === undefined || (kind !== 'pulls' && kind !== 'issues')) return undefined
-  const number = Number(rawNumber)
-  if (!Number.isInteger(number) || number <= 0) return undefined
-  let owner: string
-  let repo: string
-  try {
-    owner = decodeURIComponent(rawOwner)
-    repo = decodeURIComponent(rawRepo)
-  } catch {
-    return undefined
+  const numberPart = (raw: string | undefined): number | undefined => {
+    if (raw === undefined) return undefined
+    const number = Number(raw)
+    return Number.isInteger(number) && number > 0 ? number : undefined
   }
-  if (owner === '' || repo === '') return undefined
+  const decode = (raw: string | undefined): string | undefined => {
+    if (raw === undefined) return undefined
+    try { return decodeURIComponent(raw) } catch { return undefined }
+  }
+  const kind = parts[parts.length - 2]
+  if (kind !== 'pulls' && kind !== 'issues') return undefined
+  const number = numberPart(parts[parts.length - 1])
+  if (number === undefined) return undefined
+  if (parts.length === 5 && parts[0] === GITLAB_ITEM_SEGMENT) {
+    const instance = decode(parts[1])
+    const path = decode(parts[2])
+    if (instance === undefined || instance === '' || path === undefined || path === '') return undefined
+    return { provider: 'gitlab', instance, path, kind, number }
+  }
+  if (parts.length !== 4) return undefined
+  const owner = decode(parts[0])
+  const repo = decode(parts[1])
+  if (owner === undefined || owner === '' || repo === undefined || repo === '') return undefined
   return { owner, repo, kind, number }
 }
 

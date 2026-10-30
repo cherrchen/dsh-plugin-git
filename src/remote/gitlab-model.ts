@@ -35,7 +35,16 @@ export function gitLabWebUrl(instance: string, raw: unknown, image = false): str
   if (!sameInstance && !gravatar) return undefined
   if (target.hash && (!/^#[A-Za-z0-9_-]{1,128}$/u.test(target.hash) || image)) return undefined
   // No arbitrary query string is allowed to become a link or an image request.
-  if (target.search && !(image && [...target.searchParams].length === 1 && target.searchParams.has('s') && /^[1-9][0-9]{0,2}$/u.test(target.searchParams.get('s') ?? ''))) return undefined
+  if (target.search) {
+    if (!image) return undefined
+    const allowed = new Map([['s', /^[1-9][0-9]{0,2}$/u], ['d', /^(?:404|mp|identicon|monsterid|wavatar|retro|robohash|blank)$/u], ['r', /^(?:g|pg|r|x)$/u]])
+    const seen = new Set<string>()
+    for (const [key, value] of target.searchParams) {
+      const pattern = allowed.get(key)
+      if (pattern === undefined || seen.has(key) || !pattern.test(value)) return undefined
+      seen.add(key)
+    }
+  }
   return target.href
 }
 
@@ -111,8 +120,16 @@ export function gitLabNote(value: unknown, instance: string, discussionId?: stri
     ...(typeof note['resolvable'] === 'boolean' ? { resolvable: note['resolvable'] } : {}), ...(typeof note['resolved'] === 'boolean' ? { resolved: note['resolved'] } : {}),
     ...(note['position'] == null ? {} : { position: position(note['position']) }), ...(createdAt === undefined ? {} : { createdAt }), ...(url === undefined ? {} : { url }) }
 }
-export function gitLabDiscussion(value: unknown, instance: string): ScopedRemoteDiscussion {
-  const data = object(value), discussionId = str(data['id'], 256)
+/** The notes API also echoes discussion members (DiffNote/DiscussionNote and resolvable notes); those are served by `remote-discussions`, so `remote-comments` keeps only individual notes. */
+export function gitLabIndividualNote(value: unknown, instance: string): ScopedRemoteNote | null {
+  const note = object(value)
+  if (note['type'] === 'DiffNote' || note['type'] === 'DiscussionNote' || note['resolvable'] === true) return null
+  return gitLabNote(value, instance)
+}
+export function gitLabDiscussion(value: unknown, instance: string): ScopedRemoteDiscussion | null {
+  const data = object(value)
+  if (data['individual_note'] === true) return null
+  const discussionId = str(data['id'], 256)
   if (!discussionId || /[\x00-\x20\x7f]/u.test(discussionId) || !Array.isArray(data['notes'])) return invalid()
   const notes = data['notes'].map((raw: unknown) => gitLabNote(raw, instance, discussionId))
   return { id: discussionId, notes }

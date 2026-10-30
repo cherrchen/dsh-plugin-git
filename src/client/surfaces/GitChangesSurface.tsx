@@ -15,6 +15,8 @@ import { useGitWorkspace } from '../use-git-workspace.ts'
 import { ChangesTab } from '../details/ChangesTab.tsx'
 import { CommitRegion } from '../details/CommitRegion.tsx'
 import css from '../GitDetailsSurface.module.css'
+import { LocalGitErrorToast } from '../local-error-feedback.tsx'
+
 
 /** Full composed props for the Git Changes tab body. */
 export type GitChangesSurfaceProps = PropsRuntime<'sidebar.right.pane.tab'> & PropsLocale<'git'>
@@ -70,14 +72,15 @@ export function GitChangesSurface({
       {state.loading && repository === undefined && <p className={css.empty}>{t('details.loading')}</p>}
       {!state.loading && workspacePath === undefined && <p className={css.empty}>{t('details.noWorkspace')}</p>}
       {!state.loading && repository === null && <p className={css.empty}>{t('details.notRepository')}</p>}
-      {repository == null && state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
+      {repository == null && state.error !== undefined && <p className={css.empty}>{t('error.local.loadChanges')}</p>}
+      <LocalGitErrorToast controller={controller} t={t} />
       {repository !== undefined && repository !== null && (
         <>
           <CommitRegion
             repository={repository}
             controller={controller}
             t={t}
-            error={state.error}
+            error={state.errorOperation === 'commit' ? state.error : undefined}
             commitMessage={state.commitMessage}
             generating={state.generating}
             generationAvailable={state.generationAvailable}

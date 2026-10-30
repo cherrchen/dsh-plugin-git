@@ -13,6 +13,7 @@ import { IconChevronDownOutline14 } from '../../compat/dsh-icons.tsx'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IconGitWand } from './GitActionIcons.tsx'
 import css from '../GitDetailsSurface.module.css'
+import { ErrorToast, useErrorToast } from '../error-feedback.tsx'
 
 type CommitMode = 'commit' | 'amend' | 'commit-push' | 'commit-sync'
 
@@ -87,9 +88,10 @@ export function CommitRegion({ repository, controller, t, error, commitMessage, 
     void controller.commit(commitMessage, followUp === undefined ? {} : { followUp })
   }
 
+  const generationToast = useErrorToast(generationError)
   return (
     <div className={css.commitRegion} data-git-commit-region="">
-      {error !== undefined && <p className={css.error} role="alert">{error}</p>}
+      {error !== undefined && <p className={css.empty}>{t('error.local.commitFailed')}</p>}
       <div className={css.field}>
         <textarea
           ref={messageRef}
@@ -152,10 +154,11 @@ export function CommitRegion({ repository, controller, t, error, commitMessage, 
         </div>
       </div>
       {generationError !== undefined && (
-        <p className={css.error} role="alert">
-          {generationError === 'stage-changes-first' ? t('details.generateNeedsStaged') : generationError}
+        <p className={css.empty}>
+          {generationError === 'stage-changes-first' ? t('details.generateNeedsStaged') : t('error.local.generateFailed')}
         </p>
       )}
+      {generationToast.active && generationError !== undefined && <ErrorToast key={generationToast.seq} report={{ summary: generationError === 'stage-changes-first' ? t('details.generateNeedsStaged') : t('error.local.generateFailed'), detail: generationError }} onDone={generationToast.dismiss} t={t} />}
     </div>
   )
 }

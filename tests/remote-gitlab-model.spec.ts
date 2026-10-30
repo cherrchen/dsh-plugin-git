@@ -29,8 +29,10 @@ describe('GitLab provider projections', () => {
   it('preserves independent discussion and note ids, both sides of a diff, and its original range', () => {
     const discussion = { id: 'thread-abc', notes: [{ id: 88, body: 'Keep this', author: null, system: false, resolvable: true, resolved: false, position: { position_type: 'text', base_sha: base, start_sha: start, head_sha: head, old_path: 'old.txt', new_path: 'new.txt', old_line: 4, new_line: 5, line_range: { start: { line_code: 'abc_4_5', type: 'old', old_line: 4, new_line: 5 }, end: { line_code: 'abc_6_7', type: 'new', old_line: 6, new_line: 7 } } } }] }
     const result = gitLabDiscussion(discussion, instance)
+    if (result === null) throw new Error('expected a discussion')
     expect(result).toMatchObject({ id: 'thread-abc', notes: [{ id: '88', discussionId: 'thread-abc', resolvable: true, resolved: false, position: { baseSha: base, startSha: start, headSha: head, oldPath: 'old.txt', newPath: 'new.txt', oldLine: 4, newLine: 5, lineRange: { start: { oldLine: 4, newLine: 5 }, end: { oldLine: 6, newLine: 7 } } } }] })
     expect(result.notes[0]).not.toHaveProperty('reviewId')
+    expect(gitLabDiscussion({ ...discussion, individual_note: true }, instance)).toBeNull()
   })
   it('keeps approvals as current facts and does not invent review history', () => {
     const result = gitLabApprovals({ project_id: 42, iid: 7, approved_by: [{ user: { id: 9, username: 'reviewer' } }], approvals_required: 2, approvals_left: 1 }, instance, '42', 7)
@@ -52,7 +54,18 @@ describe('GitLab provider projections', () => {
   it('uses a separate narrow policy for avatars and permits a same-instance note fragment', () => {
     expect(gitLabWebUrl(instance, `${instance}/group/repo/-/issues/7#note_12`)).toBe(`${instance}/group/repo/-/issues/7#note_12`)
     expect(gitLabWebUrl(instance, 'https://secure.gravatar.com/avatar/hash?s=80', true)).toBe('https://secure.gravatar.com/avatar/hash?s=80')
+    expect(gitLabWebUrl(instance, 'https://secure.gravatar.com/avatar/hash?s=80&d=identicon&r=g', true)).toBe('https://secure.gravatar.com/avatar/hash?s=80&d=identicon&r=g')
     expect(gitLabWebUrl(instance, 'https://secure.gravatar.com/avatar/hash?d=https%3A%2F%2Fevil.example', true)).toBeUndefined()
     expect(gitLabWebUrl(instance, 'https://secure.gravatar.com/avatar/hash?s=80')).toBeUndefined()
+    expect(gitLabWebUrl(instance, `${instance}/uploads/avatar.png?s=80`)).toBeUndefined()
   })
+  it.each([
+    'https://secure.gravatar.com/avatar/hash?s=1&s=2',
+    'https://secure.gravatar.com/avatar/hash?x=1',
+    'https://secure.gravatar.com/avatar/hash?constructor=1',
+    'https://secure.gravatar.com/avatar/hash?d=evil',
+    'https://secure.gravatar.com/avatar/hash?d=identicon&d=retro',
+    'https://secure.gravatar.com/avatar/hash?r=safe',
+    'https://secure.gravatar.com/avatar/hash?s=0',
+  ])('drops an avatar URL outside the image query allowlist %s', value => expect(gitLabWebUrl(instance, value, true)).toBeUndefined())
 })

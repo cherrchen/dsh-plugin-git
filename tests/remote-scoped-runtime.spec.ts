@@ -180,6 +180,63 @@ describe('configuration fencing before credential commit', () => {
   })
 })
 
+describe('platform account endpoints', () => {
+  it('lists the fixed GitHub entry and every registered GitLab instance without secrets', async () => {
+    const f = fixture()
+    f.settings.instances.push({ url: 'https://self.example', label: 'Self-hosted', credentialRef: 'OFFICE' })
+    const reply = await f.runtime.handle('remote-accounts', { remoteProtocol: 2 }, signal, async () => {}) as any
+    expect(reply).toEqual({ remoteProtocol: 2, value: { accounts: [
+      { provider: 'github', instance: 'https://github.com' },
+      { provider: 'gitlab', instance: 'https://git.example.com/gitlab' },
+      { provider: 'gitlab', instance: 'https://self.example', label: 'Self-hosted' },
+      { provider: 'gitlab', instance: 'https://gitlab.com' },
+    ] } })
+    expect(JSON.stringify(reply)).not.toMatch(/credentialRef|clientId|sshHost|OFFICE/)
+    await expect(f.runtime.handle('remote-accounts', { remoteProtocol: 2, repository: '/repo' }, signal, async () => {})).rejects.toMatchObject({ details: { reason: 'invalid-request' } })
+    await f.runtime.dispose()
+  })
+  it('establishes identity and returns the GitLab viewer with its avatar on remote-account', async () => {
+    const f = fixture()
+    f.settings.instances = [{ url: 'https://git.example.com/gitlab', credentialRef: 'OFFICE' }]
+    f.credentials.resolve = vi.fn(async (ref: string) => ref === 'OFFICE' ? { value: 'tok', source: 'test' } : undefined)
+    const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify({ id: 9, username: 'viewer', avatar_url: 'https://git.example.com/gitlab/u/a.png' }), { headers: { 'content-type': 'application/json' } }))
+    const reply = await f.runtime.handle('remote-account', { remoteProtocol: 2, provider: 'gitlab', instance: 'https://git.example.com/gitlab' }, signal, async () => {}) as any
+    expect(reply.value.auth.state).toBe('authenticated')
+    expect(reply.value.viewer).toMatchObject({ userId: '9', login: 'viewer', avatarUrl: 'https://git.example.com/gitlab/u/a.png' })
+    fetch.mockRestore(); await f.runtime.dispose()
+  })
+  it('returns the GitHub viewer once per generation and stays offline when anonymous', async () => {
+    const f = fixture()
+    f.credentials.resolve = vi.fn(async (ref: string) => ref === 'GH_TOKEN' ? { value: 'tok', source: 'env' } : undefined)
+    const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify({ id: 42, login: 'octocat', avatar_url: 'https://avatars.githubusercontent.com/u/42' }), { headers: { 'content-type': 'application/json' } }))
+    const scope = { remoteProtocol: 2, provider: 'github', instance: 'https://github.com' }
+    const first = await f.runtime.handle('remote-account', scope, signal, async () => {}) as any
+    const second = await f.runtime.handle('remote-account', scope, signal, async () => {}) as any
+    expect(first.value.viewer).toMatchObject({ userId: '42', login: 'octocat', avatarUrl: 'https://avatars.githubusercontent.com/u/42' })
+    expect(second.value.viewer).toEqual(first.value.viewer)
+    expect(fetch.mock.calls.filter(([url]) => String(url) === 'https://api.github.com/user')).toHaveLength(1)
+    fetch.mockRestore(); await f.runtime.dispose()
+  })
+  it('reports an invalid GitHub credential on remote-account without a viewer', async () => {
+    const f = fixture()
+    f.credentials.resolve = vi.fn(async (ref: string) => ref === 'GH_TOKEN' ? { value: 'tok', source: 'env' } : undefined)
+    const fetch = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response('{}', { status: 401, headers: { 'content-type': 'application/json' } }))
+    const reply = await f.runtime.handle('remote-account', { remoteProtocol: 2, provider: 'github', instance: 'https://github.com' }, signal, async () => {}) as any
+    expect(reply.value.auth.state).toBe('invalid')
+    expect(reply.value.viewer).toBeUndefined()
+    fetch.mockRestore(); await f.runtime.dispose()
+  })
+  it('returns no GitHub viewer and sends no request when anonymous', async () => {
+    const f = fixture()
+    const fetch = vi.spyOn(globalThis, 'fetch')
+    const reply = await f.runtime.handle('remote-account', { remoteProtocol: 2, provider: 'github', instance: 'https://github.com' }, signal, async () => {}) as any
+    expect(reply.value.auth.state).not.toBe('authenticated')
+    expect(reply.value.viewer).toBeUndefined()
+    expect(fetch).not.toHaveBeenCalled()
+    fetch.mockRestore(); await f.runtime.dispose()
+  })
+})
+
 it('never accepts a client-supplied credential reference on scoped authentication', async () => {
   const f = fixture()
   await expect(f.runtime.handle('remote-retry-auth', { remoteProtocol: 2, provider: 'gitlab', instance: 'https://git.example.com/gitlab', credentialRef: 'OTHER_REF' }, signal, async () => {})).rejects.toMatchObject({ details: { reason: 'invalid-request' } })

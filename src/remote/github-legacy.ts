@@ -11,6 +11,7 @@ import type { RemoteRepository, RemoteWrite } from './provider.ts'
 import type { GitRemoteWriteContext } from './types.ts'
 import type { LegacyRemoteChannel } from './assembly.ts'
 import type { ScopedRemoteProvider } from './registry.ts'
+import { authSelectionKey } from './auth-selection.ts'
 
 function text(data: Record<string, unknown>, key: string, max = 65536): string { const value = string(data[key]); if (value.length > max) throw new GitRemoteError('git/remote-unavailable', 'git-remote: request text exceeds limit'); return value }
 function sha(data: Record<string, unknown>, key = 'expectedHeadSha'): string { const value = text(data, key, 64); if (!/^[a-f0-9]{40,64}$/.test(value)) throw new GitRemoteError('git/remote-unavailable', 'git-remote: invalid expected commit'); return value }
@@ -66,7 +67,7 @@ export class GitHubLegacyOwner implements LegacyRemoteChannel {
     }
   }
   async capability() { return { ...await this.auth.capability(), remoteProtocol: 2 as const } }
-  invalidateRecord(key: string): void { if (key === GIT_REMOTE_GRANT_RECORD_KEY) this.initialized = undefined }
+  invalidateRecord(key: string): void { if (key === GIT_REMOTE_GRANT_RECORD_KEY || key === authSelectionKey(GIT_REMOTE_GRANT_RECORD_KEY)) this.initialized = undefined }
   invalidateReference(ref: string): void { if (ref === 'GH_TOKEN' || ref === 'GITHUB_TOKEN') this.initialized = undefined }
   handle(endpoint: string, payload: unknown, caller: AbortSignal, assertSession: (request: Record<string, unknown>, signal: AbortSignal) => Promise<void>, scoped = false): Promise<unknown> {
     const signal = AbortSignal.any([this.owner.signal, caller])
@@ -78,11 +79,14 @@ export class GitHubLegacyOwner implements LegacyRemoteChannel {
       if (endpoint === 'remote-poll-login') return this.auth.pollLogin(text(request, 'attemptId', 200), signal)
       if (endpoint === 'remote-cancel-login') return this.auth.cancelLogin(text(request, 'attemptId', 200))
       if (endpoint === 'remote-sign-out') return this.auth.signOut(signal)
+      if (endpoint === 'remote-select-auth') { this.initialized = undefined; await this.auth.selectMethod(request['method'], signal); return this.capability() }
+      if (endpoint === 'remote-oauth-logout') { this.initialized = undefined; await this.auth.logoutOAuth(signal); return this.capability() }
       if (endpoint === 'remote-clear-grant') { await this.auth.clearLocalGrant(signal); this.initialized = undefined; return }
       if (endpoint === 'remote-retry-auth') { this.initialized = this.auth.retry(signal); await this.initialized; return this.capability() }
       if (endpoint === 'remote-use-git-credential') { await this.auth.useGitCredential(signal); return this.capability() }
       this.initialized ??= this.auth.establish(signal).catch(error => { this.initialized = undefined; throw error })
       await this.initialized
+      if (endpoint === 'remote-account') return this.provider.account({ signal, automatic: request['automatic'] === true })
       const root = text(request, 'repository', 16384)
       if (endpoint === 'remote-repositories') return this.git.repositories(root, signal)
       const target = remoteTarget(request)

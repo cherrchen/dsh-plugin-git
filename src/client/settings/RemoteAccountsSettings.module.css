@@ -1,0 +1,134 @@
+.section {
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.header {
+  margin-bottom: 12px;
+}
+
+.title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.description {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.unavailable {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.card {
+  padding: 0 16px;
+  border: 0.5px solid var(--dsw-alias-settings-card-stroke, var(--dsw-alias-border-l4, var(--dsw-alias-border-l2)));
+  border-radius: var(--dsw-radius-xl, 12px);
+  background: var(--dsw-alias-settings-card-fill, var(--dsw-alias-bg-layer-3, transparent));
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 10px 0;
+}
+
+.row + .row {
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.fallback {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--dsw-alias-label-tertiary);
+  background: var(--dsw-alias-bg-skeleton, var(--dsw-alias-background-secondary));
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusError {
+  color: var(--dsw-alias-label-error, var(--dsw-alias-state-error-primary));
+}
+
+.action {
+  flex: none;
+}
+
+.retireButton {
+  margin-top: 8px;
+  /* Align the text edge with the card's left edge; the ghost variant pads inline by 10px. */
+  margin-inline-start: -10px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.retireBody {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.retireField {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+}
+
+.retireLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.retireError {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--dsw-alias-label-error, var(--dsw-alias-state-error-primary));
+}
+
+.retireFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 16px;
+}

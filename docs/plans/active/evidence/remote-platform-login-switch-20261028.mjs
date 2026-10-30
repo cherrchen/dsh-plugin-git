@@ -2,12 +2,13 @@ import { GitRemoteFeature } from '../../../../src/client/remote.ts'
 const instances = ['https://first.example', 'https://second.example']
 const targets = instances.map(instance => ({ provider: 'gitlab', instance, path: 'group/repo', scope: { provider: 'gitlab', instance } }))
 const calls = []
+const actions = { canComment: false, canReview: false, canClose: false, canMerge: false, canCreatePr: false }
 const rpc = { async call(_channel, endpoint, payload, signal) {
   calls.push({ endpoint, instance: payload.instance, attemptId: payload.attemptId })
   if (endpoint === 'remote-repositories') return { ok: true, value: { remoteProtocol: 2, value: { state: 'supported', remotes: targets.map((identity, i) => ({ name: i ? 'upstream' : 'origin', identity })) } } }
+  if (endpoint === 'remote-capability' && payload.remoteProtocol !== 2) return { ok: true, value: { state: 'on', remoteProtocol: 2, generation: { instanceId: 'github', revision: 1 }, auth: { state: 'authenticated' }, credential: { configured: true, writable: true }, actions, loginAvailable: false } }
   const scope = { provider: 'gitlab', instance: payload.instance }, generation = { instanceId: payload.instance, revision: 1 }
   const viewer = { host: new URL(payload.instance).hostname, userId: '9', login: 'fixture' }
-  const actions = { canComment: false, canReview: false, canClose: false, canMerge: false, canCreatePr: false }
   const values = {
     'remote-capability': { state: 'on', generation, auth: { state: 'authenticated' }, viewer, actions, loginAvailable: true },
     'remote-repository': { actionScope: { path: 'group/repo', projectId: '42' }, viewer, actions },
@@ -20,12 +21,12 @@ const rpc = { async call(_channel, endpoint, payload, signal) {
 } }
 const feature = new GitRemoteFeature(rpc)
 feature.scoped.observeCapability({ state: 'on', remoteProtocol: 2 })
-const controller = feature.gitlabControllerFor('fixture-session')
+const controller = feature.controllerFor('fixture-session')
 controller.setRepository('/fixture')
 for (let i = 0; i < 100 && (controller.getSnapshot().busy || !controller.getSnapshot().facts); i++) await new Promise(resolve => setTimeout(resolve, 1))
 await controller.login()
 const originalLogin = controller.getSnapshot().login
-await controller.select(targets[1])
+await controller.load('pulls', targets[1])
 const afterSwitch = { target: controller.getSnapshot().target.scope.instance, login: controller.getSnapshot().login, busy: controller.getSnapshot().busy }
 await controller.cancelLogin()
 const cancellation = calls.filter(call => call.endpoint === 'remote-cancel-login')

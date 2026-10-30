@@ -85,7 +85,7 @@
 - [x] 校验 GrantRecord v1、记录 key/ref 与 host/client/app 绑定；所有状态迁移经 `modifyRecord` mutate/CAS，每次持久提交使用不可复用 revision，不另写文件/settings/keychain。区分持久 revision 与 Host opaque `{ instanceId, revision }`；token fingerprint 仅为进程内不可逆摘要，不上 wire/日志。落在 `src/remote/grant.ts`（`parseGrantRecord`/状态 union，`dsh-plugin-git/github-com`）与 `auth.ts`（`authBase` 每次提交换 `uuid` revision、sha256 进程内 digest）。
 - [x] 每次操作 resolve；发现链为 authenticated grant→`GH_TOKEN`/`GITHUB_TOKEN` refs→`gh auth token`→匿名，并如实报告 source。`gh` 仅在 seam mount、凭据事件、显式重试、401 后身份重建事件中串行执行，每事件至多一轮；401 置 invalid 并要求修复，不静默换账号，匿名仅用于从未有凭据的情形。`establish()`/`resolveContext()` 按序检查 grant→refs→缓存的 `ghToken`→anonymous；`markInvalid` 记 fingerprint 阻断同 token 复入；malformed/unsupported 记录直接 `invalid` 不回落发现。
 - [x] `git credential fill` 只允许用户显式触发；凭据探针设置 `GIT_ASKPASS=''`、`GIT_TERMINAL_PROMPT=0`、`SSH_ASKPASS_REQUIRE=never`、`GCM_INTERACTIVE=never`、`-c credential.interactive=never`，硬超时 ≤5s、限制输出、错误脱敏；stdout/stderr 不透传，token 不进 argv。落在 `src/remote/probe.ts`：`git credential fill` 仅由 `useGitCredential()` 显式调用；protocol/host 经 stdin 传入；超时/取消组合经内部 AbortController，abort 时 terminate 并等待退出；输出上限 4096，失败统一为脱敏 `GitRemoteError`。
-- [x] Device Flow 由 `Config.remote.clientId` 提供公共 client_id、scope 为 `repo`；先 CAS 持久化 authorizing/attemptId，再完成匹配 attemptId 的提交。覆盖 interval、slow_down、过期、拒绝、取消、重复登录互斥；缺 client_id 隐藏登录入口但保留发现。无 refresh token 的到期凭据转 reauth-required。落在 `startLogin`/`pollLogin`/`cancelLogin`；缺 `clientId` 时 `startLogin` 拒绝且 `capability().loginAvailable === false`。
+- [x] Device Flow 由 `Config.remote.clientId` 提供公共 client_id、scope 为 `repo`；先 CAS 持久化 authorizing/attemptId，再完成匹配 attemptId 的提交。覆盖 interval、slow_down、过期、拒绝、取消、重复登录互斥；缺 client_id 时不允许启动登录但保留发现（当前 UI 保留禁用的 OAuth 选项并说明原因）。无 refresh token 的到期凭据转 reauth-required。落在 `startLogin`/`pollLogin`/`cancelLogin`；缺 `clientId` 时 `startLogin` 拒绝且 `capability().loginAvailable === false`。
 - [x] sign-out 持久化 signed-out 并在重启后继续抑制发现；“清除本地授权”独立调用 `deleteRecord` 恢复发现，明确不是服务端撤销。落在 `signOut()`（CAS 写 signed-out）与 `clearLocalGrant()`（`deleteRecord`）。
 - [x] 刷新 prepare 必须**先提交** refreshing/refreshId/basedOnRevision，再由 owner 在锁外发送；complete 仅在 refreshId+basedOnRevision CAS 匹配时写入新 token。旁观者有界等待后转 reauth-required，绝不补发。落在 `refresh()`：marker CAS 未命中即转 `waitRefresh` 有界等待（`refreshPollMs`/`refreshTtlMs`/`refreshExpiresAt`），settle 后采用已提交结果；prepare 提交失败在发送前抛出。
 - [x] 刷新发送后超时/响应丢失/任意 5xx（含 502/504）、确定性拒绝、complete 提交失败、崩溃/重启均不重放；marker 提交后发送前崩溃也按可能已消费处理。只有传输层**确认未发送**才允许安全重试；prepare 提交失败不发送。complete 失败丢弃新 token 并报告远端已更新/本地未提交。`GitRemoteTransportNotSent`/`kind: 'not-sent'` 才走 restore（后续操作可安全重试）；其他失败 CAS 写 `reauth-required`；complete CAS/提交异常抛 `{ stage: 'complete', remoteUpdated: true, localCommitted: false }` 并保留 marker。
@@ -426,7 +426,7 @@ GL1–GL4 已完成自动阶段门；GL5 的有限通知已接入，完整矩阵
 | 编号 | 优先级 / 结果 | 可复现问题与影响 | 位置 / 关闭条件 |
 | --- | --- | --- | --- |
 | A1 | **P1 / Failed** | GitLab 业务请求进入 provider 后，在首次异步会话检查期间移除实例；随后 assertRepository 调用 registry.list()，其串行锁内的 synchronize 等待旧 provider.dispose()，dispose 又等待当前请求。循环等待导致当前请求、后续跨实例发现和 runtime 卸载均挂起，不依赖外部 HTTP 或真实凭据 | `src/remote/registry.ts` 的 synchronize/drain 与 `src/remote/runtime.ts` 的 assertRepository。不得持注册表锁等待依赖该锁的请求结束；增加真实 provider 的移除/改配/卸载交错回归，证明旧请求取消、后续请求与卸载均有界完成，且旧身份不能继续写 |
-| A2 | **P2 / Failed** | A 实例 Device Flow 等待中切换到 B；select 取消旧轮询但不清除 login，旧轮询的 catch 因 epoch 变化跳过清理。B 面板保留 A 的设备码和授权链接，B 登录按钮持续禁用；取消时把 A 的 attemptId 发给 B，得到 unknown-attempt | `src/client/gitlab-remote.ts` 的 select/login/cancelLogin；UI 在登录等待时允许切换仓库。切换时清除并按原 scope 终止旧登录，或明确禁止等待期间切换；增加双实例回归，核对链接、取消 scope 与 B 的重新登录 |
+| A2 | **P2 / Failed** | A 实例 Device Flow 等待中切换到 B；select 取消旧轮询但不清除 login，旧轮询的 catch 因 epoch 变化跳过清理。B 面板保留 A 的设备码和授权链接，B 登录按钮持续禁用；取消时把 A 的 attemptId 发给 B，得到 unknown-attempt | `src/client/remote.ts` 统一控制器的 load/login/cancelLogin（原 `gitlab-remote.ts` 的 select/login/cancelLogin 已并入）；UI 在登录等待时允许切换仓库。切换时清除并按原 scope 终止旧登录，或明确禁止等待期间切换；增加双实例回归，核对链接、取消 scope 与 B 的重新登录 |
 
 可重跑的 [A1 生命周期探针](evidence/remote-platform-lifecycle-20261028.mjs)与 [A2 登录切换探针](evidence/remote-platform-login-switch-20261028.mjs)在 macOS arm64 / Node `v24.18.0` 执行。它们直接调用当前源码，使用合成实例与模拟服务，无外部网络、用户 store 或远端写入；预期不变量均失败（exit 1）。A1 的有界观察窗口结合上述等待依赖确认死锁，不是请求超时设计。既有注册表测试的空 dispose 和登录 HTTP 取消用例不能替代业务请求重入注册表的交错。运行方式为 `node --experimental-transform-types <探针相对路径>`。
 
@@ -517,6 +517,60 @@ Self-Managed、fork/双实例/端口/prefix、权限/tier/代理/TLS 负向、�
 - [ ] GL5：另行记录获授权隔离环境中的 GitLab.com 与自建 GitLab 真实认证/读写与 Windows/Linux/Web/Desktop 验收；未执行保持 **Not verified**，mock 不能替代。GitHub S7 的未完成验收继续单独跟踪。
 
 **评审提交物**：以本节作为下一轮入口，附 GL-R0–R13 逐项结论、provider/实例/动作能力矩阵、GitLab 服务端支持版本与实例配置矩阵、RPC/设置兼容方案、mock/临时仓库用例与真实验收清单。GL0 冻结本身不构成实现或真实验收证据；最新实现范围和验证状态以上方 Current 记录为准。计划只在 S7 与已确认纳入的 GL 阶段均完成验证后归档；若以后拆分或延后 GitLab，先明确记录范围调整与承接计划。
+
+## 2026-10-29 平台认证便捷登录（In progress）
+
+### 目标与已核实现状
+
+用户已在规划后授权实施：把孤儿 GitLab grant 清理收进默认折叠的“高级”；把 OAuth 整理成“点击连接 → 自动获取用户码 → 打开系统浏览器 → 用户确认 → 自动显示已登录”。下列代码与隔离验证已落地（Current）；真实应用注册及平台验收仍待完成，不改变 GL5 的验收状态。
+
+当前代码已通过 `remote-login` 自动申请设备码、通过 `remote-poll-login` 轮询并经 `ctx.credentials` 保存 grant；用户不需要自行申请设备码。当前入口缺失的常见原因是应用 `client_id` 未配置：GitHub 位于 `Config.remote.clientId`，GitLab 位于对应实例的 `clientId`。公开应用 ID 是维护者一次性注册所得，不是每次登录的 `user_code` 或 Host 保留的 `device_code`。
+
+实施前缺口：Client 仅显示用户码与手动外链，没有主动打开浏览器或复制操作；`RemoteLoginAttempt` 没有保存有效期；GitLab Host 已校验 `verification_uri_complete`，但未将其返回 Client，Client 当前也只接纳无 query 的验证 URL；GitHub/GitLab 的等待状态和错误反馈仍需统一。代码落点以 [RPC 参考](../../reference/remote-platform-rpc.md)及 `src/remote/{auth,gitlab-auth}.ts`、`src/client/remote.ts`、`src/client/remote/RemoteAuth{Control,Section}.tsx` 为准。
+
+### 官方依据与范围
+
+核查日期：2026-10-29。
+
+- [GitHub OAuth Device Flow](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow)：应用需先启用 Device Flow；设备端请求与轮询使用 `client_id`，不需要 `client_secret` 或回调服务器。文档只保证普通 `verification_uri` 和 `user_code`，本轮不依赖自拼查询参数来预填 GitHub 设备码。
+- [GitLab Device Authorization Grant](https://docs.gitlab.com/api/oauth2/#device-authorization-grant-flow)：17.2 引入、17.3 默认启用、17.9 GA；响应可含 `verification_uri_complete`，用来减少手工输入。支持情况仍按实例事实判定，不仅凭版本号放行。
+- [GitLab 应用注册](https://docs.gitlab.com/integration/oauth_provider/)与 [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628.html)：仍需要注册应用及其 ID；本轮按 public client、不内置 client secret 的 Device Flow 实施。自建 GitLab 使用在该实例注册的应用，不复用 GitLab.com 的 ID。
+
+沿用现有 GitHub OAuth App + `repo` 和 GitLab public OAuth Application + `api` 方案；不把 GitHub App 的细粒度权限迁移混入本轮，其授权范围、安装和 API 权限需另行评估。PKCE/回调协议、GHES 和 Git 传输认证也不在本轮范围。
+
+### 交互与实现顺序
+
+| 阶段 | 实施内容 | 退出条件 |
+| --- | --- | --- |
+| O1 高级区域 | `RemoteAuthControl` 使用原生 `details/summary` 或已有同等折叠原语，默认收起；“清除已移除 GitLab 实例的授权”及 URL、检查、确认、结果全部置于其中。平台通知范围说明保留在认证弹窗，正常连接方式仍直接可见 | 中英文、键盘展开、默认收起、规范 URL 二次确认和清理错误行为均验证；清理不因折叠而自动执行或取消 |
+| O2 应用配置与发行 | 明确应用所有者、名称与公开 ID。开发/自建部署保留显式配置；正式发行以发布配置提供 GitHub.com/GitLab.com 的维护者应用 ID，用户通常无需注册。配置优先级为显式实例/平台配置高于发布默认；缺任一有效 ID 时仅该平台显示配置提示，禁止借用 gh/glab/第三方应用 ID | 维护者应用注册并启用必要能力；应用 ID 来源、覆盖/禁用语义与 App 变更后的 grant 失效规则登记完毕。未取得真实 ID 前，代码使用隔离 fixture，不能宣称开箱即用 |
+| O3 登录契约补齐 | 登录结果增加可选 `verificationUriComplete`，统一携带/保留 `expiresAt`、`intervalMs`；旧 Host 无新字段时回退普通验证页。GitLab 由 Host 对完整 URL 校验后返回，Client 再校验实例 origin、部署前缀、精确 `/oauth/device` 路径、唯一且匹配当前 `userCode` 的 query；GitHub 保留精确 `/login/device` 约束 | v1/v2 兼容、缺可选字段、自建部署前缀、恶意 query/外域/旧 attempt 拒绝均有测试；不暴露 `device_code`、token 或 client secret |
+| O4 浏览器与用户码 | OAuth 由用户选择后申请一次设备码；成功后每个 attempt 仅自动打开浏览器一次。GitLab 优先用验证过的 complete URL；GitHub 打开官方普通验证页并显示“复制设备码”，用户粘贴并确认。两平台都保留复制、重新打开和取消操作，明确显示已复制或打开失败 | 浏览器打开成功不被当成授权成功；打开/复制失败可手工继续，复制不成功时不提示成功；重渲染、弹窗重开、切换 tab 不重复弹浏览器 |
+| O5 状态与生命周期 | 两平台统一申请中/等待授权/验证账号/已连接/拒绝/过期/取消/网络失败的文案；倒计时按服务端有效期计算。复用现有轮询及 CAS，不另建第二条轮询；完成后刷新正确实例的 capability/viewer/list，CLI/OAuth 均保留 | `interval`、`slow_down`、过期、拒绝、取消和重复点击通过；工作区/实例/App/账号变化使旧 attempt 无效，取消后迟到响应不能更新账号；关弹窗不等于取消，重开可恢复进行中的 attempt |
+| O6 验收与发布 | 单测、隔离浏览器、可选 Desktop 卸载、真实应用登录和双语文档检查；完成后更新 Current RPC/架构说明 | 满足下方验收门再记录完成；注册应用、真实账号授权与发布属于独立外部操作，按用户授权执行 |
+
+Desktop 宿主现有源码可见 `shell.openExternal(url): Promise<void>` 和 `clipboard.writeText(text): Promise<void>`。实施时在既有子 `ctx.inject(['desktop'], ...)` fiber 中接入结构回调，能力检测后提供给 Remote feature，卸载时撤回；不引入 Electron import、preload global 或 Desktop provider 包依赖。HTTP/轮询继续位于标准 Host，浏览器打开位于用户当前 Client 所在设备，以适配远程 Host。无 Desktop 时主 UI 保留验证链接与设备码；Web Clipboard 仅在可用且用户显式点击时使用，浏览器限制导致无法自动打开时提示点击链接。
+
+授权链接自动打开仅跟随本次用户主动发起且仍有效的 attempt；不在 capability 探测、刷新、过期或应用启动时自动创建新授权。Token 沿用 `ctx.credentials` 与现有刷新互斥门，实际是否由系统钥匙串保护取决于所选存储 provider，不能从接口名称推断。
+
+### 验收门与待确认前置
+
+- [x] O1：高级默认折叠；展开后仍可完整执行规范化 URL → 检查 → 确认 → 结果；无 v2 seam 时不展示不可用清理。
+- [x] O2 公开 ID：维护者于 2026-10-29 提供 GitHub/GitLab.com 应用 ID，唯一登记于 [`oauth-apps.json`](../../../oauth-apps.json)，普通 Host 构建自动嵌入；真实应用能力及自建实例的注册、权限与 Device Flow 可用性仍属 O6 验收。应用注册表单可能要求填写 Redirect URI，不代表本流程需要运行回调服务器。
+- [x] O3：Host 与 Client 双重 URL 校验、可选字段向后兼容、倒计时及 query 与当前用户码绑定；RPC、日志与 argv 不泄露秘密。
+- [x] O4/O5（隔离）：GitHub CLI → OAuth → CLI E2E，GitLab glab 来源的组件选项及旧 Host 清 grant → retry 兼容回归；两平台的成功、拒绝、过期、取消及打开浏览器失败均有隔离 E2E。Mock Desktop 验证 URL/打开次数和卸载后的手工继续，CI 不连接真实 OAuth。
+- [x] O6 自动化：`pnpm test --maxWorkers=4`（73 文件 912 项）、`pnpm test:e2e`（25 项）、构建、artifact（公开 ID 接入后 7 项）、兼容性、文档与空白检查。另用临时产物构建验证公开 ID 嵌入、环境覆盖/显式禁用及构建标记替换；Client 产物不含发行应用 ID。
+- [ ] O6 真实平台：真实 GitHub/GitLab 应用登录与 glab 身份、macOS/Windows 浏览器及凭据存储体验。真实公开应用 ID 已配置；未操作真实账号授权或凭据，未实测部分保持未验证。
+
+实施优先 O1，再完成不依赖真实应用 ID 的 O3–O5；O2 的维护者注册可同期准备，缺 ID 不阻塞隔离实现，但阻塞“普通用户开箱即用”的真实验收。当前已实现高级折叠、登录契约/URL 校验、控制器拥有的浏览器打开/复制/生命周期、本地化结果和构建期发行 ID（`DSH_GIT_GITHUB_CLIENT_ID`、`DSH_GIT_GITLAB_CLIENT_ID`）；显式空配置禁用发行默认，自建实例不继承公共平台应用。初期按用户要求先完成代码与隔离测试；维护者现已提供公开 ID 并纳入普通构建，真实应用 Device Flow、账号 OAuth、系统原生体验和发布仍未验证。O4/O5 路径已有 mock 自动化覆盖，真实 glab 身份与平台验收另行保留。
+
+### 2026-10-29 认证缓存修复（Current）
+
+CLI/OAuth 的选择现在与 OAuth grant 分开持久化；切到 CLI 保留授权，切回 OAuth 先复用缓存，新增仅 OAuth 退出并保留 CLI 登录。协议和存储边界以 [RPC 参考](../../reference/remote-platform-rpc.md#配置与认证) 为准。隔离测试覆盖两平台引擎重建、缓存复用、过期与畸形偏好拒绝、GitLab 校验期间其他 owner 切换方式、设备登录不因自身偏好更新而被取消；浏览器重建 Host 后再次切换，以及 CLI 活跃时仅退出 OAuth。真实平台/系统存储验收仍未执行。
+
+认证恢复补充：修复持久 signed-out 被当成持续错误并清空 GitLab 认证入口的问题；保留退出状态和仓库事实撤回，通过实例 capability 恢复显式认证。控制器覆盖 CLI/OAuth 恢复及 capability 暂时失败后的重试，浏览器使用 GitLab.com 的模拟 glab/设备流程分别验证。
+
+限流隔离补充：GitLab 实例读取器原先共用的限流截止时间、失败次数与服务端轮询间隔现按凭据摘要保存，覆盖读取和写入；切回旧凭据仍保留原期限。单元及隔离浏览器回归覆盖 CLI 限流 → 已保存 OAuth 恢复 → CLI 仍受限，不需要重新授权或重复发送受限请求。
 
 ## 验证
 
@@ -615,3 +669,4 @@ GitLab 本轮工作位于当前 `feat/remote-gitlab` 分支；若之后获准提
 - [计划总索引](../README.md) / [进行中索引](README.md)
 
 | 2026-10-27 | GL0 B2–B4补证与最终冻结 | 两个正式file-backed provider各9项通过；21份精确版本官方文档/hash与逐端点表；隔离EE19.5.1两车道18/14项及真实SSH MR head SHA通过。异常/资源限制/未验证范围和清理记录见B2–B4及脱敏JSON；ADR-0005 Accepted、设计Target，GL1未授权/未启动。未改产品运行时/依赖；检查结果见交接 |
+| 2026-10-28 | GL5 Client 统一 UI 重构 | 合并 GitHub/GitLab 双控制器为统一 GitRemoteController（v1+scoped 双通道），删除 GitLabRemotePanel 与 provider 手工切换：provider 由 remote-repositories v2 远端 URL 身份自动决定，unregistered/ambiguous 逐条提示，不匹配报 unsupported。GitLab 复用共享列表/详情/tab UI（含新 tab、时间线、评论、审批、合并、检出、通知），地址加 gitlab/<instance>/<path> 五段语法互不碰撞；notes/discussions/commits/approvals 投影为共享视图模型。`pnpm test` 70 文件 857 项、tsc 双配置、compat、docs、git diff --check 均 exit 0。真实平台验收仍 Not verified |

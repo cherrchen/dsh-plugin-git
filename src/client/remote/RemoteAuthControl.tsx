@@ -1,88 +1,77 @@
 import { useState, useSyncExternalStore } from 'react'
 import type { ReactNode } from 'react'
 import { Button, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
-import { canonicalGitLabInstance } from '../../remote/instance-url.ts'
-import { ScopedProtocolError } from '../remote-protocol.ts'
 import { IconUserOutline16 } from '../../compat/dsh-icons.tsx'
 import { GitIconButton } from '../details/GitIconButton.tsx'
-import { RemoteAuthSection, type RemoteLoginAttempt } from './RemoteAuthSection.tsx'
+import { RemoteAuthSection } from './RemoteAuthSection.tsx'
 import { RemoteLoading } from './RemoteLoading.tsx'
+import { platformCopy } from './platform-copy.ts'
+import { describeRemoteError, ErrorToast, useErrorToast } from '../error-feedback.tsx'
 import css from '../GitRemoteSurface.module.css'
 import type { GitRemoteController } from '../remote.ts'
-import type { GitRemoteCapabilityOn } from '../../remote/types.ts'
+import type { GitRemoteCapabilityOn, ScopedRemoteCapabilityOn } from '../../remote/types.ts'
 import type { GitRemoteViewer } from '../../remote/types.ts'
 import type { GitLocaleKey } from '../locales.ts'
 
-/** Toolbar entry to the platform-authentication dialog; owns the login-attempt state. */
-export function RemoteAuthControl({ capability, viewer, busy, controller, t }: {
-  readonly capability: GitRemoteCapabilityOn
+/** Toolbar entry to the platform-authentication dialog; the controller owns the login-attempt state. */
+export function RemoteAuthControl({ capability, viewer, busy, gitlab = false, instance, controller, triggerLabel, triggerVariant = 'outline', t }: {
+  readonly capability: GitRemoteCapabilityOn | ScopedRemoteCapabilityOn
   readonly viewer: GitRemoteViewer | undefined
   readonly busy: boolean
+  /** Scoped GitLab target: labels and retry semantics follow the instance. */
+  readonly gitlab?: boolean
+  /** Canonical GitLab instance URL; prefixes the status line for self-hosted instances. */
+  readonly instance?: string | undefined
   readonly controller: GitRemoteController
+  /** Text trigger replaces the toolbar icon button (settings account rows). */
+  readonly triggerLabel?: string
+  readonly triggerVariant?: 'outline' | 'ghost' | 'primary' | 'toolbar'
   readonly t: (key: GitLocaleKey) => string
 }): ReactNode {
   const [open, setOpen] = useState(false)
-  const [login, setLogin] = useState<RemoteLoginAttempt>()
-  const [retireInput, setRetireInput] = useState('')
-  const [retireScope, setRetireScope] = useState<string>()
-  const [retireResult, setRetireResult] = useState<GitLocaleKey>()
-  const [retiring, setRetiring] = useState(false)
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot)
+  const errorToast = useErrorToast(state.error)
+  const scopedInstance = instance ?? (state.target?.provider === 'gitlab' ? state.target.scope.instance : undefined)
   return (
     <>
-      <GitIconButton label={t('remote.auth')} onClick={() => { setOpen(true) }}>
-        <IconUserOutline16 size={14} />
-      </GitIconButton>
+      {triggerLabel === undefined
+        ? <GitIconButton label={t('remote.auth')} onClick={() => { setOpen(true); if (gitlab) void controller.ensureAuthCapability() }}>
+          <IconUserOutline16 size={14} />
+        </GitIconButton>
+        : <Button variant={triggerVariant} size="sm" disabled={busy} onClick={() => { setOpen(true); if (gitlab) void controller.ensureAuthCapability() }}>{triggerLabel}</Button>}
       <Modal
         open={open}
         onClose={() => { setOpen(false) }}
-        title={t('remote.auth')}
+        title={platformCopy(t, 'remote.authTitle', gitlab ? 'gitlab' : 'github')}
         closeLabel={t('branch.cancel')}
         className={`${css.authDialog}`}
       >
-        <RemoteLoading pending={state.pending} t={t} />
-        {state.error !== undefined && <p className={css.error} role="alert">{state.error}</p>}
+        <RemoteLoading pending={state.login === undefined ? state.pending : 'authorization'} provider={gitlab ? 'gitlab' : 'github'} t={t} />
         <RemoteAuthSection
           capability={capability}
           viewer={viewer}
-          busy={busy}
-          login={login}
+          busy={busy || gitlab && state.scopedCapability === undefined}
+          login={state.login}
+          loginBrowser={state.loginBrowser}
+          loginCopy={state.loginCopy}
+          loginStatus={state.loginStatus}
+          onCopyLogin={() => { void controller.copyLoginCode() }}
+          onOpenLogin={() => {
+            if (!controller.nativeLoginBrowser) return false
+            void controller.openLoginBrowser()
+            return true
+          }}
+          gitlab={gitlab}
+          instance={scopedInstance}
           onAuth={(...endpoints) => { void controller.authAction(...endpoints) }}
-          onLogin={() => { void controller.login(setLogin).finally(() => { setLogin(undefined) }) }}
-          onCancelLogin={attemptId => { void controller.cancelLogin(attemptId).finally(() => { setLogin(undefined) }) }}
+          onLogin={() => { void controller.login() }}
+          onSelectMethod={method => { void controller.selectAuthMethod(method) }}
+          onLogoutOAuth={() => { void controller.logoutOAuth() }}
+          onCancelLogin={() => { void controller.cancelLogin() }}
           t={t}
         />
-        {controller.scopedAvailable && (
-          <section className={css.retireSection} aria-label={t('remote.retireTitle')}>
-            <strong>{t('remote.retireTitle')}</strong>
-            <p className={css.methodHint}>{t('remote.retireHint')}</p>
-            <label className={css.retireInput}>
-              <span>{t('remote.retireUrl')}</span>
-              <input value={retireInput} disabled={retiring} onChange={event => { setRetireInput(event.target.value); setRetireScope(undefined); setRetireResult(undefined) }} placeholder="https://git.example.com" />
-            </label>
-            {retireScope === undefined ? (
-              <Button variant="ghost" size="sm" disabled={retiring || !retireInput} onClick={() => {
-                try { setRetireScope(canonicalGitLabInstance(retireInput)); setRetireResult(undefined) } catch { setRetireResult('remote.retireInvalid') }
-              }}>{t('remote.retirePrepare')}</Button>
-            ) : (
-              <div>
-                <p>{t('remote.retireConfirmHint')} <strong>{retireScope}</strong></p>
-                <Button variant="ghost" size="sm" disabled={retiring} onClick={() => {
-                  setRetiring(true)
-                  void controller.retireGrant(retireScope).then(result => {
-                    setRetireResult(result.disposition === 'retired' ? 'remote.retireDone' : result.disposition === 'already-retired' ? 'remote.retireAlready' : 'remote.retireAbsent')
-                    setRetireScope(undefined)
-                  }).catch(error => {
-                    setRetireResult(error instanceof ScopedProtocolError && error.reason === 'instance-registered' ? 'remote.retireRegistered' : error instanceof ScopedProtocolError && error.reason === 'record-mismatch' ? 'remote.retireMismatch' : 'remote.retireFailed')
-                  }).finally(() => { setRetiring(false) })
-                }}>{t('remote.retireConfirm')}</Button>
-                <Button variant="ghost" size="sm" disabled={retiring} onClick={() => { setRetireScope(undefined) }}>{t('branch.cancel')}</Button>
-              </div>
-            )}
-            {retireResult !== undefined && <p role="status">{t(retireResult)}</p>}
-          </section>
-        )}
       </Modal>
+      {errorToast.active && state.error !== undefined && <ErrorToast key={errorToast.seq} report={describeRemoteError(state.error, state.errorDetails, gitlab ? 'gitlab' : 'github', t)} onDone={errorToast.dismiss} t={t} />}
     </>
   )
 }

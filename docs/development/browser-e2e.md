@@ -32,13 +32,17 @@ DSH 其余 17 个精确 release 继续由 [兼容矩阵](../../.github/workflows
 
 外部 GitHub OAuth / REST、GitLab API 服务和 gh / credential helper 探针由确定性 fixture 替代，只发放 synthetic sentinel 令牌；后端拦截出站请求，浏览器拒绝非 loopback 请求。测试不访问真实 GitHub，不修改用户现有授权、不打开真实授权页，也不向真实远端发送写操作。fixture 控制端点只在测试 Vite 配置中注册，不进入发布包；关闭服务后取消运行时工作并清理临时仓库。
 
+`tests/e2e/device-login.e2e.ts` 覆盖 GitHub/GitLab 自动申请设备码、每 attempt 一次模拟原生浏览器打开、复制、重开弹窗、成功、拒绝、过期、取消和增强失败/卸载后的手工继续；高级清理默认折叠并覆盖键盘展开。模拟原生调用只记录 URL/用户码，不操作真实系统浏览器或剪贴板，不能替代真实 Desktop provider 验收。
+
 浏览器用例覆盖：
 
 - gh、OAuth 和凭据引用的中英文渠道展示；
-- 通过“连接方式”单选项断开连接并重连 GitHub CLI（signed-out marker 时自动先清除本地 grant/marker）、对话框宽度断言与截图；
+- 通过“连接方式”单选项切换 CLI/OAuth，复用已保存授权；保留同一 credentials fixture、重建 Host 并刷新页面后再次复用 OAuth；仅退出 OAuth 时 CLI 保持认证；对话框宽度断言与截图；
 - 设备码登录从匿名到 OAuth 的完整内部流程，以及取消授权；
 - 浏览器 RPC 响应与页面不出现令牌正文；
 - 独立浏览器上下文和凭据存储之间的身份隔离；
+- GitLab CLI 触发模拟限流后切回已保存 OAuth 恢复列表，无需再次设备授权；重复切换保留原 CLI 的限流窗口且不重复请求服务端；
+- GitLab.com 的持久退出标记在首次仓库读取时被发现后，保留正确认证入口且不显示原始错误码；分别用模拟 glab 和 Device Flow 恢复认证并读取列表；
 - GitLab 实例前缀、MR 读取、普通评论、审批结果未知后的对账、受限通知与模拟本地 push 建议。
 
 缺失 / 未知渠道和无效认证状态的展示另由 `tests/remote-auth-section.client.spec.tsx` 覆盖；认证变更遇到旧 capability 读取在途的回归位于 `tests/remote-client.spec.ts`。

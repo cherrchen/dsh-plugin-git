@@ -1,31 +1,47 @@
+import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Button, Input } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { RemotePull } from '../../remote/provider.ts'
+import { Button, Input, Menu } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { RemotePull, ScopedRemotePull } from '../../remote/provider.ts'
 import type { GitRemoteActions } from '../../remote/types.ts'
+import type { RemoteConfirmation } from './remote-view.ts'
+import { IconChevronDownOutline14 } from '../../compat/dsh-icons.tsx'
 import type { GitLocaleKey } from '../locales.ts'
 import css from '../GitRemoteSurface.module.css'
 
-export type RemoteConfirmKind = 'remote-close-pr' | 'remote-merge-pr'
+type RemotePullView = RemotePull | ScopedRemotePull
+
+function methodLabel(method: 'merge' | 'squash', t: (key: GitLocaleKey) => string): string {
+  return method === 'squash' ? t('gitlab.squashMerge') : t('gitlab.directMerge')
+}
 
 /**
  * PR write actions: verified-head checkout plus close/merge behind the
- * two-step inline confirm. Every gating flag is computed by the surface so
- * this block stays presentational.
+ * controller-bound two-step confirmation. Every gating flag is computed by
+ * the surface so this block stays presentational.
  */
-export function RemotePullActions({ pr, actions, writable, confirm, checkoutName, viewer, onCheckoutName, onCheckout, onRequest, onConfirm, onCancel, t }: {
-  readonly pr: RemotePull
+export function RemotePullActions({ pr, actions, writable, confirmation, mergeMethods, checkoutName, viewer, onCheckoutName, onCheckout, onPrepare, onConfirm, onCancel, t }: {
+  readonly pr: RemotePullView
   readonly actions: GitRemoteActions | undefined
   readonly writable: boolean
-  readonly confirm: RemoteConfirmKind | undefined
+  readonly confirmation: RemoteConfirmation | undefined
+  /** Scoped merge methods; undefined or a single entry renders one merge button. */
+  readonly mergeMethods?: readonly ('merge' | 'squash')[] | undefined
   readonly checkoutName: string
   readonly viewer: string | undefined
   readonly onCheckoutName: (name: string) => void
   readonly onCheckout: () => void
-  readonly onRequest: (kind: RemoteConfirmKind) => void
+  readonly onPrepare: (action: 'close' | 'merge', method?: 'merge' | 'squash') => void
   readonly onConfirm: () => void
   readonly onCancel: () => void
   readonly t: (key: GitLocaleKey) => string
 }): ReactNode {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const methods = mergeMethods ?? []
+  const multi = methods.length > 1
+  const mergeDisabled = !writable || actions?.canMerge === false || pr.state !== 'open'
+  const mergeItems = useMemo((): readonly MenuEntry[] => methods.map(method => ({ id: method, label: methodLabel(method, t) })), [methods, t])
+  const sha = pr.head.sha
   return (
     <>
       <div className={css.checkoutRow}>
@@ -35,7 +51,7 @@ export function RemotePullActions({ pr, actions, writable, confirm, checkoutName
           aria-label={t('remote.checkoutName')}
           onChange={event => { onCheckoutName(event.target.value) }}
         />
-        <Button variant="outline" size="sm" disabled={!writable} onClick={onCheckout}>
+        <Button variant="outline" size="sm" disabled={!writable || sha === null} onClick={onCheckout}>
           {t('remote.checkout')}
         </Button>
       </div>
@@ -44,23 +60,37 @@ export function RemotePullActions({ pr, actions, writable, confirm, checkoutName
           variant="outline"
           size="sm"
           disabled={!writable || actions?.canClose === false || pr.state !== 'open'}
-          onClick={() => { onRequest('remote-close-pr') }}
+          onClick={() => { onPrepare('close') }}
         >
           {t('remote.close')}
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={!writable || actions?.canMerge === false || pr.state !== 'open'}
-          onClick={() => { onRequest('remote-merge-pr') }}
-        >
-          {t('remote.merge')}
-        </Button>
+        {multi ? (
+          <Menu
+            open={menuOpen}
+            items={mergeItems}
+            onSelect={id => { setMenuOpen(false); onPrepare('merge', id as 'merge' | 'squash') }}
+            onClose={() => { setMenuOpen(false) }}
+            anchor={(
+              <Button variant="outline" size="sm" disabled={mergeDisabled} onClick={() => { setMenuOpen(open => !open) }}>
+                {t('remote.merge')} <IconChevronDownOutline14 size={12} />
+              </Button>
+            )}
+          />
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={mergeDisabled}
+            onClick={() => { onPrepare('merge', methods[0]) }}
+          >
+            {t('remote.merge')}
+          </Button>
+        )}
       </div>
-      {confirm === undefined ? null : (
+      {confirmation === undefined ? null : (
         <div className={css.confirmCard} role="alertdialog" aria-label={t('remote.confirm')}>
           <p className={css.confirmText}>
-            {t('remote.confirm')} · #{pr.number} · {pr.head.sha.slice(0, 12)}{viewer === undefined ? '' : ` · ${viewer}`}
+            {t('remote.confirm')} · #{confirmation.number} · {confirmation.sha.slice(0, 12)}{confirmation.method === undefined ? '' : ` · ${methodLabel(confirmation.method, t)}`}{viewer === undefined ? '' : ` · ${viewer}`}
           </p>
           <div className={css.confirmActions}>
             <Button variant="primary" size="sm" disabled={!writable} onClick={onConfirm}>

@@ -1,0 +1,82 @@
+import { useState, type ReactNode } from 'react'
+import { IconWarningOutline16 } from '../../compat/dsh-icons.tsx'
+import { Toast } from '../../compat/dsh-toast.tsx'
+import type { RemoteWriteOutcome } from './remote-view.ts'
+import type { GitLocaleKey } from '../locales.ts'
+import { copyErrorDetails, describeRemoteError } from '../error-feedback.tsx'
+
+const stepKeys: Readonly<Record<string, GitLocaleKey>> = {
+  comment: 'gitlab.stepComment', approve: 'gitlab.stepApprove', 'close-pr': 'gitlab.stepClose', 'merge-pr': 'gitlab.stepMerge', 'merge-verification': 'gitlab.stepMergeVerification', 'create-pr': 'gitlab.stepCreate',
+  'private-ref': 'gitlab.stepPrivateRef', 'tracking-ref': 'gitlab.stepTracking', 'fetch-mapping': 'gitlab.stepMapping', switch: 'gitlab.stepSwitch', upstream: 'gitlab.stepUpstream', 'create-branch': 'gitlab.stepBranch', 'switch-branch': 'gitlab.stepSwitch',
+}
+const statusKeys: Readonly<Record<string, GitLocaleKey>> = { succeeded: 'gitlab.succeeded', failed: 'gitlab.failed', 'not-sent': 'gitlab.notSent', partial: 'gitlab.partial', unknown: 'gitlab.stepUnknown' }
+const resultErrorKeys: Readonly<Record<string, GitLocaleKey>> = { 'merge-method-unverified': 'gitlab.mergeMethodUnverified', 'merge-method-mismatch': 'gitlab.mergeMethodMismatch', 'source-removal-reported': 'gitlab.sourceRemovalReported' }
+const doneKeys: Readonly<Record<string, GitLocaleKey>> = {
+  'remote-comment': 'gitlab.doneComment', 'remote-review': 'gitlab.doneReview', 'remote-checkout-pr': 'gitlab.doneCheckout', 'remote-issue-branch': 'gitlab.doneIssueBranch',
+  'create-pr': 'gitlab.doneCreatePr', 'remote-create-pr': 'gitlab.doneCreatePr', 'close-pr': 'gitlab.doneClose', 'remote-close-pr': 'gitlab.doneClose', 'merge-pr': 'gitlab.doneMerge', 'remote-merge-pr': 'gitlab.doneMerge',
+}
+
+/** Transient success banner for a scoped write; partial and unknown outcomes surface through the blocked banner. */
+export function RemoteOutcomeToast({ outcome, action, seq, onDone, t }: {
+  readonly outcome: RemoteWriteOutcome
+  readonly action: string | undefined
+  readonly seq: number
+  readonly onDone: () => void
+  readonly t: (key: GitLocaleKey) => string
+}): ReactNode {
+  const receipt = typeof outcome.receipt === 'object' && outcome.receipt !== null ? outcome.receipt as Record<string, unknown> : {}
+  const branch = typeof receipt['branch'] === 'string' ? receipt['branch'] : undefined
+  const key = action === undefined ? undefined : doneKeys[action]
+  return <Toast key={seq} tone="success" text={`${t(key ?? 'gitlab.succeeded')}${branch === undefined ? '' : ` · ${branch}`}`} onDone={onDone} />
+}
+
+/**
+ * Blocking notice after a scoped write whose result was partial or lost.
+ * The hold is unbounded because the reconcile affordance must outlive a
+ * transient cycle: writes stay locked until the refreshed result is
+ * acknowledged or the blocking state clears elsewhere.
+ */
+export function RemoteBlockedToast({ outcome, action, error, errorDetails, provider, reconciled, seq, onAcknowledge, t }: {
+  readonly outcome: RemoteWriteOutcome | undefined
+  readonly action: string | undefined
+  readonly error: string | undefined
+  readonly errorDetails: Readonly<Record<string, string | number | boolean>> | undefined
+  readonly provider: 'github' | 'gitlab' | undefined
+  readonly reconciled: boolean
+  readonly seq: number
+  readonly onAcknowledge: () => void
+  readonly t: (key: GitLocaleKey) => string
+}): ReactNode {
+  const [copyResult, setCopyResult] = useState<{ detail: string; result: 'copied' | 'failed' }>()
+  const parts = [t('gitlab.partial')]
+  if (action === 'remote-checkout-pr' || action === 'remote-issue-branch') parts.push(t('gitlab.localInspect'))
+  if (errorDetails?.['commentSucceeded'] === true) parts.push(t('gitlab.commentSucceeded'))
+  for (const step of outcome?.steps ?? []) parts.push(`${t(stepKeys[step.kind] ?? 'gitlab.result')}: ${t(statusKeys[step.state] ?? 'gitlab.stepUnknown')}`)
+  const receipt = typeof outcome?.receipt === 'object' && outcome.receipt !== null ? outcome.receipt as Record<string, unknown> : {}
+  const receiptError = typeof receipt['error'] === 'string' ? receipt['error'] : undefined
+  if (receiptError !== undefined) {
+    const key = resultErrorKeys[receiptError]
+    parts.push(key === undefined ? receiptError : t(key))
+  }
+  const errorReport = error === undefined ? undefined : describeRemoteError(error, errorDetails, provider, t)
+  if (errorReport !== undefined) parts.push(errorReport.summary)
+  if (!reconciled) parts.push(t('gitlab.reconcileHint'))
+  const detail = errorReport === undefined ? undefined : `${errorReport.detail}${receiptError === undefined ? '' : `\nreceipt: ${receiptError}`}`
+  if (copyResult !== undefined && copyResult.detail === detail) parts.push(t(copyResult.result === 'copied' ? 'error.copyDone' : 'error.copyFailed'))
+  const actions = [
+    ...(detail === undefined ? [] : [{ prefix: t('error.copyPrefix'), label: t('error.copyDetails'), onClick: () => {
+      void copyErrorDetails(detail).then(() => { setCopyResult({ detail, result: 'copied' }) }, () => { setCopyResult({ detail, result: 'failed' }) })
+    } }]),
+    ...(reconciled ? [{ prefix: detail === undefined ? t('error.copyPrefix') : ' ', label: t('gitlab.reconcile'), onClick: onAcknowledge }] : []),
+  ]
+  return (
+    <Toast
+      key={`${seq}:${reconciled}`}
+      icon={<IconWarningOutline16 />}
+      holdMs={Infinity}
+      text={parts.join(' ')}
+      {...(actions.length === 0 ? {} : { actions })}
+      onDone={() => undefined}
+    />
+  )
+}
