@@ -104,7 +104,7 @@ git diff dsh-v0.2.2-alpha.3 dsh-v0.2.2-rc.1 -- packages/client packages/api pack
 | 验证组 | 结果 |
 | --- | --- |
 | 全部二十三个精确版本 | 全部通过冻结 bootstrap、适用的 upgrade/install、peer/compat/test/docs/build/artifact/pack；正式门禁未使用 warn |
-| 新增两个版本与开发 pin | 每车道 1044 项单测、7 项 artifact 检查通过；开发 pin 与 rc.1 隔离浏览器各 28 项 |
+| 新增两个版本与开发 pin | 每车道 1043 项单测、7 项 artifact 检查通过；开发 pin 与 rc.1 隔离浏览器各 28 项 |
 
 本地没有重跑 Linux/Windows；CI 中 0.2.2 的三条车道使用 Node `24.9.0`，更早宿主继续使用 `22.19.0`，当前分支的 CI 结果仍待运行。完整 DSH Web/Desktop 宿主与真实远程账号不由本地 fixture 签收。
 

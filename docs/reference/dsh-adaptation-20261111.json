@@ -33,7 +33,7 @@
       },
       "testSummary": [
         "Test Files  78 passed | 1 skipped (79)",
-        "Tests  1043 passed | 1 skipped (1044)"
+        "Tests  1042 passed | 1 skipped (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -43,15 +43,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "b72dacaf625df832dc9b02a831c00b2d8c815b01f0a495ba8c84831e3d94c7c6"
       },
       "logsSha256": {
-        "artifact.log": "4fc85bb19ff1d4fefecdfc095906248e2e7eb8459f245ecc92c94e97c1ed3f9a",
-        "bootstrap.log": "1f2d7a97ef9a85762836c193b839b5f8c8cbb4abc0b2809313e19a09d13b17ce",
-        "build.log": "bbd1ef5b056eb4a3ed231a57eb5a53edcea3abd334ed6cf74097e9f629d110a9",
+        "artifact.log": "046e5a1266470fc119de753e9b3182b708274b5d0f1c3085998593fb635eb7ed",
+        "bootstrap.log": "adcd1f69ba2ee06e115ec93136fa39f3d6928afb3f3fc9d0254bd8424d90fc9d",
+        "build.log": "02d41ac4a6ffaf04de182c78caf6bb86c79b9658f3753ddd0b38dd583d932957",
         "compat.log": "b6ad23e8745723b63157b113be2108318cfcf1dc939bcb7b8981bec7c0a1915b",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "0647bf1cc82f489fd617bc39d1eb650faecce02dbf7d4191b3e5a901ac11d0d3",
-        "pack.log": "5b47b467dcefae20a4719479d3560abbf3dfd2fc27d0e9067b3900ffc26465ee",
+        "install.log": "01e5998f674a90485e773409ee6b6edbdf33c6ff0b66298ae82d441489aa9ba7",
+        "pack.log": "48ddbf8e746c13cd815c493e5601f6d2ae78b5337679e71c4c1670edf37e79cb",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "a6d1c10f1a1a3b93b96f6d55fec78fa39f427159288f8799323ac5952c9d18c7",
+        "test.log": "752a58feb02a98e02ed04ea6c1608e6e64e76af014cc9450f79164edd3277235",
         "upgrade.log": "ae66aef0b186d87db412fcf45cacea3218884a0491a3ee3785dccb3b07ce3e15"
       },
       "runtimePins": {
@@ -83,7 +83,7 @@
       },
       "testSummary": [
         "Test Files  78 passed | 1 skipped (79)",
-        "Tests  1043 passed | 1 skipped (1044)"
+        "Tests  1042 passed | 1 skipped (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -93,15 +93,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "bf9180fa74278134b8add757b58e71dcdbe1f1d057dbd0bc3b7f14cab3162b48"
       },
       "logsSha256": {
-        "artifact.log": "8fa6d0edcaea8871bb56ea24418c3cfa08dce0fe6e4963ae0ab724c5165a7897",
-        "bootstrap.log": "3bc3eb28d2b19b6f16961308c63d99c4cad2ad4d6631a7278a37b9bac5f374f1",
-        "build.log": "2369702ab2f14e82a2f475741235f2bbc3d6609ca360094c71b7512f68b888c1",
+        "artifact.log": "38925c22f6512755909ea003fae27cc933d523ffd0fd2a3e3afd0de4d909f9b7",
+        "bootstrap.log": "e4315068a71119279d1f88406c1e71e09fb2aa349f59adced49acc42bda68fcd",
+        "build.log": "dfc3c636f03d823dafd5d6bc2c5b7467e3d67553dc385b1578df63faaf0bfe53",
         "compat.log": "cc86342000ae7e2177b62404c595834d15f5546bed22f992f3ed04e6fb636174",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "dc23faab2d51d5d2d1d33a101fcb061abe5d9cfdecda7699da02cb4316429f54",
-        "pack.log": "d93f43eabafc87a963ead099c5e07e4b2c99fdde3c1f302e6033a941c43406dd",
+        "install.log": "01cd139812d53bbf722b7f18f7cdc04fccd397871abb201db290ac7e4a8f716c",
+        "pack.log": "df3acf558e33f1d9c904ddba2b45a300fb20911f9114cda56cdff080d428f415",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "3c0f381d8692cbe94cca1a03e9630bf808200168fe9c0432c6bd147d00be806e",
+        "test.log": "d88295b28e8fd75b7e93d62c10455ae325791d1b5f99e584b33fb668d390c923",
         "upgrade.log": "a8a2b6cc0207e4059524c3351acb39cb76859ec233ac5bd73506654f923bd95b"
       },
       "runtimePins": {
@@ -133,7 +133,7 @@
       },
       "testSummary": [
         "Test Files  78 passed | 1 skipped (79)",
-        "Tests  1043 passed | 1 skipped (1044)"
+        "Tests  1042 passed | 1 skipped (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -143,15 +143,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "35dc44a6c98e9db6979a0eebc209b97b0d6d4651633685989da6fa3976da60c1"
       },
       "logsSha256": {
-        "artifact.log": "933ffb80bea1e9167dfa5998929f31c6df378a126a32f9249efc79f26b036d3e",
-        "bootstrap.log": "b8c5d80daf28b29d17ba1b55d6abdc4fa910fab3833820516d81bc975d001800",
-        "build.log": "e4d1cccfc01a4ef3c9d6b22ada3529c03f22b4c64c7e0d1ced37cead6296d127",
+        "artifact.log": "ab77341f66da1ad69a1b49de3113d92a6369ce48307e92d2a906ea9a359018cf",
+        "bootstrap.log": "4c74c17517c446d7b0d9d0c9104b8fbe92873c310cd36adfb6ea090eb7778414",
+        "build.log": "682069d47f28e5843172ec9c574e4739f195c0a4dbaeb0d966d5a0ef87c62962",
         "compat.log": "cef055ccea57de6b35d1904ca38388836a908cb3a02e6ce1087ca9cf01c8b121",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "6d27ceca1fed227413042b67e20c8d3d79458501b91b53b3274bb32b77e04f34",
-        "pack.log": "cdb7adf9369ae9cbaf6a2b8fead7b5b7cd6465b4409d83040fd21a34996c61ea",
+        "install.log": "07f8de8e0a3d9ae09a72fb951672d57036f6736e9e55e5888c0d459c9e673ab9",
+        "pack.log": "37cc59d88612f8b07f211feb0b9a1fad94f4ca36028a34ac2672c2b2eccc5f67",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "de15781232f943c3f2dc241fa1f4b6da7e813ac175e57fa132383917fa26f6da",
+        "test.log": "0aba8867970058b4f23a1029b835dc73a3a024986ae7ec408d6446d0f169a1ac",
         "upgrade.log": "870df45c82201ee698017151e63fff268680183f7cc0e1479bb36106117f2310"
       },
       "runtimePins": {
@@ -183,7 +183,7 @@
       },
       "testSummary": [
         "Test Files  78 passed | 1 skipped (79)",
-        "Tests  1043 passed | 1 skipped (1044)"
+        "Tests  1042 passed | 1 skipped (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -193,15 +193,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "cf564860dc13e7b1b7adbecb34350db23170745dd63ade02f62944f8e17add67"
       },
       "logsSha256": {
-        "artifact.log": "e02033c4325ea08a0b0860a1c363a4ca84cab69593c11f8aba99ca8391b76182",
-        "bootstrap.log": "e264289b8068f225017a41b7eeede20c17c445dbb63aeaba67ff19df1b846a0a",
-        "build.log": "aba7990702c7cb5d9e3d88213caed2bda819b74013b84c69cece1e383ec10860",
+        "artifact.log": "49820e609577eb0665e96b81b078518236d55731943a829536fa0b0b4faef2cd",
+        "bootstrap.log": "6d02adbc3894c411c513f1bb078350f9d2cd01e6ffe6e87aedfd216959e7ab1f",
+        "build.log": "24e4d8ed35dddebdf209dec9cb6620cc4259df81fe1268e7669a5ef76ff4e715",
         "compat.log": "9372d3dc70c0fe6b66427f167658f24cb8db3e98d1ac7b2443fbb3a115c95572",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "fc5a4a0436b9830978d89bfe9895e17df246893614cb5e86f924db0a37c44959",
-        "pack.log": "5997eb24dadd5167fe2554466005482d5cea85dddd4d6ac30074b26fe9f672a7",
+        "install.log": "129bed9cd0a3c840d82c0e86a10029fdad3754a4d5ef6c933d7cd5ab3e5b3a34",
+        "pack.log": "3bf6babd98ca4a96364278214cc6c86c115996f8d770c9aaeaa20fe85c3b6589",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "99187d9f41ffa6e6453485ffdcf7ff0eb97638f05eab20f084137b8bcd870a19",
+        "test.log": "90c7cc44ff71fe4a81ef64e54359968b1fa0e3c9b9d1b64469ed4f4110758a95",
         "upgrade.log": "afc9735e7e62040525db864ab0a2381ecee40638bca95e3baade4e20e2badc7b"
       },
       "runtimePins": {
@@ -232,7 +232,7 @@
       },
       "testSummary": [
         "Test Files  78 passed | 1 skipped (79)",
-        "Tests  1043 passed | 1 skipped (1044)"
+        "Tests  1042 passed | 1 skipped (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -242,15 +242,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "dd4252f1dee7c1763486185f8a4ebdd40fe579738ce36ab459ffa6f72140306d"
       },
       "logsSha256": {
-        "artifact.log": "600cd2b5975f867b33b66a667151e2985642e5b16e12a2314fcd72a5e71d3839",
-        "bootstrap.log": "220e6b0cac5c7f06f85de277d25012f5cfc0fe7725acd67679ec2dc4b8241a20",
-        "build.log": "7f7ecee1a3410181b8fab707835dd7f939ee3662dafea431490e316e7495c7f5",
+        "artifact.log": "b40b8bc5d5aafa103a38d72e9e946f454246459780bb0b659b8d1a51cc8cb289",
+        "bootstrap.log": "82e2466f86f59b68215d6b223d53f27308b420a927af1409239bd907d66de5bc",
+        "build.log": "c61bd4242fa339380314df03e3279a03806e91583d82c2e438e6d257b0a37564",
         "compat.log": "daf113b1c9797bc736381b1d93a2c9c1b71a9f1b48ba063b387b22620c186918",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "911c756e07c887ae8027e6b187e85e5db54b3741c23c3b55ddc7c6b1d15b10e5",
-        "pack.log": "689ed4cfcc78d58a9c28d23786dd33ed3e82adbb64d428ff9ac28a57d4a98cc2",
+        "install.log": "bb3888512ae54b4b8f264eb6cdf8d1aaa06d1a1c97f55c7154d1e86271485d07",
+        "pack.log": "2553b78432a2401604f0986304b911ffd3ac759823bb19cc5f46544b898532d3",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "908d07acf3d9133ecf51a4f2718ccd66d07ac7deb8ba23a6e9d4f6c824c8a024",
+        "test.log": "0dd98a5e4f287f41d2a3b27f3d676eeaff304fc71816c8f65c4bdcede9b14346",
         "upgrade.log": "ec271eb28d613a1435dc22583d020e4d96c1c0e57489c2e300a037053b2d58fd"
       },
       "runtimePins": {
@@ -281,7 +281,7 @@
       },
       "testSummary": [
         "Test Files  78 passed | 1 skipped (79)",
-        "Tests  1043 passed | 1 skipped (1044)"
+        "Tests  1042 passed | 1 skipped (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -291,15 +291,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "c90c8151142df6fc5910319f3e0b515690a4a7f280de998f6d5f0ad69eec152c"
       },
       "logsSha256": {
-        "artifact.log": "ab0aa3770bf1feba130339c1905de6b40c4b2410923ef1560b0366c23fdfdce4",
-        "bootstrap.log": "510475c701c7b42717dfeb1cb4db59f8b8227358ffdbf133987c434ccb023a3c",
-        "build.log": "8fbddcd50ab912a967470118ae835ed2b51b651259f7d8bda244a111b0d59d3c",
+        "artifact.log": "8a50e856827c0182c617c086fb8730908cd06889d059d5436093afeed31ebbfb",
+        "bootstrap.log": "1704d28b5fa76893d59a6b43fed0ed7cbc04f4d54d3963574c4bb4022cf5e5ae",
+        "build.log": "a3b60b17d18a7e005fe4e66dc30219ea9cdefac4b87d4bdc366410ce743b2eb9",
         "compat.log": "cdc3c35a0d047aa1b049eefb6007e6e543a46ab674e10c108cd3d73e0dc8e010",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "c2f7f08a162046e83547f311463fd50a42638522958f719cff7688391dcf4f90",
-        "pack.log": "454bf77203fdc92cfe9411084822029b7ccb934293932e570551d1e0170a7b79",
+        "install.log": "7c6f0c015c7467e610391b7dcba2fa1fa49bc17bf6f3a53f1fadac2777c6325c",
+        "pack.log": "36ad03ea2f5d6d220bf9a3d74a17cdbeb93684755db3297dae4ec6b52955a995",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "fc8fa2a50fa742aeba94bb14fadafcbbb778b4171487686ac7a519ddf19ac9b0",
+        "test.log": "765e699dfce62a13c627440e39b21322d81e45841d5934207a09ce61b3df5666",
         "upgrade.log": "55673370eefd89b11dd7bb365f9082daa73aa973042f5f4ac11ecf45875dc6cf"
       },
       "runtimePins": {
@@ -330,7 +330,7 @@
       },
       "testSummary": [
         "Test Files  78 passed | 1 skipped (79)",
-        "Tests  1043 passed | 1 skipped (1044)"
+        "Tests  1042 passed | 1 skipped (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -340,15 +340,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "d923e4b6b7e850fc517d5f84faa744e717b13409746790bdaf142bf860d160b9"
       },
       "logsSha256": {
-        "artifact.log": "3d40c1db1b74649a83db5b003c3e441af8fbb5f75a5282edec2120509ce6a12d",
-        "bootstrap.log": "cbc383e79b7adf20f8841af8edb4455e709f7258cb7095289144e77ee9e86194",
-        "build.log": "30b2dd4fe14e8494df31fd8910333f8db52ffacf5c2986568e5145736a05b6c6",
+        "artifact.log": "42adf3dfbf784642dcae1c4991c0c0bb65d87b15267e6bc390de493de38eb79b",
+        "bootstrap.log": "65b49f4f307d0a37da0cf5686a10787a61cfedc1a433124be89ba0a158f2fb03",
+        "build.log": "3c03a735961444fa395b8f96a0767b7a115167639106ca0af3b3c3226c15f88d",
         "compat.log": "0f62bd173706be79fefd4be95e35b7c1a4973a7644b9d500fc2d55d0b4adb041",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "b34aca1114fdf4d1570c88decc53407fc12665fc8fe0bea967b1034d79dfac83",
-        "pack.log": "58925d34ffc8a3a4b98f6d0d56b9302327976a7e855bd6cd58d99aa7a9955cb0",
+        "install.log": "9601cac4c0506bb5d140aa8aa59d6da0e870f5d60d8abc7b78e591532a14c095",
+        "pack.log": "28282c1d7eab98c7140fcb126d42a2bf6190353edf07778f94f8e3146ccec929",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "a3d66001e4e31bfe66934cafbd3dc9c98ede82b814954fb306d6d8b8daeaa826",
+        "test.log": "8c217681e7fb90de23f620435ded0c6372fe83fd89ef2f51f3eb3daced785bfe",
         "upgrade.log": "58d0c6f90cdd12d8ecca232288178675510ddbb366fe88ce5efe2087b856a11b"
       },
       "runtimePins": {
@@ -379,7 +379,7 @@
       },
       "testSummary": [
         "Test Files  78 passed | 1 skipped (79)",
-        "Tests  1043 passed | 1 skipped (1044)"
+        "Tests  1042 passed | 1 skipped (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -389,15 +389,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "faf3b8cad3fca6901b1a7fa5e58d2cafde3b28404f248b60ca4af16aa454e1ec"
       },
       "logsSha256": {
-        "artifact.log": "830e86f8ccb5c793bed40eca0552d7bbf9824352de5dea6622c0e6d0a82b414e",
-        "bootstrap.log": "2202ccfe903cd70a54b506f587fd86688e9adc9643a70e3b5e551445433f7449",
-        "build.log": "d7d82620869445777b9993bced9d70ef8a9f4c8c1566e736ba95d6d49bd00a05",
+        "artifact.log": "abb187c42e89883e792b1e3a31225ed61ba58d02cd7b4b908707d72f79f11d67",
+        "bootstrap.log": "d154fbe796a1e23aef9bfe3b3470bde099a47c27b1e79b44b095c746db59c085",
+        "build.log": "a631af2faf86dd32e312a173573bf65edb1cfd5a2685e9811df4069c2b51fda5",
         "compat.log": "a37d5fb35bc9b8e31e41d10040d83710472d35e1020cc99433e73f30521e5228",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "99af893efe67560dcacbb1c496d106b6a81f2aa8023bdf096896a4fa4182418d",
-        "pack.log": "769ca08c077e4c545ce0ff59fdb8f773ffdc8d6f753a5181b86596456e6c9507",
+        "install.log": "321faea888c590e1eaea1ed0d05bcd9cf8260ff8281348eb2acf5782846ab9ef",
+        "pack.log": "0da0a9223d32d54055980878af4e8d548cefdace5b4bbce605c0a7f61b78bf82",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "7fa21fa9e35b9fbabcf4b908203e475178072109127043a30a6a757f3e02eb19",
+        "test.log": "a7f6315f6c523dcd6030a8f2add38cf60e9fd669327e3d76489366a43ecaecb0",
         "upgrade.log": "cffa11baff7ea276c7c0c7f7323c0495d63725a152c3395d76e6b585c3950aa2"
       },
       "runtimePins": {
@@ -428,7 +428,7 @@
       },
       "testSummary": [
         "Test Files  78 passed | 1 skipped (79)",
-        "Tests  1043 passed | 1 skipped (1044)"
+        "Tests  1042 passed | 1 skipped (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -438,15 +438,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "cd8a05a94bd3548270e46b0574fab26f965e37bd0ba28b765dc9eb2c007f81f4"
       },
       "logsSha256": {
-        "artifact.log": "74fa91437f9b7f4931ea8e4ee621e0ef50b2ab965e3075b1585522c9a3f575f9",
-        "bootstrap.log": "00416911768fbf453a3040de905e98f81ad572350c2597cd06b4f3f363723710",
-        "build.log": "1bcc17fa454ca44c26801fc071009521b7e298e40e236c430201adfe34b5490c",
+        "artifact.log": "206452dc8d35b6ffe5292639dfd2f79f13ce1fd50821909129bf382034aa6c5a",
+        "bootstrap.log": "80201d362cde4ba0d376543eb3e8b43aacdceb4c0197a1509fc90b507810da70",
+        "build.log": "ab9265bb1f641b68fabf1e4af8babd6c95ac021ae7307ca0c0bfcf3f674b3203",
         "compat.log": "700874feb381d319681240533bfc7ef375c2758da0714c4137766ba308959340",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "73125b8227691c048f4fb5356f36a8632277aa9884e94a40d07c17f323e60b9c",
-        "pack.log": "11593b401ecbb68a1c169fec3ecae9ab41d6c9c8df34d753b084ba264a3467a1",
+        "install.log": "3a0ad73910bc4b6888860285623deec6e8ba0d61d0bea434e67c9edb45248d08",
+        "pack.log": "5b31c698c57b7b2a91e312778bf4cfa01baf2e377d5f72ae3588739cd2815fbb",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "741fb443a58f0ee4eb36578c66650115289e285a809e0d404898eeaed8d3a4c4",
+        "test.log": "811bb123c7cd937e03019a7465324acac1d23b3dff1d14050f817cb810551828",
         "upgrade.log": "cbc41bc78dfaaca341ab300aeb5cf6306ea1d215421eec742b3faf3b4f6d4d86"
       },
       "runtimePins": {
@@ -475,7 +475,7 @@
       },
       "testSummary": [
         "Test Files  79 passed (79)",
-        "Tests  1044 passed (1044)"
+        "Tests  1043 passed (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -485,14 +485,14 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "dd778852263a1aecf0e15e15db3015612b276c6e6ac4107931a52b9e16f02319"
       },
       "logsSha256": {
-        "artifact.log": "a3d285abf24616ab5f2a837a98b0332c49f3178981c60505d9a27be9a546c8ea",
-        "bootstrap.log": "e066f376bc609575f255c5cf8f5c5e03c1350ec8e3faaf31e2394d4b5bbbf4be",
-        "build.log": "e3f143bd26091901c605e9c348d6d499e9aabc72e541430119a94bf8571ea8a4",
+        "artifact.log": "c2dc954ac768ee6df6590113aa4dec3a9ca644e90ac219e6b4ea44d1e7c91767",
+        "bootstrap.log": "ec3fac01c86887d44021bf3afdbfb86ea45e0b080c50e39b9d8215af576875ca",
+        "build.log": "86a6581dbbaccf78797543aad84ac4480732e907b4bf24c970a68c100670407c",
         "compat.log": "7d57d67fa36a6b924ea72fac20f5891f7f70de5b8ab0ae8d7f61459a5407e845",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "pack.log": "1aad1e9ad0a802e68f59f392e16e05bc7c3f9e8a1fef605e370edd2104804a5e",
+        "pack.log": "8e29b7a795afca8192eefcd6e5fd3f0c9a38c30bb6a8ae6ad01b23bcaa08f84d",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "1376fa7ee058b158ca5abd6731fb55226922423c98be9aa5dfe371d4905d2384"
+        "test.log": "735c4353df000fe89d7e7db4d68b1c86d022433904afc78b4cd1a0de1372b859"
       },
       "runtimePins": {
         "@deepseek-ai/cordis": "4.0.4",
@@ -518,7 +518,7 @@
       },
       "testSummary": [
         "Test Files  79 passed (79)",
-        "Tests  1044 passed (1044)"
+        "Tests  1043 passed (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -528,15 +528,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "265d407ba07d8e74cd7dc1f79ebe71938edd0fa9b7fb1a45b803c29a877b2304"
       },
       "logsSha256": {
-        "artifact.log": "2831320aa35aff01e4795b35efcdb63e01c80cfe48632f5469403b0149ecca3e",
-        "bootstrap.log": "82c5b9f3856b4f01294fffe8a5a37ef0468e2c7b707912fa9c5a904364817a33",
-        "build.log": "f990c8c2f2dc0d7c1a8805c6e1fb6a964a97f06f9b270f740ef9ca0d4df0b4ba",
+        "artifact.log": "ce2d3ac505d4b19582913059d80ed1fea9cf598f9be1c14cb1aa322fa81a56c3",
+        "bootstrap.log": "bac363efe6244ca8d5db63ec2120652ec64615c05e663a4c8f529a836e9aba6e",
+        "build.log": "9c6ef591e134a465cab45d3ea5493135242c0af0fa099324bacc2400b6a4cbbd",
         "compat.log": "e87ca6499dde75ff92a4d1536e2658a6bc7d7c70693898e408ea2635611d6619",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "312acb7286b870adaf574bbc0fd219736462d93c3456cedd3d871ff0297f75a6",
-        "pack.log": "dba3f4823b789fb18f6ab12326fbd30815fe2bb0f57e5acbe9808c0072341194",
+        "install.log": "1b00669f56e553423d546d51b6df09eef8b05e56672aba2d6f3c7458b8a2ded2",
+        "pack.log": "7a21bcdabcc60f6b522d22fa8788ebb65ccb255cd9631e8a8892a874427a7676",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "2f8b0c289ba15fc18912235e10c6ddd9aded465dd6366478101b0f963bf54308",
+        "test.log": "88f357f9bd595f635fc713c228bcecad5a2e4cc133d35f57bd12bc1fb04ef310",
         "upgrade.log": "b5ee4b75e4ec9e276b7a4e1b4b222b43d0afe1951a32f588975ee4b673ce8031"
       },
       "runtimePins": {
@@ -567,7 +567,7 @@
       },
       "testSummary": [
         "Test Files  79 passed (79)",
-        "Tests  1044 passed (1044)"
+        "Tests  1043 passed (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -577,15 +577,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "49a3d07d1b2b34a5b6bbc06217083729d1cdfa521c716d26e516e756bb7bad4e"
       },
       "logsSha256": {
-        "artifact.log": "23befe1e146ea598125544a32a0320d602cf6476bc08c4de8cacb1e84892e677",
-        "bootstrap.log": "12bfcc6f4e5be5093a8bc5c15e3a222c036243f4c05bb731a6414d5cfca96bc8",
-        "build.log": "df3a35bded4636f86f5e03838fe817ec32f232e996a5030356ad0d2f24da1712",
+        "artifact.log": "bf4bc07ee11d434ead2dff0e0e98e81c09d085dfb4f5bab494e8d783584ab650",
+        "bootstrap.log": "f90c0bba5e7b4f71625c598ae39835d0684463cb9b2af53994ccf12d2f23f771",
+        "build.log": "ffa58b545ad76c8726d8b4b12cc206f545bd75dc07826389cff4023b053d054f",
         "compat.log": "1cd8f8c6baf266bc09f2e2c931a2b350b3d8114abfdb0ae1e226e7361083b124",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "c0f9a43103c3e726610f8a99440c5e7f9e775ad84068f7a7c4b9356f954d4bdb",
-        "pack.log": "5d831c0dd34202fcb794fa2f231a4bc323e10906015125c9522e2776ee972b20",
+        "install.log": "61c77ac7a321e566b3055810dc079db1c3de5c0780dea52591d22a087f730388",
+        "pack.log": "8a9a701a94ab7e33bbcd8fa6f136f9afc3dfab56addf1e5c8814de570b66fb88",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "78881123fbb46d59b60a0be1725506cdd0a6ebf8bb75812b6fbcde524e975621",
+        "test.log": "cd35461064bcb9630eb40c93b0681f5b3fef26168ae40a72ff5f62dbbcbdb4f4",
         "upgrade.log": "8303b6ba59d154c2024856b2e8f51c9c050b86999719cd537ca6d5df7b08bede"
       },
       "runtimePins": {
@@ -616,7 +616,7 @@
       },
       "testSummary": [
         "Test Files  79 passed (79)",
-        "Tests  1044 passed (1044)"
+        "Tests  1043 passed (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -626,15 +626,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "496c9fb29fa432376a7fd91385b162906819fda380a3f0e0cb6c5c4104c4c2e3"
       },
       "logsSha256": {
-        "artifact.log": "829d9c7bb9d7cde13cdad80b6f8809337a4c2391a97fb6168984c75128edb803",
-        "bootstrap.log": "7a500d8dc5f312e4b62dcdc5a40ae75559aa47e8473f149faacf3717ceeb823f",
-        "build.log": "367cf14f4842aa533d4a0d8e905497ef0b99211ac5ea38475a853c1b037c6056",
+        "artifact.log": "30e2d7767c68ac8313fdf4b734f3d482e9be23600cb261e2dcd27d4307724669",
+        "bootstrap.log": "49119b36f67d9794d52728a0ff3ccde1747a2dc00ca12dd428b7d00f88ee7aec",
+        "build.log": "d9dd2378a6d16fbbaf62dcd8af1be0839e386b8f1b598185df89cb681fc421fe",
         "compat.log": "aa2925eec51d27970e9fb8f9720dbe9303ea123c1b931e24a7d40e8d52c03c11",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "ba8f6fe86d74372858dce4aac5d6ce38b84ebdd4d694c19ac473e153887f77a4",
-        "pack.log": "3b915342fa4ea34ac7ae77dcfb962df112cb3417cf50f95b39e9b57625e731e2",
+        "install.log": "04c32381ed69a6d926996fc3f99c8bce9dad70f85fb6ace62713ceaf2dae4e06",
+        "pack.log": "6c813364ddc104fca960b8e5e83c6cbbe5830a1cc3b8d6fe520f1c888782c122",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "0e451e19f590ca8a5cb39481863bfc3a8a9c9896cad120ad7a6b049da9433bba",
+        "test.log": "0a4ecad985de52247a3d482889e105162d44411fbeb5e084d99f0e2beadb14af",
         "upgrade.log": "79b1248f51cc68377d937367f88fa849914632c95fb2d7c4fddd6847a2830959"
       },
       "runtimePins": {
@@ -665,7 +665,7 @@
       },
       "testSummary": [
         "Test Files  79 passed (79)",
-        "Tests  1044 passed (1044)"
+        "Tests  1043 passed (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -675,15 +675,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "544181f0176e0aa83933aadcca928b4cd4a966b9e1bd286f89fddcfa17c34f5e"
       },
       "logsSha256": {
-        "artifact.log": "52720f1a15a1fff36d9a14757b3e62ceffb28515bc03a2f960542bf7d8ebec3c",
-        "bootstrap.log": "5dde0e967f800a169649a1ccb45e1dfa27be1e687db2ac988dcfb6d75b7ab2fc",
-        "build.log": "d29231db4e3ff6cfb3bf463f22a19ca6788f70397ade677d14c01c2022ff67d5",
+        "artifact.log": "b54ef0c1d4eaafa48f5d16ee805437bef5f40db77e285472e8187a609d955d34",
+        "bootstrap.log": "532e97a574af5d50fc4d57167def1177dd2c21e35bef3192e78c82bb94b1d070",
+        "build.log": "3514241215be1efeaab70ae6350a47b42dc581467967263c424bd5ef6c48a0ec",
         "compat.log": "2ad4a2f6fc17e1e449e7c227b0b1d63e51a498091d310539eecf60829b2400cd",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "8828341c679bf5ae9594f642d92a7869e1ab322c9069b2635c27ac7e5e9ba702",
-        "pack.log": "a1b2c0e8fb8125a72e958da4d81e5f57fc67d0824bf14d3c8c0d97f3c76d6f73",
+        "install.log": "58776e7feb149cc48dc7416bc88cf735011a6d22750cdcfa7284ba08869cb6a6",
+        "pack.log": "6b86cb345e26a59072d00161ac579823ddff3ad5116a4edb4325566cc3b26215",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "04a4f72555a13e99d6cab310afbe82afececf1e2c90a5f93fecc7089beec7a28",
+        "test.log": "f74e3e3334e68b226d3e13c514eac6416f51098e2165e337d24daf8a4642b531",
         "upgrade.log": "693dbd8fb79c9fcf652d6c55affe64c1092d086678d6c0230ee581042fd00f8c"
       },
       "runtimePins": {
@@ -714,7 +714,7 @@
       },
       "testSummary": [
         "Test Files  79 passed (79)",
-        "Tests  1044 passed (1044)"
+        "Tests  1043 passed (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -724,15 +724,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "d2de23927991e6fb98175b7442009d4b4f7d0863bac4938793a53a675779f82a"
       },
       "logsSha256": {
-        "artifact.log": "0043918374c1d2679e4d9614aa9006e292e89ea26fd4a9d659a670a3984f92ea",
-        "bootstrap.log": "d281ef7b28d3e824c40d8c3425b4841f19be0c66787eede5bf0dbe841cb694b9",
-        "build.log": "cb358355b8cb53294e947f4639da078285698b02ae1a6aff3e26e2d6d275cc31",
+        "artifact.log": "30a6314fffc9e6e3c8eaba53cee8315422a2034c99f960cc0c86f0aeae1d05f1",
+        "bootstrap.log": "c3fccf53c0ff3d3e3c8d0307617dc8f16228ef952385d25ff4d89e88e6d5fe1c",
+        "build.log": "ffe5f4279d919348afe58af3fe7d9d5a4e0ab9f4e8357f8624cd256699b306dd",
         "compat.log": "a995b5535d9297830c2712c8980defd828938f4e363043de26b768e60b0d8193",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "1c026e8033b2587cfa113b76be34582890f4ae348a41b4b91fe4908ca8c674a0",
-        "pack.log": "2bbabf7f34acbce36d585cb7fff7e37bf870998d9d69b0c25eb30d7e7e7de789",
+        "install.log": "fda6391b9fec2b8aa7cad2ac9bd7e8240a0790eb4d4dd2805b8246d25f626b5e",
+        "pack.log": "3bac07cc6b46d895d4dc43e03172dda4fa1ecb51de38d79690eb2be2629e7b5a",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "ad484cabd3b63e41155fadace3edd7a4a4f812ccbc1d4636a4cbcaddb208cdf2",
+        "test.log": "c516b90dfd858980f8dccb70adbc4a87ee46150f6b0093c40202c2a20c0c83dd",
         "upgrade.log": "246e8d8b4761bf20b5595e9b02c20b9a4709f12a5428121ef768ffb709bdc8a8"
       },
       "runtimePins": {
@@ -763,7 +763,7 @@
       },
       "testSummary": [
         "Test Files  79 passed (79)",
-        "Tests  1044 passed (1044)"
+        "Tests  1043 passed (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -773,15 +773,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "049f9585f1b30bbad271af8cfaeb538faa97a78217a46603667e829e7372c1db"
       },
       "logsSha256": {
-        "artifact.log": "a48e0d5c10567089e74a580e44d75f2c28ff8f09577eb060cff7a585b05e18be",
-        "bootstrap.log": "ac308d34112a1072ff4ea1852e934d650c036ea7b40dd6b41fa0e35129105698",
-        "build.log": "8cc382df72aaa7e3c808ad61a89ecd7d64b6ac001329926cfbee3817a091be3d",
+        "artifact.log": "4e9f48265ffae8ad152ce73843e21945432067888ff9ab06467ccaf86bec52f7",
+        "bootstrap.log": "51872d87c581600fce266e8fe2b2884be65f7f8b1be4ac453b826c7710a84cfa",
+        "build.log": "14b23a8135204cc38b9cce0a202575ef72eeaa49b0d4a25cdcf13d9780108afe",
         "compat.log": "f1b7cc4ce03763730cf9a21dfbb1a6f48711ad4cbd03edfa4f20f1b0cbbe5863",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "86810484377f49d5f95736c92ad67692f64566cc2821c1af69b4191c111bad79",
-        "pack.log": "5b1f7fb1f524de3d59bcf82024ef892bfd1082860b3e796332c3989652796f99",
+        "install.log": "ad5a506e5e520dad90fc083035ed6cb12ed384888ccf3cf5c796bb8198242e67",
+        "pack.log": "d6adb8d38fed0f2622916a6d45593cb71dc697a6a920c0ec17784f8d3ac85245",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "4c4b10edf033fc01aae29e2585c37a79cfdf4c099f01afe25c29d9c0fd2b8957",
+        "test.log": "ce42bfdde80561fc5b33456494964b89e54bc8364f7055a7340b758b966cab89",
         "upgrade.log": "2be736589506f656e5784a8e3c76c65ce7dff8950927597330e6bfb4eb60c82b"
       },
       "runtimePins": {
@@ -812,7 +812,7 @@
       },
       "testSummary": [
         "Test Files  79 passed (79)",
-        "Tests  1044 passed (1044)"
+        "Tests  1043 passed (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -822,15 +822,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "796e9f56f5e7d3d156a3088176f30aaf62f0e6aa95a2778c0a6c270bbf2aa354"
       },
       "logsSha256": {
-        "artifact.log": "9c55cf44efdcc6c64ac339ceaa867285ca2df724dd245e1871153cb4ceb8b353",
-        "bootstrap.log": "2203500bafce1964791feb7446ad9b9978cfefdb29fb9de6c6470fe80d018969",
-        "build.log": "3b9fc04b29542f326fc9412bdc4740de5224d0d0a982e77fa13c4864eb75e16a",
+        "artifact.log": "cf546d8125cae2b2c6f210063554c809a94235aa116eb004e465b28970b79973",
+        "bootstrap.log": "843b732ef846ecc2cef72ee87fff924101d2c300d916224903bcb026ef6716f3",
+        "build.log": "8b97b87ab5629a95dacbcd865fb62c769cc09dd28a634fce1f59c2fa6ec60df6",
         "compat.log": "ad4dbcaa2182ebf704d6a470059ea5ff54e8b20f085c9669fa7fbb445da5f03b",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "1d8092737327fa621a6f774852fcf2355b2d9bb5673cde9ff59d8533921437b3",
-        "pack.log": "3cc592baa13f49d54ae10906dc35d62f040fcb57a73e00834d2275cf959358ac",
+        "install.log": "d274fb802b0c97701941445575fbda8e466307bf95c63fd4e278129cdcc1de76",
+        "pack.log": "6cb697dfa83a818637bc63661db20f3e9362d1f7e62ad61ab9d79eff4b53a45f",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "7655aeda917abcb2f7347c8ad2f723ae699c41b27d9374ca1b7d3f5a82c8a358",
+        "test.log": "a2230104571b0570703aeee13607a937971965032aa70e08e353f7b9b2869df9",
         "upgrade.log": "307812ccfbf8ba83631585781ab0b099eb6b88a509a897a370fad313068a3a81"
       },
       "runtimePins": {
@@ -861,7 +861,7 @@
       },
       "testSummary": [
         "Test Files  79 passed (79)",
-        "Tests  1044 passed (1044)"
+        "Tests  1043 passed (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -871,15 +871,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "4a07bd961e95af3f28fde0d1c4a05d3118e0a685e2e8e2f4c5fdbea6bbf90411"
       },
       "logsSha256": {
-        "artifact.log": "90a8b0e144c554bc1048fea7a44e36f9ec1615a07a1417b3c99c56a0ef399ce7",
-        "bootstrap.log": "047968003d3962e20399bad9a5d9cbff4791704392eee4b20a9ed863335233b8",
-        "build.log": "1d7667f5916052ce243bf0ae560d188dc4955a4e7089612059e22a264f8f7bbb",
+        "artifact.log": "3ac9eafd66dfe54720e406eb4ab3c89e10881e51850fa74309a1dfe322a90ac4",
+        "bootstrap.log": "bc7874866b9dd0875df30b44575ebb35ba169794a9e70f0de7f4491f329e769d",
+        "build.log": "623cc30dc5bc338274cc4ae405161f6a4e3230e2b73e4d86f354c54806556c71",
         "compat.log": "b6610c5e62af3bc190010772f33b73d666403473be5fbc772f9a4e6a23978848",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "5e99b258e72dac23a97efc5cd150f61ffc98840a9095cf1b10a56b25d87f8911",
-        "pack.log": "929ad1785d64e54d42d73d58eaed33a28b18c4a28b7e63b004c0d418109ce487",
+        "install.log": "8339cf73af890841f11a630b3a98d96d1df040fa4deedb253370d0f625ead055",
+        "pack.log": "c191c11e1d1577de31d44ae42ed5116fa44b55e4729354304d5478e0f27f9dcd",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "eba5e1eb3d67ec36e8b0141e54c8150b138090188ac6842caf4a4640d41850f4",
+        "test.log": "f0465c3e40d92a59be1e11350d17a22b8d45403e2ad981dcf4d674f7b93776a6",
         "upgrade.log": "704fab7c0d9910353d4805cc9252d8489a69be809a993c06f7f367106aca95a2"
       },
       "runtimePins": {
@@ -910,7 +910,7 @@
       },
       "testSummary": [
         "Test Files  79 passed (79)",
-        "Tests  1044 passed (1044)"
+        "Tests  1043 passed (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -920,15 +920,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "4f96ea586748116c586cab27ec4723da85c1da8dc46945b453eca81163647683"
       },
       "logsSha256": {
-        "artifact.log": "e62cd248ce0321ad4aab5746d44834f8cf0666638121a1bf8b927fb6738bb013",
-        "bootstrap.log": "6c4a5b866ee2bdfd0e0e6b5591acdcdc6a6ca4ad2a34f7f86bacf23dc63edff4",
-        "build.log": "a3571d4663a2b0a5eeae4d510f2a6c69deb68bcd97c24fc4945bcd867f2ade21",
+        "artifact.log": "77935654af9008618a09d24fa2233702b65cf5aba607338070c361bc95657d60",
+        "bootstrap.log": "3a2b602c995ecdd960842cdfb2fedba48f1a1bc406391aef60d37d4f2e221812",
+        "build.log": "b2cc6d86738d45d28bf446889d551ace0ec940c252062f2ad2506ed92571d43f",
         "compat.log": "022859f0cf3cab66baab226a084a41e511f8dcd47bf6f3a7b810507989b96196",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "e5c627fa4e2414dabbd8a1c76f566df4a792f183e84723956d721e24b8c3f22f",
-        "pack.log": "b28e37ecd4891f952a664fd113bde738236e1583e56ff7ef8978a1ce0016fef6",
+        "install.log": "f9552f0b9996a3a308f54fcc952d854263bb9627f6131452319bbbf6d98518f9",
+        "pack.log": "fa47d11e41c26eb7cafe2dbd848dbb60c2786224be4f972ff6396e9515ec7484",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "6a46e3271d780aee5c5a6f6eb7410caf3ac347c0d8f735aac5439b71424f319e",
+        "test.log": "2d95af9b6ef05322c247ce8e1568dce6bf1a0dbb11bbfc2b471ab77cc97297be",
         "upgrade.log": "7f6fbc8ff01e6c21ec24e7851224b5a311255dd22be3a23a77a6430f8d294f3f"
       },
       "runtimePins": {
@@ -959,7 +959,7 @@
       },
       "testSummary": [
         "Test Files  79 passed (79)",
-        "Tests  1044 passed (1044)"
+        "Tests  1043 passed (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -969,16 +969,16 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "b278568b5c7db9eca9da62293c43a0f53c3402ebebc97257d2fb76c202b1c891"
       },
       "logsSha256": {
-        "artifact.log": "7cc8d3742efeaa5dfd7770332226d43bb50da514673226694c90d7db84468ab6",
-        "bootstrap.log": "00ae90a761f110bf858bc59911b13a2a7925c5fbe877f7a6897e211ae5859a23",
-        "build.log": "d9b4fdad61848cd1fc865f5e048146527cfc060a7bb3d9df31a6907b24f4f6dc",
+        "artifact.log": "2a10a70199bb7215cb4686578fa3dcad19e8abe5c7e01968c2fde8004871a9f9",
+        "bootstrap.log": "5709f79bdafe010977fb1cbca164681785a9085207bf118a90753ce0bcf72d16",
+        "build.log": "f0a26baf4e6ab35309e8e1d3088de96eaa8862a0610b9e597b1385975ab7cd96",
         "compat.log": "d3c438552e0693b5055e3240218e7cbb8327e26c882b872ff67c19d5c0e7e70b",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "29fa5606977a88dc0e21e62eb176b61e8a1e60f828bfc38e00b3bc47a28f8434",
-        "pack.log": "58568b9ea530c1672e96dd60a146a4a00e625807352a22ee35fae80a89ca1d5f",
+        "install.log": "2dfb9556502a474473669b389c1862bb1c29dfc0de6078c9a5960223c666f9ec",
+        "pack.log": "cc38099d006582f0a2002d339d4f11ef0efdeeec6b831015cf9b36c70b2337be",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "d4dd5c375a814c0dbf9c71ec6c2bad2a3dcb76cc2848a4b6c59780c08328262c",
-        "upgrade.log": "68902e588cab8cbca57bb8e331f4c0a1055e2691099b4f9d04c9f7c6a5c1156c"
+        "test.log": "914c3e6bc4e9e00a4d53828bbb5ff1746492c8a18af7b5a61361d2c202d9685a",
+        "upgrade.log": "10ca70869efb73957f21f5e9a0679c64f6ea1fdb05e601ca4b1d127e1758f673"
       },
       "runtimePins": {
         "@deepseek-ai/cordis-plugin-loader": "1.0.6",
@@ -1008,7 +1008,7 @@
       },
       "testSummary": [
         "Test Files  79 passed (79)",
-        "Tests  1044 passed (1044)"
+        "Tests  1043 passed (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -1018,15 +1018,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "7c828a15a6c25cd9c42ff4b68fa9447025676315a88b635fce067486de8fdb1f"
       },
       "logsSha256": {
-        "artifact.log": "587d5d5241bae3e79e01b1e085f90b72fb9dd646c7e351841cc21abcc6ede75b",
-        "bootstrap.log": "6f1e70de63fa0ded7b3cce4a8ec174a5a478e5d7934f6263cfd12fc24d9e4e78",
-        "build.log": "9e59763962e78ea3a5b201134979bb15a811c53cce89f2c10f106806592b641f",
+        "artifact.log": "4030893cbf5032d3787b65e67a2f83be4dc177cad0bdb9f8c5a42b007ab06580",
+        "bootstrap.log": "1330e40c7eaa987f5fb27237b74b622bdc7e2931929b9e5daa6bb2317166e651",
+        "build.log": "01907cfdbcc029786f4c7fbe5f48df85bc54518c65649d14ff84f4fb57122cb8",
         "compat.log": "7d41475fc8606516b495f9da7fc59fd8d62772338adbc9bca4ea838b83c2bc05",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "930b52e6c9236a69dd3c904d24204f434c982041464bf4629cbc27e8a5759b00",
-        "pack.log": "554348eb0b585ad67c1bb5d71e5086b5bcb3ab70d362b2a2bc6c8e0d108ae88e",
+        "install.log": "b2e2d73d5d4856c4cdbf0b3f1eac9c8f68ff0d1255c72f889f0c7600e9328a76",
+        "pack.log": "fa8c1558633b79d0fe213ea542d0b53c2fed37d142cefa2bdda06f2bfa382017",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "d2caa1a6cb8a5d504a5542ba8699fe50dcf54e597a4a656329970681b74da539",
+        "test.log": "89257fefdc480154580a814813947cbcf4c908d57c64fbc1c9fc3d1f19ecc38a",
         "upgrade.log": "beacd3d52c61ec211bd59039290aec1ec76d629586e55c050d869d7ec9c74878"
       },
       "runtimePins": {
@@ -1057,7 +1057,7 @@
       },
       "testSummary": [
         "Test Files  79 passed (79)",
-        "Tests  1044 passed (1044)"
+        "Tests  1043 passed (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -1067,15 +1067,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "f0c561d928d4bebdf31e12d836cb3ccacdf03d3552b1cadc9a07fa4729297755"
       },
       "logsSha256": {
-        "artifact.log": "bda0a44d2dfdc8890a421c27d31243c4dd3bf0a8ffb27ed9bd4d54e4e3e7ca87",
-        "bootstrap.log": "d44205744aeb73af9302634b16b15e969dce3404ef680a031edfab403c2e001e",
-        "build.log": "75d0d22bbd8a67239ecc7ccfe5cf2de1cbfedf8af422a2a382327b6a174b568b",
+        "artifact.log": "2f65a480418d79c07c148d7470b64fe78e3fa7af2792169dc9af80b7c1bf9e82",
+        "bootstrap.log": "573576b632c7b7db6651d77286eed60480e3845b0fd32e943b5101430f54652e",
+        "build.log": "0e93c81fd7c70af7ac1f4cd9a6653e88347c97d9b6cf7dbcc85390b2864617ef",
         "compat.log": "d1e44d079c90dfa1fa31fbc315b8583501eb5840dc40bf9e8d730da7b3b0d49f",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "06257597019eeee24f49f262adaad0d0ba585a7f52e794355cd92ce9ac204c86",
-        "pack.log": "0e58ba2b176b41cddf483b35395c04f6408b661e7c3cb419e949059754b9c610",
+        "install.log": "c348bcd9f14dbd291e8cb07b6004b64aab9147a730b15900d239828ff0f2c1d5",
+        "pack.log": "cd35a3b7c04d10af48f144d794c3cf0bd4cedb6e4c529f3b5eccc8464b2b64cf",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "603e325183d692970d9ecaa320fdfe66ae08f8ac96b5a6e2f01e18a05e61f45e",
+        "test.log": "210dbe87efd18cf36c0f652d9dbe9a72a792d55b66fcae3a677f56f19f603a2b",
         "upgrade.log": "10b235f2a4d4154574f2c7dad519e618a69e75a1712235becf1fd5abb2b19782"
       },
       "runtimePins": {
@@ -1106,7 +1106,7 @@
       },
       "testSummary": [
         "Test Files  79 passed (79)",
-        "Tests  1044 passed (1044)"
+        "Tests  1043 passed (1043)"
       ],
       "artifactSummary": [
         "Test Files  1 passed (1)",
@@ -1116,15 +1116,15 @@
         "dsh-electron-dsh-plugin-git-0.2.9.tgz": "db6687af3bfc5e79b70d04c09d39540824e73c796ec4abe94038e56de4c32e82"
       },
       "logsSha256": {
-        "artifact.log": "8c5472bf4c84341fa619c17c406b6f8ec272d625bdcb0cd6007a22b20f41abfa",
-        "bootstrap.log": "70b5149ec729367ae718e0303584fdd3b5a3d1c087ee3aef5a389a38a91c44c1",
-        "build.log": "67f107dfdd67cccc182be9ac39aca1de3df1f19525ddf2a56a8bcd72b1627e47",
+        "artifact.log": "b8884a1dd240e681a3a8148d9035cfcdf24003665f59a76cfdaea8b02b900004",
+        "bootstrap.log": "253b4cfcf91271e8f78935dd8d9573644beaf4e038f8dcc46311a8feac063876",
+        "build.log": "89b6e466bef5786ce9a215dbd40c1ddb0ff49e42719536484c73cd6699f8f7e9",
         "compat.log": "43c53d8b90c04efacc39074c65337fbf2c72bafe340b60c92ad295ff5f090817",
         "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
-        "install.log": "fc4f8677e33ed94e58688eee740c2165bab3924cec5c0de6c103179c06d7a57a",
-        "pack.log": "422db32425b1497f63e90666ee1c4bb2bde30e60ef2d89fbe9a637852be9ef61",
+        "install.log": "18fc0cbd89fe37feafa5a9916ba1ff971e080b78e30178b45f8810c68219c3a7",
+        "pack.log": "b1c41ad2c29a094d62a19a8e308d43b902d3c1301beb1b931ffe4f2c6b39f197",
         "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
-        "test.log": "ba1457a9e67098d9c6439bbdd8a47f656edbdefda428b647b8c7a9a85c8beb90",
+        "test.log": "681d07bfcb02b68ba3c36e036580ba8a3a80e9b255211d513a5726b952541e21",
         "upgrade.log": "f90e4e6e714303f12195590bb03b1f30a95f10cd2554f1048d36080a3a6ce439"
       },
       "runtimePins": {
@@ -1316,7 +1316,7 @@
     "tests/dsh-compat-wave.spec.ts": "4ec9e5a14a257ade4cc69be29f77bfc41e1e52b5bfc76696c22a2a90d0505dd8",
     "tests/dsh-diff.client.spec.ts": "23f664bdd7e3b63e3020781e24c72166bb5eb3aa96521a613b2427a102f1f7e0",
     "tests/dsh-markdown.client.spec.tsx": "e4a2de9d37f1d2c8d78b8be8c8fc19416537f385a8cc825efb94361a415d2b6e",
-    "tests/dsh-tooltip.client.spec.tsx": "d2a5da8f166ac1995fd438813a25b9da913d334b84cbc2114126e9adac820655",
+    "tests/dsh-tooltip.client.spec.tsx": "e0e10cf93b2fa51783a56b040c7c68a24bd474825aa05a470fe5b3a2eccd76ae",
     "tests/e2e/accounts.e2e.ts": "1343a36d87cf32ee08ab790c35117baa9980718292130771ebca24c19befb2ce",
     "tests/e2e/auth.e2e.ts": "5c68677fb733777a6701b9bbbd4ef8482e5e80115e172445fae6f56b677758b9",
     "tests/e2e/device-login.e2e.ts": "2f82b08b5fc50a6fd5e093281698d56aedf0c7df21feb62dce031604657fb44a",
