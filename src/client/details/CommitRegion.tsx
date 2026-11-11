@@ -3,12 +3,13 @@
  * optional AI proposal, and a split commit action. Generation only fills
  * the editable input — it never stages, commits, or pushes.
  */
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { GitGenerationUnavailableReason, GitRepositorySnapshot } from '../../types.ts'
 import type { GitClientController, GitCommitFollowUp } from '../controller.ts'
 import type { GitLocaleKey } from '../locales.ts'
-import { Menu, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { AnchoredMenu } from '../../compat/dsh-menu.tsx'
 import { IconChevronDownOutline14 } from '../../compat/dsh-icons.tsx'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IconGitWand } from './GitActionIcons.tsx'
@@ -51,7 +52,6 @@ export function CommitRegion({ repository, controller, t, error, commitMessage, 
   const [menuOpen, setMenuOpen] = useState(false)
   const chevronRef = useRef<HTMLButtonElement>(null)
   const messageRef = useRef<HTMLTextAreaElement>(null)
-  const getAnchorRect = useCallback(() => chevronRef.current?.getBoundingClientRect() ?? null, [])
   const canRun = mode === 'amend' ? canAmend : canCommit
   useLayoutEffect(() => {
     if (messageRef.current !== null) fitTextareaToContent(messageRef.current)
@@ -124,14 +124,14 @@ export function CommitRegion({ repository, controller, t, error, commitMessage, 
           {modeLabel(mode, t)}
         </button>
         <div className={css.commitMenu}>
-          <Menu
+          <AnchoredMenu
             open={menuOpen}
             items={items}
             selectedId={mode}
             align="end"
             side="bottom"
             portal
-            getAnchorRect={getAnchorRect}
+            anchorRef={chevronRef}
             onSelect={(id) => {
               setMenuOpen(false)
               run(id as CommitMode)

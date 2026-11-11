@@ -11,6 +11,7 @@ All notable changes to this package are recorded here. The format follows [Keep 
 - Extend DSH compatibility to `0.2.2-alpha.3` and `0.2.2-rc.1`, including the optional credentials seam, and accept their Cordis `4.0.6-alpha.2` / `4.1.0` and schemastery `3.18.6-alpha.2` / `3.19.0` copies. See the [compatibility assessment](docs/reference/dsh-compatibility.md).
 - Portal composer tooltips to the document body where the host supports it: DSH `0.2.2-alpha.3` makes the docked composer seat a containing block for fixed descendants, and the older `0.1.5` / `0.1.6` Tooltip ignores the prop.
 - Run every `0.2.2` CI lane on Node `24.9.0`, matching the `>=24.9.0` engines those hosts declare.
+- Extend DSH compatibility to `0.2.2-rc.2`. Its `Menu` removes the `getAnchorRect` callback in favor of a CSS `anchorRef`, so the commit-options dropdown now goes through `src/compat/dsh-menu.tsx`, which probes the installed Menu signature and supplies whichever anchor input that host reads. Its Cordis `4.1.0` / schemastery `3.19.0` copies already fall inside the declared ranges. See the [compatibility assessment](docs/reference/dsh-compatibility.md); the release's npm packages are not published yet, so its matrix lanes remain pending.
 
 ## [0.2.9] — 2026-10-30
 

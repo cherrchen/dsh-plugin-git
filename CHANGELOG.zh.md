@@ -11,6 +11,7 @@
 - 将 DSH 兼容范围扩展至 `0.2.2-alpha.3` 与 `0.2.2-rc.1`（含可选 credentials seam），接受其 Cordis `4.0.6-alpha.2` / `4.1.0` 与 schemastery `3.18.6-alpha.2` / `3.19.0` 副本。见[兼容评估](docs/reference/dsh-compatibility.md)。
 - composer 内的 Tooltip 在宿主支持时挂到 document.body：DSH `0.2.2-alpha.3` 让停靠 composer seat 成为 fixed 后代的包含块，而 `0.1.5` / `0.1.6` 的 Tooltip 不引用该参数。
 - 所有 `0.2.2` CI 车道改用 Node `24.9.0`，与这些宿主声明的 `>=24.9.0` engines 一致。
+- 将 DSH 兼容范围扩展至 `0.2.2-rc.2`。其 `Menu` 移除 `getAnchorRect` 回调、改用 CSS `anchorRef`，提交信息下拉因此经新增 `src/compat/dsh-menu.tsx` 按已装 Menu 的签名提供该宿主读取的锚点输入；Cordis `4.1.0` / schemastery `3.19.0` 副本已落在既有声明范围内。见[兼容评估](docs/reference/dsh-compatibility.md)；该版本的 npm 包尚未发布，其矩阵车道仍待补齐。
 
 ## [0.2.9] — 2026-10-30
 

@@ -66,7 +66,7 @@ jobs:
         with:
           # Every published 0.2.2 release requires Node >=24.9; keep the
           # older-host lane on the Node floor its hosts declare.
-          node-version: ${{ contains(fromJSON('["0.2.2-alpha.2","0.2.2-alpha.3","0.2.2-rc.1"]'), matrix.dsh-version) && '24.9.0' || '22.19.0' }}
+          node-version: ${{ contains(fromJSON('["0.2.2-alpha.2","0.2.2-alpha.3","0.2.2-rc.1","0.2.2-rc.2"]'), matrix.dsh-version) && '24.9.0' || '22.19.0' }}
           cache: pnpm
       # The committed lockfile is the development pin. Ignore the lane
       # version until upgrade-dsh.mjs has rewritten the root manifest.
