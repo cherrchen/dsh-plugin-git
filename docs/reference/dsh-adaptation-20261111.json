@@ -1,0 +1,1414 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-11",
+  "branch": "feat/adapt-1111",
+  "host": {
+    "platform": "darwin",
+    "machine": "arm64",
+    "node": "v24.18.0",
+    "pnpm": "11.7.0"
+  },
+  "upstreamCommits": {
+    "dsh-v0.2.2-alpha.2": "f3803c96974ad4a94195fb97e5c637e9c2a3afe3",
+    "dsh-v0.2.2-alpha.3": "05b1cae8db6e674c5685101494d4eec24652424a",
+    "dsh-v0.2.2-rc.1": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db"
+  },
+  "developmentPin": "0.2.0-rc.2",
+  "formalMatrix": [
+    {
+      "version": "0.1.5-rc.2",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  78 passed | 1 skipped (79)",
+        "Tests  1042 passed | 1 skipped (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "b72dacaf625df832dc9b02a831c00b2d8c815b01f0a495ba8c84831e3d94c7c6"
+      },
+      "logsSha256": {
+        "artifact.log": "046e5a1266470fc119de753e9b3182b708274b5d0f1c3085998593fb635eb7ed",
+        "bootstrap.log": "adcd1f69ba2ee06e115ec93136fa39f3d6928afb3f3fc9d0254bd8424d90fc9d",
+        "build.log": "02d41ac4a6ffaf04de182c78caf6bb86c79b9658f3753ddd0b38dd583d932957",
+        "compat.log": "b6ad23e8745723b63157b113be2108318cfcf1dc939bcb7b8981bec7c0a1915b",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "01e5998f674a90485e773409ee6b6edbdf33c6ff0b66298ae82d441489aa9ba7",
+        "pack.log": "48ddbf8e746c13cd815c493e5601f6d2ae78b5337679e71c4c1670edf37e79cb",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "752a58feb02a98e02ed04ea6c1608e6e64e76af014cc9450f79164edd3277235",
+        "upgrade.log": "ae66aef0b186d87db412fcf45cacea3218884a0491a3ee3785dccb3b07ce3e15"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.3",
+        "@deepseek-ai/cordis-plugin-include": "1.0.7",
+        "@deepseek-ai/cosmokit": "1.8.3",
+        "@deepseek-ai/cordis": "4.0.2",
+        "@deepseek-ai/cordis-plugin-hmr": "1.0.17",
+        "@deepseek-ai/cordis-plugin-group": "1.0.2",
+        "@deepseek-ai/schemastery": "3.18.2",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.4"
+      }
+    },
+    {
+      "version": "0.1.5-rc.3",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  78 passed | 1 skipped (79)",
+        "Tests  1042 passed | 1 skipped (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "bf9180fa74278134b8add757b58e71dcdbe1f1d057dbd0bc3b7f14cab3162b48"
+      },
+      "logsSha256": {
+        "artifact.log": "38925c22f6512755909ea003fae27cc933d523ffd0fd2a3e3afd0de4d909f9b7",
+        "bootstrap.log": "e4315068a71119279d1f88406c1e71e09fb2aa349f59adced49acc42bda68fcd",
+        "build.log": "dfc3c636f03d823dafd5d6bc2c5b7467e3d67553dc385b1578df63faaf0bfe53",
+        "compat.log": "cc86342000ae7e2177b62404c595834d15f5546bed22f992f3ed04e6fb636174",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "01cd139812d53bbf722b7f18f7cdc04fccd397871abb201db290ac7e4a8f716c",
+        "pack.log": "df3acf558e33f1d9c904ddba2b45a300fb20911f9114cda56cdff080d428f415",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "d88295b28e8fd75b7e93d62c10455ae325791d1b5f99e584b33fb668d390c923",
+        "upgrade.log": "a8a2b6cc0207e4059524c3351acb39cb76859ec233ac5bd73506654f923bd95b"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.3",
+        "@deepseek-ai/cordis-plugin-include": "1.0.7",
+        "@deepseek-ai/cosmokit": "1.8.3",
+        "@deepseek-ai/cordis": "4.0.2",
+        "@deepseek-ai/cordis-plugin-hmr": "1.0.17",
+        "@deepseek-ai/cordis-plugin-group": "1.0.2",
+        "@deepseek-ai/schemastery": "3.18.2",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.4"
+      }
+    },
+    {
+      "version": "0.1.6-alpha.1",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  78 passed | 1 skipped (79)",
+        "Tests  1042 passed | 1 skipped (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "35dc44a6c98e9db6979a0eebc209b97b0d6d4651633685989da6fa3976da60c1"
+      },
+      "logsSha256": {
+        "artifact.log": "ab77341f66da1ad69a1b49de3113d92a6369ce48307e92d2a906ea9a359018cf",
+        "bootstrap.log": "4c74c17517c446d7b0d9d0c9104b8fbe92873c310cd36adfb6ea090eb7778414",
+        "build.log": "682069d47f28e5843172ec9c574e4739f195c0a4dbaeb0d966d5a0ef87c62962",
+        "compat.log": "cef055ccea57de6b35d1904ca38388836a908cb3a02e6ce1087ca9cf01c8b121",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "07f8de8e0a3d9ae09a72fb951672d57036f6736e9e55e5888c0d459c9e673ab9",
+        "pack.log": "37cc59d88612f8b07f211feb0b9a1fad94f4ca36028a34ac2672c2b2eccc5f67",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "0aba8867970058b4f23a1029b835dc73a3a024986ae7ec408d6446d0f169a1ac",
+        "upgrade.log": "870df45c82201ee698017151e63fff268680183f7cc0e1479bb36106117f2310"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.3",
+        "@deepseek-ai/cordis-plugin-include": "1.0.7",
+        "@deepseek-ai/cosmokit": "1.8.3",
+        "@deepseek-ai/cordis": "4.0.2",
+        "@deepseek-ai/cordis-plugin-hmr": "1.0.17",
+        "@deepseek-ai/cordis-plugin-group": "1.0.2",
+        "@deepseek-ai/schemastery": "3.18.2",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.4"
+      }
+    },
+    {
+      "version": "0.1.6-alpha.2",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  78 passed | 1 skipped (79)",
+        "Tests  1042 passed | 1 skipped (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "cf564860dc13e7b1b7adbecb34350db23170745dd63ade02f62944f8e17add67"
+      },
+      "logsSha256": {
+        "artifact.log": "49820e609577eb0665e96b81b078518236d55731943a829536fa0b0b4faef2cd",
+        "bootstrap.log": "6d02adbc3894c411c513f1bb078350f9d2cd01e6ffe6e87aedfd216959e7ab1f",
+        "build.log": "24e4d8ed35dddebdf209dec9cb6620cc4259df81fe1268e7669a5ef76ff4e715",
+        "compat.log": "9372d3dc70c0fe6b66427f167658f24cb8db3e98d1ac7b2443fbb3a115c95572",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "129bed9cd0a3c840d82c0e86a10029fdad3754a4d5ef6c933d7cd5ab3e5b3a34",
+        "pack.log": "3bf6babd98ca4a96364278214cc6c86c115996f8d770c9aaeaa20fe85c3b6589",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "90c7cc44ff71fe4a81ef64e54359968b1fa0e3c9b9d1b64469ed4f4110758a95",
+        "upgrade.log": "afc9735e7e62040525db864ab0a2381ecee40638bca95e3baade4e20e2badc7b"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.3",
+        "@deepseek-ai/cordis-plugin-include": "1.0.7",
+        "@deepseek-ai/cosmokit": "1.8.3",
+        "@deepseek-ai/cordis": "4.0.2",
+        "@deepseek-ai/cordis-plugin-group": "1.0.2",
+        "@deepseek-ai/schemastery": "3.18.2",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.4"
+      }
+    },
+    {
+      "version": "0.1.7-alpha.1",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  78 passed | 1 skipped (79)",
+        "Tests  1042 passed | 1 skipped (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "dd4252f1dee7c1763486185f8a4ebdd40fe579738ce36ab459ffa6f72140306d"
+      },
+      "logsSha256": {
+        "artifact.log": "b40b8bc5d5aafa103a38d72e9e946f454246459780bb0b659b8d1a51cc8cb289",
+        "bootstrap.log": "82e2466f86f59b68215d6b223d53f27308b420a927af1409239bd907d66de5bc",
+        "build.log": "c61bd4242fa339380314df03e3279a03806e91583d82c2e438e6d257b0a37564",
+        "compat.log": "daf113b1c9797bc736381b1d93a2c9c1b71a9f1b48ba063b387b22620c186918",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "bb3888512ae54b4b8f264eb6cdf8d1aaa06d1a1c97f55c7154d1e86271485d07",
+        "pack.log": "2553b78432a2401604f0986304b911ffd3ac759823bb19cc5f46544b898532d3",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "0dd98a5e4f287f41d2a3b27f3d676eeaff304fc71816c8f65c4bdcede9b14346",
+        "upgrade.log": "ec271eb28d613a1435dc22583d020e4d96c1c0e57489c2e300a037053b2d58fd"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.4",
+        "@deepseek-ai/cordis-plugin-include": "1.0.8",
+        "@deepseek-ai/cosmokit": "1.8.4",
+        "@deepseek-ai/cordis": "4.0.3",
+        "@deepseek-ai/cordis-plugin-group": "1.0.3",
+        "@deepseek-ai/schemastery": "3.18.3",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.5"
+      }
+    },
+    {
+      "version": "0.1.7-alpha.2",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  78 passed | 1 skipped (79)",
+        "Tests  1042 passed | 1 skipped (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "c90c8151142df6fc5910319f3e0b515690a4a7f280de998f6d5f0ad69eec152c"
+      },
+      "logsSha256": {
+        "artifact.log": "8a50e856827c0182c617c086fb8730908cd06889d059d5436093afeed31ebbfb",
+        "bootstrap.log": "1704d28b5fa76893d59a6b43fed0ed7cbc04f4d54d3963574c4bb4022cf5e5ae",
+        "build.log": "a3b60b17d18a7e005fe4e66dc30219ea9cdefac4b87d4bdc366410ce743b2eb9",
+        "compat.log": "cdc3c35a0d047aa1b049eefb6007e6e543a46ab674e10c108cd3d73e0dc8e010",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "7c6f0c015c7467e610391b7dcba2fa1fa49bc17bf6f3a53f1fadac2777c6325c",
+        "pack.log": "36ad03ea2f5d6d220bf9a3d74a17cdbeb93684755db3297dae4ec6b52955a995",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "765e699dfce62a13c627440e39b21322d81e45841d5934207a09ce61b3df5666",
+        "upgrade.log": "55673370eefd89b11dd7bb365f9082daa73aa973042f5f4ac11ecf45875dc6cf"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.5",
+        "@deepseek-ai/cordis-plugin-include": "1.0.9",
+        "@deepseek-ai/cosmokit": "1.8.5",
+        "@deepseek-ai/cordis": "4.0.4",
+        "@deepseek-ai/cordis-plugin-group": "1.0.4",
+        "@deepseek-ai/schemastery": "3.18.4",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.6"
+      }
+    },
+    {
+      "version": "0.1.7-rc.1",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  78 passed | 1 skipped (79)",
+        "Tests  1042 passed | 1 skipped (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "d923e4b6b7e850fc517d5f84faa744e717b13409746790bdaf142bf860d160b9"
+      },
+      "logsSha256": {
+        "artifact.log": "42adf3dfbf784642dcae1c4991c0c0bb65d87b15267e6bc390de493de38eb79b",
+        "bootstrap.log": "65b49f4f307d0a37da0cf5686a10787a61cfedc1a433124be89ba0a158f2fb03",
+        "build.log": "3c03a735961444fa395b8f96a0767b7a115167639106ca0af3b3c3226c15f88d",
+        "compat.log": "0f62bd173706be79fefd4be95e35b7c1a4973a7644b9d500fc2d55d0b4adb041",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "9601cac4c0506bb5d140aa8aa59d6da0e870f5d60d8abc7b78e591532a14c095",
+        "pack.log": "28282c1d7eab98c7140fcb126d42a2bf6190353edf07778f94f8e3146ccec929",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "8c217681e7fb90de23f620435ded0c6372fe83fd89ef2f51f3eb3daced785bfe",
+        "upgrade.log": "58d0c6f90cdd12d8ecca232288178675510ddbb366fe88ce5efe2087b856a11b"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.5",
+        "@deepseek-ai/cordis-plugin-include": "1.0.9",
+        "@deepseek-ai/cosmokit": "1.8.5",
+        "@deepseek-ai/cordis": "4.0.4",
+        "@deepseek-ai/cordis-plugin-group": "1.0.4",
+        "@deepseek-ai/schemastery": "3.18.4",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.6"
+      }
+    },
+    {
+      "version": "0.1.7-rc.2",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  78 passed | 1 skipped (79)",
+        "Tests  1042 passed | 1 skipped (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "faf3b8cad3fca6901b1a7fa5e58d2cafde3b28404f248b60ca4af16aa454e1ec"
+      },
+      "logsSha256": {
+        "artifact.log": "abb187c42e89883e792b1e3a31225ed61ba58d02cd7b4b908707d72f79f11d67",
+        "bootstrap.log": "d154fbe796a1e23aef9bfe3b3470bde099a47c27b1e79b44b095c746db59c085",
+        "build.log": "a631af2faf86dd32e312a173573bf65edb1cfd5a2685e9811df4069c2b51fda5",
+        "compat.log": "a37d5fb35bc9b8e31e41d10040d83710472d35e1020cc99433e73f30521e5228",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "321faea888c590e1eaea1ed0d05bcd9cf8260ff8281348eb2acf5782846ab9ef",
+        "pack.log": "0da0a9223d32d54055980878af4e8d548cefdace5b4bbce605c0a7f61b78bf82",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "a7f6315f6c523dcd6030a8f2add38cf60e9fd669327e3d76489366a43ecaecb0",
+        "upgrade.log": "cffa11baff7ea276c7c0c7f7323c0495d63725a152c3395d76e6b585c3950aa2"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.5",
+        "@deepseek-ai/cordis-plugin-include": "1.0.9",
+        "@deepseek-ai/cosmokit": "1.8.5",
+        "@deepseek-ai/cordis": "4.0.4",
+        "@deepseek-ai/cordis-plugin-group": "1.0.4",
+        "@deepseek-ai/schemastery": "3.18.4",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.6"
+      }
+    },
+    {
+      "version": "0.2.0-rc.1",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  78 passed | 1 skipped (79)",
+        "Tests  1042 passed | 1 skipped (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "cd8a05a94bd3548270e46b0574fab26f965e37bd0ba28b765dc9eb2c007f81f4"
+      },
+      "logsSha256": {
+        "artifact.log": "206452dc8d35b6ffe5292639dfd2f79f13ce1fd50821909129bf382034aa6c5a",
+        "bootstrap.log": "80201d362cde4ba0d376543eb3e8b43aacdceb4c0197a1509fc90b507810da70",
+        "build.log": "ab9265bb1f641b68fabf1e4af8babd6c95ac021ae7307ca0c0bfcf3f674b3203",
+        "compat.log": "700874feb381d319681240533bfc7ef375c2758da0714c4137766ba308959340",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "3a0ad73910bc4b6888860285623deec6e8ba0d61d0bea434e67c9edb45248d08",
+        "pack.log": "5b31c698c57b7b2a91e312778bf4cfa01baf2e377d5f72ae3588739cd2815fbb",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "811bb123c7cd937e03019a7465324acac1d23b3dff1d14050f817cb810551828",
+        "upgrade.log": "cbc41bc78dfaaca341ab300aeb5cf6306ea1d215421eec742b3faf3b4f6d4d86"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.5",
+        "@deepseek-ai/cordis-plugin-include": "1.0.9",
+        "@deepseek-ai/cosmokit": "1.8.5",
+        "@deepseek-ai/cordis": "4.0.4",
+        "@deepseek-ai/cordis-plugin-group": "1.0.4",
+        "@deepseek-ai/schemastery": "3.18.4",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.6"
+      }
+    },
+    {
+      "version": "0.2.0-rc.2",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  79 passed (79)",
+        "Tests  1043 passed (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "dd778852263a1aecf0e15e15db3015612b276c6e6ac4107931a52b9e16f02319"
+      },
+      "logsSha256": {
+        "artifact.log": "c2dc954ac768ee6df6590113aa4dec3a9ca644e90ac219e6b4ea44d1e7c91767",
+        "bootstrap.log": "ec3fac01c86887d44021bf3afdbfb86ea45e0b080c50e39b9d8215af576875ca",
+        "build.log": "86a6581dbbaccf78797543aad84ac4480732e907b4bf24c970a68c100670407c",
+        "compat.log": "7d57d67fa36a6b924ea72fac20f5891f7f70de5b8ab0ae8d7f61459a5407e845",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "pack.log": "8e29b7a795afca8192eefcd6e5fd3f0c9a38c30bb6a8ae6ad01b23bcaa08f84d",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "735c4353df000fe89d7e7db4d68b1c86d022433904afc78b4cd1a0de1372b859"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis": "4.0.4",
+        "@deepseek-ai/schemastery": "3.18.4",
+        "@deepseek-ai/cordis-plugin-include": "1.0.9"
+      }
+    },
+    {
+      "version": "0.2.1-alpha.1",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  79 passed (79)",
+        "Tests  1043 passed (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "265d407ba07d8e74cd7dc1f79ebe71938edd0fa9b7fb1a45b803c29a877b2304"
+      },
+      "logsSha256": {
+        "artifact.log": "ce2d3ac505d4b19582913059d80ed1fea9cf598f9be1c14cb1aa322fa81a56c3",
+        "bootstrap.log": "bac363efe6244ca8d5db63ec2120652ec64615c05e663a4c8f529a836e9aba6e",
+        "build.log": "9c6ef591e134a465cab45d3ea5493135242c0af0fa099324bacc2400b6a4cbbd",
+        "compat.log": "e87ca6499dde75ff92a4d1536e2658a6bc7d7c70693898e408ea2635611d6619",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "1b00669f56e553423d546d51b6df09eef8b05e56672aba2d6f3c7458b8a2ded2",
+        "pack.log": "7a21bcdabcc60f6b522d22fa8788ebb65ccb255cd9631e8a8892a874427a7676",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "88f357f9bd595f635fc713c228bcecad5a2e4cc133d35f57bd12bc1fb04ef310",
+        "upgrade.log": "b5ee4b75e4ec9e276b7a4e1b4b222b43d0afe1951a32f588975ee4b673ce8031"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.6-alpha.1",
+        "@deepseek-ai/cordis-plugin-include": "1.0.10-alpha.1",
+        "@deepseek-ai/cosmokit": "1.8.6-alpha.1",
+        "@deepseek-ai/cordis": "4.0.5-alpha.1",
+        "@deepseek-ai/cordis-plugin-group": "1.0.5-alpha.1",
+        "@deepseek-ai/schemastery": "3.18.5-alpha.1",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.7-alpha.1"
+      }
+    },
+    {
+      "version": "0.2.1-alpha.2",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  79 passed (79)",
+        "Tests  1043 passed (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "49a3d07d1b2b34a5b6bbc06217083729d1cdfa521c716d26e516e756bb7bad4e"
+      },
+      "logsSha256": {
+        "artifact.log": "bf4bc07ee11d434ead2dff0e0e98e81c09d085dfb4f5bab494e8d783584ab650",
+        "bootstrap.log": "f90c0bba5e7b4f71625c598ae39835d0684463cb9b2af53994ccf12d2f23f771",
+        "build.log": "ffa58b545ad76c8726d8b4b12cc206f545bd75dc07826389cff4023b053d054f",
+        "compat.log": "1cd8f8c6baf266bc09f2e2c931a2b350b3d8114abfdb0ae1e226e7361083b124",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "61c77ac7a321e566b3055810dc079db1c3de5c0780dea52591d22a087f730388",
+        "pack.log": "8a9a701a94ab7e33bbcd8fa6f136f9afc3dfab56addf1e5c8814de570b66fb88",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "cd35461064bcb9630eb40c93b0681f5b3fef26168ae40a72ff5f62dbbcbdb4f4",
+        "upgrade.log": "8303b6ba59d154c2024856b2e8f51c9c050b86999719cd537ca6d5df7b08bede"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.6-alpha.1",
+        "@deepseek-ai/cordis-plugin-include": "1.0.10-alpha.1",
+        "@deepseek-ai/cosmokit": "1.8.6-alpha.1",
+        "@deepseek-ai/cordis": "4.0.5-alpha.1",
+        "@deepseek-ai/cordis-plugin-group": "1.0.5-alpha.1",
+        "@deepseek-ai/schemastery": "3.18.5-alpha.1",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.7-alpha.1"
+      }
+    },
+    {
+      "version": "0.2.1-alpha.3",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  79 passed (79)",
+        "Tests  1043 passed (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "496c9fb29fa432376a7fd91385b162906819fda380a3f0e0cb6c5c4104c4c2e3"
+      },
+      "logsSha256": {
+        "artifact.log": "30e2d7767c68ac8313fdf4b734f3d482e9be23600cb261e2dcd27d4307724669",
+        "bootstrap.log": "49119b36f67d9794d52728a0ff3ccde1747a2dc00ca12dd428b7d00f88ee7aec",
+        "build.log": "d9dd2378a6d16fbbaf62dcd8af1be0839e386b8f1b598185df89cb681fc421fe",
+        "compat.log": "aa2925eec51d27970e9fb8f9720dbe9303ea123c1b931e24a7d40e8d52c03c11",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "04c32381ed69a6d926996fc3f99c8bce9dad70f85fb6ace62713ceaf2dae4e06",
+        "pack.log": "6c813364ddc104fca960b8e5e83c6cbbe5830a1cc3b8d6fe520f1c888782c122",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "0a4ecad985de52247a3d482889e105162d44411fbeb5e084d99f0e2beadb14af",
+        "upgrade.log": "79b1248f51cc68377d937367f88fa849914632c95fb2d7c4fddd6847a2830959"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.6-alpha.2",
+        "@deepseek-ai/cordis-plugin-include": "1.0.10-alpha.2",
+        "@deepseek-ai/cosmokit": "1.8.6-alpha.2",
+        "@deepseek-ai/cordis": "4.0.5-alpha.2",
+        "@deepseek-ai/cordis-plugin-group": "1.0.5-alpha.2",
+        "@deepseek-ai/schemastery": "3.18.5-alpha.2",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.7-alpha.2"
+      }
+    },
+    {
+      "version": "0.2.1-alpha.4",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  79 passed (79)",
+        "Tests  1043 passed (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "544181f0176e0aa83933aadcca928b4cd4a966b9e1bd286f89fddcfa17c34f5e"
+      },
+      "logsSha256": {
+        "artifact.log": "b54ef0c1d4eaafa48f5d16ee805437bef5f40db77e285472e8187a609d955d34",
+        "bootstrap.log": "532e97a574af5d50fc4d57167def1177dd2c21e35bef3192e78c82bb94b1d070",
+        "build.log": "3514241215be1efeaab70ae6350a47b42dc581467967263c424bd5ef6c48a0ec",
+        "compat.log": "2ad4a2f6fc17e1e449e7c227b0b1d63e51a498091d310539eecf60829b2400cd",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "58776e7feb149cc48dc7416bc88cf735011a6d22750cdcfa7284ba08869cb6a6",
+        "pack.log": "6b86cb345e26a59072d00161ac579823ddff3ad5116a4edb4325566cc3b26215",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "f74e3e3334e68b226d3e13c514eac6416f51098e2165e337d24daf8a4642b531",
+        "upgrade.log": "693dbd8fb79c9fcf652d6c55affe64c1092d086678d6c0230ee581042fd00f8c"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.6-alpha.2",
+        "@deepseek-ai/cordis-plugin-include": "1.0.10-alpha.2",
+        "@deepseek-ai/cosmokit": "1.8.6-alpha.2",
+        "@deepseek-ai/cordis": "4.0.5-alpha.2",
+        "@deepseek-ai/cordis-plugin-group": "1.0.5-alpha.2",
+        "@deepseek-ai/schemastery": "3.18.5-alpha.2",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.7-alpha.2"
+      }
+    },
+    {
+      "version": "0.2.1-alpha.5",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  79 passed (79)",
+        "Tests  1043 passed (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "d2de23927991e6fb98175b7442009d4b4f7d0863bac4938793a53a675779f82a"
+      },
+      "logsSha256": {
+        "artifact.log": "30a6314fffc9e6e3c8eaba53cee8315422a2034c99f960cc0c86f0aeae1d05f1",
+        "bootstrap.log": "c3fccf53c0ff3d3e3c8d0307617dc8f16228ef952385d25ff4d89e88e6d5fe1c",
+        "build.log": "ffe5f4279d919348afe58af3fe7d9d5a4e0ab9f4e8357f8624cd256699b306dd",
+        "compat.log": "a995b5535d9297830c2712c8980defd828938f4e363043de26b768e60b0d8193",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "fda6391b9fec2b8aa7cad2ac9bd7e8240a0790eb4d4dd2805b8246d25f626b5e",
+        "pack.log": "3bac07cc6b46d895d4dc43e03172dda4fa1ecb51de38d79690eb2be2629e7b5a",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "c516b90dfd858980f8dccb70adbc4a87ee46150f6b0093c40202c2a20c0c83dd",
+        "upgrade.log": "246e8d8b4761bf20b5595e9b02c20b9a4709f12a5428121ef768ffb709bdc8a8"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.6-alpha.2",
+        "@deepseek-ai/cordis-plugin-include": "1.0.10-alpha.2",
+        "@deepseek-ai/cosmokit": "1.8.6-alpha.2",
+        "@deepseek-ai/cordis": "4.0.5-alpha.2",
+        "@deepseek-ai/cordis-plugin-group": "1.0.5-alpha.2",
+        "@deepseek-ai/schemastery": "3.18.5-alpha.2",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.7-alpha.2"
+      }
+    },
+    {
+      "version": "0.2.1-rc.1",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  79 passed (79)",
+        "Tests  1043 passed (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "049f9585f1b30bbad271af8cfaeb538faa97a78217a46603667e829e7372c1db"
+      },
+      "logsSha256": {
+        "artifact.log": "4e9f48265ffae8ad152ce73843e21945432067888ff9ab06467ccaf86bec52f7",
+        "bootstrap.log": "51872d87c581600fce266e8fe2b2884be65f7f8b1be4ac453b826c7710a84cfa",
+        "build.log": "14b23a8135204cc38b9cce0a202575ef72eeaa49b0d4a25cdcf13d9780108afe",
+        "compat.log": "f1b7cc4ce03763730cf9a21dfbb1a6f48711ad4cbd03edfa4f20f1b0cbbe5863",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "ad5a506e5e520dad90fc083035ed6cb12ed384888ccf3cf5c796bb8198242e67",
+        "pack.log": "d6adb8d38fed0f2622916a6d45593cb71dc697a6a920c0ec17784f8d3ac85245",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "ce42bfdde80561fc5b33456494964b89e54bc8364f7055a7340b758b966cab89",
+        "upgrade.log": "2be736589506f656e5784a8e3c76c65ce7dff8950927597330e6bfb4eb60c82b"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.6",
+        "@deepseek-ai/cordis-plugin-include": "1.0.10",
+        "@deepseek-ai/cosmokit": "1.8.6",
+        "@deepseek-ai/cordis": "4.0.5",
+        "@deepseek-ai/cordis-plugin-group": "1.0.5",
+        "@deepseek-ai/schemastery": "3.18.5",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.7"
+      }
+    },
+    {
+      "version": "0.2.1-rc.2",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  79 passed (79)",
+        "Tests  1043 passed (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "796e9f56f5e7d3d156a3088176f30aaf62f0e6aa95a2778c0a6c270bbf2aa354"
+      },
+      "logsSha256": {
+        "artifact.log": "cf546d8125cae2b2c6f210063554c809a94235aa116eb004e465b28970b79973",
+        "bootstrap.log": "843b732ef846ecc2cef72ee87fff924101d2c300d916224903bcb026ef6716f3",
+        "build.log": "8b97b87ab5629a95dacbcd865fb62c769cc09dd28a634fce1f59c2fa6ec60df6",
+        "compat.log": "ad4dbcaa2182ebf704d6a470059ea5ff54e8b20f085c9669fa7fbb445da5f03b",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "d274fb802b0c97701941445575fbda8e466307bf95c63fd4e278129cdcc1de76",
+        "pack.log": "6cb697dfa83a818637bc63661db20f3e9362d1f7e62ad61ab9d79eff4b53a45f",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "a2230104571b0570703aeee13607a937971965032aa70e08e353f7b9b2869df9",
+        "upgrade.log": "307812ccfbf8ba83631585781ab0b099eb6b88a509a897a370fad313068a3a81"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.6",
+        "@deepseek-ai/cordis-plugin-include": "1.0.10",
+        "@deepseek-ai/cosmokit": "1.8.6",
+        "@deepseek-ai/cordis": "4.0.5",
+        "@deepseek-ai/cordis-plugin-group": "1.0.5",
+        "@deepseek-ai/schemastery": "3.18.5",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.7"
+      }
+    },
+    {
+      "version": "0.2.1-rc.3",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  79 passed (79)",
+        "Tests  1043 passed (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "4a07bd961e95af3f28fde0d1c4a05d3118e0a685e2e8e2f4c5fdbea6bbf90411"
+      },
+      "logsSha256": {
+        "artifact.log": "3ac9eafd66dfe54720e406eb4ab3c89e10881e51850fa74309a1dfe322a90ac4",
+        "bootstrap.log": "bc7874866b9dd0875df30b44575ebb35ba169794a9e70f0de7f4491f329e769d",
+        "build.log": "623cc30dc5bc338274cc4ae405161f6a4e3230e2b73e4d86f354c54806556c71",
+        "compat.log": "b6610c5e62af3bc190010772f33b73d666403473be5fbc772f9a4e6a23978848",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "8339cf73af890841f11a630b3a98d96d1df040fa4deedb253370d0f625ead055",
+        "pack.log": "c191c11e1d1577de31d44ae42ed5116fa44b55e4729354304d5478e0f27f9dcd",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "f0465c3e40d92a59be1e11350d17a22b8d45403e2ad981dcf4d674f7b93776a6",
+        "upgrade.log": "704fab7c0d9910353d4805cc9252d8489a69be809a993c06f7f367106aca95a2"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.6",
+        "@deepseek-ai/cordis-plugin-include": "1.0.10",
+        "@deepseek-ai/cosmokit": "1.8.6",
+        "@deepseek-ai/cordis": "4.0.5",
+        "@deepseek-ai/cordis-plugin-group": "1.0.5",
+        "@deepseek-ai/schemastery": "3.18.5",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.7"
+      }
+    },
+    {
+      "version": "0.2.1-rc.4",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  79 passed (79)",
+        "Tests  1043 passed (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "4f96ea586748116c586cab27ec4723da85c1da8dc46945b453eca81163647683"
+      },
+      "logsSha256": {
+        "artifact.log": "77935654af9008618a09d24fa2233702b65cf5aba607338070c361bc95657d60",
+        "bootstrap.log": "3a2b602c995ecdd960842cdfb2fedba48f1a1bc406391aef60d37d4f2e221812",
+        "build.log": "b2cc6d86738d45d28bf446889d551ace0ec940c252062f2ad2506ed92571d43f",
+        "compat.log": "022859f0cf3cab66baab226a084a41e511f8dcd47bf6f3a7b810507989b96196",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "f9552f0b9996a3a308f54fcc952d854263bb9627f6131452319bbbf6d98518f9",
+        "pack.log": "fa47d11e41c26eb7cafe2dbd848dbb60c2786224be4f972ff6396e9515ec7484",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "2d95af9b6ef05322c247ce8e1568dce6bf1a0dbb11bbfc2b471ab77cc97297be",
+        "upgrade.log": "7f6fbc8ff01e6c21ec24e7851224b5a311255dd22be3a23a77a6430f8d294f3f"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.6",
+        "@deepseek-ai/cordis-plugin-include": "1.0.10",
+        "@deepseek-ai/cosmokit": "1.8.6",
+        "@deepseek-ai/cordis": "4.0.5",
+        "@deepseek-ai/cordis-plugin-group": "1.0.5",
+        "@deepseek-ai/schemastery": "3.18.5",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.7"
+      }
+    },
+    {
+      "version": "0.2.1-rc.5",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  79 passed (79)",
+        "Tests  1043 passed (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "b278568b5c7db9eca9da62293c43a0f53c3402ebebc97257d2fb76c202b1c891"
+      },
+      "logsSha256": {
+        "artifact.log": "2a10a70199bb7215cb4686578fa3dcad19e8abe5c7e01968c2fde8004871a9f9",
+        "bootstrap.log": "5709f79bdafe010977fb1cbca164681785a9085207bf118a90753ce0bcf72d16",
+        "build.log": "f0a26baf4e6ab35309e8e1d3088de96eaa8862a0610b9e597b1385975ab7cd96",
+        "compat.log": "d3c438552e0693b5055e3240218e7cbb8327e26c882b872ff67c19d5c0e7e70b",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "2dfb9556502a474473669b389c1862bb1c29dfc0de6078c9a5960223c666f9ec",
+        "pack.log": "cc38099d006582f0a2002d339d4f11ef0efdeeec6b831015cf9b36c70b2337be",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "914c3e6bc4e9e00a4d53828bbb5ff1746492c8a18af7b5a61361d2c202d9685a",
+        "upgrade.log": "10ca70869efb73957f21f5e9a0679c64f6ea1fdb05e601ca4b1d127e1758f673"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.6",
+        "@deepseek-ai/cordis-plugin-include": "1.0.10",
+        "@deepseek-ai/cosmokit": "1.8.6",
+        "@deepseek-ai/cordis": "4.0.5",
+        "@deepseek-ai/cordis-plugin-group": "1.0.5",
+        "@deepseek-ai/schemastery": "3.18.5",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.7"
+      }
+    },
+    {
+      "version": "0.2.2-alpha.2",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  79 passed (79)",
+        "Tests  1043 passed (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "7c828a15a6c25cd9c42ff4b68fa9447025676315a88b635fce067486de8fdb1f"
+      },
+      "logsSha256": {
+        "artifact.log": "4030893cbf5032d3787b65e67a2f83be4dc177cad0bdb9f8c5a42b007ab06580",
+        "bootstrap.log": "1330e40c7eaa987f5fb27237b74b622bdc7e2931929b9e5daa6bb2317166e651",
+        "build.log": "01907cfdbcc029786f4c7fbe5f48df85bc54518c65649d14ff84f4fb57122cb8",
+        "compat.log": "7d41475fc8606516b495f9da7fc59fd8d62772338adbc9bca4ea838b83c2bc05",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "b2e2d73d5d4856c4cdbf0b3f1eac9c8f68ff0d1255c72f889f0c7600e9328a76",
+        "pack.log": "fa8c1558633b79d0fe213ea542d0b53c2fed37d142cefa2bdda06f2bfa382017",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "89257fefdc480154580a814813947cbcf4c908d57c64fbc1c9fc3d1f19ecc38a",
+        "upgrade.log": "beacd3d52c61ec211bd59039290aec1ec76d629586e55c050d869d7ec9c74878"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.7-alpha.1",
+        "@deepseek-ai/cordis-plugin-include": "1.0.11-alpha.1",
+        "@deepseek-ai/cosmokit": "1.8.7-alpha.1",
+        "@deepseek-ai/cordis": "4.0.6-alpha.1",
+        "@deepseek-ai/cordis-plugin-group": "1.0.6-alpha.1",
+        "@deepseek-ai/schemastery": "3.18.6-alpha.1",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.8-alpha.1"
+      }
+    },
+    {
+      "version": "0.2.2-alpha.3",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  79 passed (79)",
+        "Tests  1043 passed (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "f0c561d928d4bebdf31e12d836cb3ccacdf03d3552b1cadc9a07fa4729297755"
+      },
+      "logsSha256": {
+        "artifact.log": "2f65a480418d79c07c148d7470b64fe78e3fa7af2792169dc9af80b7c1bf9e82",
+        "bootstrap.log": "573576b632c7b7db6651d77286eed60480e3845b0fd32e943b5101430f54652e",
+        "build.log": "0e93c81fd7c70af7ac1f4cd9a6653e88347c97d9b6cf7dbcc85390b2864617ef",
+        "compat.log": "d1e44d079c90dfa1fa31fbc315b8583501eb5840dc40bf9e8d730da7b3b0d49f",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "c348bcd9f14dbd291e8cb07b6004b64aab9147a730b15900d239828ff0f2c1d5",
+        "pack.log": "cd35a3b7c04d10af48f144d794c3cf0bd4cedb6e4c529f3b5eccc8464b2b64cf",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "210dbe87efd18cf36c0f652d9dbe9a72a792d55b66fcae3a677f56f19f603a2b",
+        "upgrade.log": "10b235f2a4d4154574f2c7dad519e618a69e75a1712235becf1fd5abb2b19782"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.0.7-alpha.2",
+        "@deepseek-ai/cordis-plugin-include": "1.0.11-alpha.2",
+        "@deepseek-ai/cosmokit": "1.8.7-alpha.2",
+        "@deepseek-ai/cordis": "4.0.6-alpha.2",
+        "@deepseek-ai/cordis-plugin-group": "1.0.6-alpha.2",
+        "@deepseek-ai/schemastery": "3.18.6-alpha.2",
+        "@deepseek-ai/cordis-plugin-timer": "1.1.8-alpha.2"
+      }
+    },
+    {
+      "version": "0.2.2-rc.1",
+      "mode": "--online-install",
+      "candidate": false,
+      "gates": {
+        "bootstrap": 0,
+        "upgrade": 0,
+        "install": 0,
+        "peers": 0,
+        "compat": 0,
+        "test": 0,
+        "docs": 0,
+        "build": 0,
+        "artifact": 0,
+        "pack": 0
+      },
+      "testSummary": [
+        "Test Files  79 passed (79)",
+        "Tests  1043 passed (1043)"
+      ],
+      "artifactSummary": [
+        "Test Files  1 passed (1)",
+        "Tests  7 passed (7)"
+      ],
+      "packageSha256": {
+        "dsh-electron-dsh-plugin-git-0.2.9.tgz": "db6687af3bfc5e79b70d04c09d39540824e73c796ec4abe94038e56de4c32e82"
+      },
+      "logsSha256": {
+        "artifact.log": "b8884a1dd240e681a3a8148d9035cfcdf24003665f59a76cfdaea8b02b900004",
+        "bootstrap.log": "253b4cfcf91271e8f78935dd8d9573644beaf4e038f8dcc46311a8feac063876",
+        "build.log": "89b6e466bef5786ce9a215dbd40c1ddb0ff49e42719536484c73cd6699f8f7e9",
+        "compat.log": "43c53d8b90c04efacc39074c65337fbf2c72bafe340b60c92ad295ff5f090817",
+        "docs.log": "ff3d0074333208c915f9cad7d20962a93924509b6ebc262895635918e943ecd5",
+        "install.log": "18fc0cbd89fe37feafa5a9916ba1ff971e080b78e30178b45f8810c68219c3a7",
+        "pack.log": "b1c41ad2c29a094d62a19a8e308d43b902d3c1301beb1b931ffe4f2c6b39f197",
+        "peers.log": "5ecf82a3fc1f9007eeea79ce3bf0d9c587150219ef245bb5a5a23609cdb562fb",
+        "test.log": "681d07bfcb02b68ba3c36e036580ba8a3a80e9b255211d513a5726b952541e21",
+        "upgrade.log": "f90e4e6e714303f12195590bb03b1f30a95f10cd2554f1048d36080a3a6ce439"
+      },
+      "runtimePins": {
+        "@deepseek-ai/cordis-plugin-loader": "1.1.0",
+        "@deepseek-ai/cordis-plugin-include": "1.1.0",
+        "@deepseek-ai/cosmokit": "1.9.0",
+        "@deepseek-ai/cordis": "4.1.0",
+        "@deepseek-ai/cordis-plugin-group": "1.1.0",
+        "@deepseek-ai/schemastery": "3.19.0",
+        "@deepseek-ai/cordis-plugin-timer": "1.2.0"
+      }
+    }
+  ],
+  "browserE2E": [
+    {
+      "version": "0.2.0-rc.2",
+      "passed": 28,
+      "logSha256": "f8a1d00e874285ef63dee9765a7a983c2c751999e327b395876d698d1883a020",
+      "scope": "isolated fixture browser; no full DSH shell or real accounts"
+    },
+    {
+      "version": "0.2.2-rc.1",
+      "passed": 28,
+      "logSha256": "a311dab0000b48f8788770f8dc6935e88499d2fefb5e7ce1fee00b1e4e7ca2e0",
+      "scope": "isolated fixture browser; no full DSH shell or real accounts"
+    }
+  ],
+  "finalSourceSha256": {
+    ".github/workflows/ci.yml": "215a654aa516da7d8973e3e3e528757c4adbb5abbba3a877985ee89dbaad5c1c",
+    ".github/workflows/release.yml": "2dc21fecd206bba02c43ec8065a61659103a70e96ec6d50cf5e65d7f7f146c9c",
+    ".github/workflows/upgrade.yml": "a3c61112ea94725b6a129cd161640e8d628d9e0acca5b1d8e54b64a95e342374",
+    ".pnpmfile.cjs": "515c287418a7ab73f54966be1ba570991ef5d4911b11849c76759129993c1c79",
+    "package.json": "f9e3ce7940169719cb9b3ffbf288aac18d601eb3f2c2e1bd99ae2b4579573e25",
+    "pnpm-lock.yaml": "30d201db16f891ba7c0d4fcdde8c146f849b3ce1235e5c89c4d3e8fe570a6243",
+    "pnpm-workspace.yaml": "1f1d9a61bc2bf93e4100fc4f1cbd2465cdf8fcab9117127731ba2ca5e9e8803e",
+    "scripts/check-docs.mjs": "364c3e3257737a2ac34a6df74f13466042c255e5cf91ea6e057967d4c653928f",
+    "scripts/check-dsh-compat.mjs": "12108e9056af42ceeaf814d2e7ba09620a98581500938038169fffe5396ddd77",
+    "scripts/dsh-release-wave.cjs": "528f222b95706992c3a6e0746db0b9bd14f4bf6b0d94c4f8072cc930410acac8",
+    "scripts/probe-gitlab-gl0.mjs": "f94302988801a29e434197c6666c80cf979d301a3b97dae6029f901b0eb5ca6e",
+    "scripts/probe-remote-credential-store.mjs": "1977f6a564c0a81dac45ea4c3a721613adce208f127403e8c459ff60e4a4eaa3",
+    "scripts/run-dsh-matrix.mjs": "db03a1f7ea1fa11503588440af122b8bfcadd6af4e9500f793975b1fcc5d8e05",
+    "scripts/upgrade-dsh.mjs": "e57c383b2c0e0b8731afd04bff744c7631f6ccc53c5e5c5b7cf7b94ac7b2cdf9",
+    "src/client/ComposerToolTrigger.module.css": "67cbb99a86a8b10a434178701cfa2fc95ecc5b5fcd0c4057438c1e5151d07e21",
+    "src/client/ComposerToolTrigger.tsx": "df5f03bd8180c7e0a22c94457ebd99a9fe30ed3461feedde55b576ce1c0899de",
+    "src/client/GitBranchControl.module.css": "b744ff0a6bdaf4bef12f6107024d2b2073ea9a5a81aa032e4d1d4cf7c079a036",
+    "src/client/GitBranchControl.tsx": "f69bef7ff0cd4b84412fac879bf5168ee80d7b6414d8581cdca692251da9597b",
+    "src/client/GitDetailsHeaderActions.module.css": "6982ca31a6ff97de1da0f992c3513a92f02dde6e802e8505699304409d309d85",
+    "src/client/GitDetailsHeaderActions.tsx": "21b5e1ffb53f292307df93d201ffd8c1a49ee7fc300c17d82b2ae8f87f1a35bf",
+    "src/client/GitDetailsSurface.module.css": "fa25b929186bb094a7600d82ad6cd658290cda3a2e3ba095d26004808bb00bdf",
+    "src/client/GitGraphCanvas.tsx": "bb589ebddc64be72b4ab570a18b0359b6b755989b51adda8405fefda710b92d8",
+    "src/client/GitGraphSurface.module.css": "1eaace8f67efad66f3fc017b1ad822c2308cb7cfcac3864216f7d295d573eb4d",
+    "src/client/GitPageTitle.tsx": "fd650464603714a7c7d510d03832a5190ce91575273eb29df9c1ae70e08302fc",
+    "src/client/GitRemoteSurface.module.css": "1343654f1af050435c72ad7cf8bf8d8dbfd1a73c55d1ab36835653f381dac706",
+    "src/client/GitWorktreeList.tsx": "e6c97f8a01e90d2901e8a3deec582121451de41ace506309ae00a99ff8783e57",
+    "src/client/LauncherIcons.tsx": "207fd5b1e89211eeb3b2b0aea44cd5ef82e796aeb5e8b50c796551c72e3253aa",
+    "src/client/changed-path-count.ts": "1d79f57ef7f57dd53d027eddceeb48a8e1ed727a697fcd86ac57089bc2b6ae64",
+    "src/client/contract.ts": "a08faeb92a79d85d7e86330e7bf0bacbf1622056b0d94af5f95033d0540dd6a6",
+    "src/client/controller.ts": "b637d37d581023ed2a5ff46c6c53103b969a046f2150011abc2312d6022587df",
+    "src/client/details/ChangeRow.tsx": "ad1344ba58e1b67868280362f35e3cf5d93b9b6716347709953b0e47a154a830",
+    "src/client/details/ChangeSection.tsx": "3341a04b7d89ad5d960114fac018bcbda95389369f7348b584ccded742290a95",
+    "src/client/details/ChangesTab.tsx": "cc91b71e230b4c9b61e718607dfbfe044abc604bb98b30eb4b93c2f1c1c7cb73",
+    "src/client/details/CommitRegion.tsx": "7dd754a9a2542cf801de5f7691b444f76553fd41fa9d4914ec57652f932bd77d",
+    "src/client/details/GitActionIcons.tsx": "13ece4f47136dacd4cd74df91caa4f0a63761b737b4340f96e02d7e75d43cf42",
+    "src/client/details/GitIconButton.tsx": "d12459408aee225bae470c6e3f06dced7f84fa55560d0e4e0fb60aa933264f3a",
+    "src/client/details/WorktreeRow.tsx": "041aad0c831f6786d6b0297b22b96cadaffb1f9c76b11a11a82ef0f2567d8cb9",
+    "src/client/error-feedback.tsx": "bc1bd71d85daab35e6b8f97062042363aa8d3e035702e07e55125dec7612ed02",
+    "src/client/git-diff-adapter.ts": "c5b1630fc396111dfbea3ff58cd8efa45ca82194c9e8eea22b503052507ad19e",
+    "src/client/gitlab-notices.ts": "0c830b696b6f9fa24cd00a680fcd1c69df040904b9e0f0b4a28f88bca08a53f6",
+    "src/client/graph-geometry.ts": "eb598fd37cb6a63502e964b8a0ff1330f98eb0035980b193016df8d9a3ed902b",
+    "src/client/graph/colors.ts": "27df7e8abc08260293eba143a6e87df4b703306f46ea514a0b73ea3328278681",
+    "src/client/graph/lanes.ts": "e954ed5e85defe5d6fd4c0d4b3d4d7154ebeb2ac48bae2d33120222dca5995c5",
+    "src/client/graph/layout.ts": "37412c3594894ba7703ceb4d16739fe6e3633da2652c7816ce9f28ab09f60d7e",
+    "src/client/graph/types.ts": "b7248b30da91fb83387e4d7295109b8b8e2d8f6115387394cf61dab8056bf3cc",
+    "src/client/index.ts": "58646be1d1736c083464697044e53fffe2bea719408da3b7bbec1e388fbe8bfb",
+    "src/client/local-error-feedback.tsx": "282730e187f0560b8ab0d31c90a97378e2bdd7377984084df0703322a33f2800",
+    "src/client/locales.ts": "3f95ce27ea685aae3f409ca6ad65b3606a1859b0848b34c4a6fbcb71a044bb00",
+    "src/client/path-display.ts": "b6ff2b4bd18613bee9e5ab315625ff04eb8db15c85c8a208f95c5a8373e24e2d",
+    "src/client/ref-badge.ts": "d2eff25611b7d48943d47f55c75f30b2e223edeebec98e6d0faa8decba4d7a42",
+    "src/client/remote-protocol.ts": "6c8d0ad371029ff27db8771b4e4bb843a02387fcbff9d097b0e3f7c57cd94acf",
+    "src/client/remote.ts": "7be4bcf3cdb19eed6d184e198056f39b4352b8fb9d546e686ff686c9c0ac320d",
+    "src/client/remote/AccountAvatar.module.css": "a8b5f1c116556ffa32c6632fc680d2301781a41121bdd5641567a4409fb81e3a",
+    "src/client/remote/AccountAvatar.tsx": "f892194e8379f7fc893382998da5a06a54a9cf06275af363efeee3e36b6610e1",
+    "src/client/remote/GitLabMarkdown.tsx": "a037910bd27fbe53316ecafbff57f7ab539d82f1a55e84b52c96f0884a9c937b",
+    "src/client/remote/RemoteAuthControl.tsx": "70f0f034c337cd16c0c0e90898f4e32e667ac997d68fb64888ca6387bceed6fa",
+    "src/client/remote/RemoteAuthSection.tsx": "bb1f3f7ca2073f740b9abfbbf07ab11077a25c2d464d6ac535fbb77fab3efa98",
+    "src/client/remote/RemoteAvatar.tsx": "7929e5d4c32c23ff9c9a737727d8d64152f0be01af76909d394436a51c0bc2f5",
+    "src/client/remote/RemoteComposer.tsx": "435d4f6c415797401be52f5cc20e5896bea45cd9236419369aaa9a9f9ea29d51",
+    "src/client/remote/RemoteContextBar.tsx": "39d905008f4d233d11859d864e3acaeb02c121e2d6f7f208d93cc88827c7aab8",
+    "src/client/remote/RemoteCreateDialog.tsx": "9037596226b6e6aea3af95781031c799600cd50d34bab1b70c7c25668ce32486",
+    "src/client/remote/RemoteDetailSection.tsx": "0722b5580ec5ea89eb765c8e83efb43070fdbf4ab3ec2267dfd0a96604b983cc",
+    "src/client/remote/RemoteItemList.tsx": "aa2d5a9a98151cd6d952f1989d99b191bbd015c6546d15770c95ead6cb2640f3",
+    "src/client/remote/RemoteLoading.tsx": "e17d80cc92326180a3c1aa00b22e641f1ab486977e45cb4dd1a2de5cbe31665a",
+    "src/client/remote/RemoteLoginCard.tsx": "0362dd6cb5bd6128db40161dd790481665a06e6e95c8b4cd4f9d8159e4d3be5c",
+    "src/client/remote/RemoteMarkdown.tsx": "c2df3dfd4faf2b0f8003200a359a9e4192ed4f348bd64c504bb3978fe1aafda7",
+    "src/client/remote/RemoteNotices.tsx": "b1b3beaade88075dff5c3b57de79a1266e59518fbb2360170135bdcb4ba9899a",
+    "src/client/remote/RemoteOutcome.tsx": "f68b5330f3d0db8d347b507c974991ac8eb72647015713c21b99f0dc1aa1c95f",
+    "src/client/remote/RemotePullActions.tsx": "4a7650790e9f261aed661abc9d85c07a451399cfb5b50417b142302638d65adf",
+    "src/client/remote/RemoteTimeline.tsx": "4bf38c445e91a7896bf2ed1560cbb8b21955a94d9555dbefcef1c6eaba402535",
+    "src/client/remote/github-markdown.ts": "e622e86540fce0cb2d666598a61921a087a29f258a0b9ed494dc3e65d2551ece",
+    "src/client/remote/icons.tsx": "50f451064182330b28f8b4d4ad86c36ed0ed5af797fc372d7ee56e3260b87b43",
+    "src/client/remote/login.ts": "813dc7d691229851fd68ac9d1ca5417c3ef75e69ebd9030f0c38e3a6395c62f7",
+    "src/client/remote/platform-copy.ts": "a73d232c81541d9d04a618ad6d231066fb40a008038e1aa1fcc8b11ebc7a7e25",
+    "src/client/remote/remote-view.ts": "f980495c8582be684bf7963c49fcc7b54616e670f9acb19e1bbb026656ee11c3",
+    "src/client/remote/timeline.ts": "eeec5f9c4bd919afcfdbac4f19bfcd4f6ffe1a395fc1f6fc0da5d8af0aa53eab",
+    "src/client/session-controllers.ts": "1049e2acb75200e4a1e09c3c8608ca7373f9dec7ed19081b59d91c0aef84e728",
+    "src/client/settings/CommitMessageSettingsCard.module.css": "3906c583a14bcc4afe70efd5c62d4c19f16935ec8755e43a03e902f0ea041866",
+    "src/client/settings/CommitMessageSettingsCard.tsx": "142a71c1b06095678f7f3a8b27ff87c5e3958e7e8da10218c4b096bcb03e4597",
+    "src/client/settings/GitBundleConfigCard.tsx": "c698d462a15aba1dc53c7d7bcaea547ab7fc4271cf72591271075d4a725973e3",
+    "src/client/settings/RemoteAccountsSettings.module.css": "7cc15032e2e5df9eaa4b0cd92b0287c70b95ec6c9a8eacdf78f7c236613bce6c",
+    "src/client/settings/RemoteAccountsSettings.tsx": "30bc54665d57aef0331958753af558e0126428be364f273111d9f4c314458fa6",
+    "src/client/settings/RetireGrantDialog.tsx": "4c1c56bc1973f2766bc865af218907839039dddf435c538d50ca7a2fd65e925d",
+    "src/client/settings/WorktreeSettingsCard.tsx": "6f01b8ab0c23efae010efcd95ebadaee91d2595ddf5c5173d58111149b4652d7",
+    "src/client/settings/commit-message-card-controller.ts": "c43265b27a4a759be9035a1e50686f8287ca4af08012314850f9baabbccf9960",
+    "src/client/settings/worktree-card-controller.ts": "8b2665867aca0a67e954e2d4b7d5e47f7bedfda6c7e49f699f1e4b48992c64a1",
+    "src/client/status-letter.ts": "043a702c1a1078fffe828f4c6bfc7d84d9cb684635b00fecaa9e3ad11e2dc0e1",
+    "src/client/surfaces/GitChangesSurface.tsx": "da6097b213e01a264ce544e5fe99a5b2f7421fa3dc84e537ef95c8686dfd2e69",
+    "src/client/surfaces/GitDiffSurface.tsx": "b976ac13eeb539550550e9cfb53dc9b03e6651676abcdd995a3037d7829f1d25",
+    "src/client/surfaces/GitGraphSurface.tsx": "e7c9c2b785f7df0c696a73f7093a70c25528c2333f756075104f6712fc357718",
+    "src/client/surfaces/GitRemoteItemSurface.tsx": "11f6650c6072e38d506bc42b400d6fe1eb8f66522fe2f0bafaa36fa2967e1cf4",
+    "src/client/surfaces/GitRemoteSurface.tsx": "800ff3d7845816dd9c387187e6551b4debed915736ec522f4979ad473d2f5c42",
+    "src/client/surfaces/GitWorktreesSurface.tsx": "6d3a4cbb356379d6042421b4bedd251213f9060951b44ced9b93bbdbde21699a",
+    "src/client/surfaces/RefBadge.tsx": "8246b51e96645c3605f76800d2888057cb12e4bd6d655dd65225b837259d29af",
+    "src/client/tab-definitions.ts": "c25b18811817d7862f5bf590ea4510ca37f0c12150d66ee9ce1065c4f4a91c1f",
+    "src/client/use-git-workspace.ts": "0885c167eed77a4aea0ab6a9238db42123ee8353b5dd1296d4b8be50adeaffb9",
+    "src/client/workspace-path.ts": "bc15d969ec3a3c2f1b0562472ec4b6e23638f60b4a97871e3fa14e6208e0bc49",
+    "src/client/worktree-feature.ts": "38726414efa1a312537283393bcb7addb4a754b48a90f9892948b5f5c5d73ec6",
+    "src/commit-message-settings.ts": "25480a2652c847532bbf1cc611aba90d8187ef08c8b96811669a08ca42876a7a",
+    "src/commit-message.ts": "6a6a8379343d04821714fede571f2b8b301302b397aeeaf9c77a02fc637969e8",
+    "src/compat/dsh-client-settings.ts": "44f22ab53ba064a20e3f2b951b0ca072bb2fc053c4bde1baea73343e85e6d4da",
+    "src/compat/dsh-diff.ts": "1dd0c83fbc3e0b0a34fb0c94f4219885a5fff311412e3d63ba3b2da75e478718",
+    "src/compat/dsh-icons.tsx": "98cb130dd2df2f68758776422c3d99920059890d3c791ac536b41029cec0ec59",
+    "src/compat/dsh-markdown.tsx": "c53dcd65ad74c865dc73b6fb719b1838aba5a3d1febb25d9290c1422c7b93e2b",
+    "src/compat/dsh-schema.ts": "65c27e08d2801f7c9030b89a97fe2295ea05cf9da16898bab2fa4d88418ac3c7",
+    "src/compat/dsh-settings-form.tsx": "224de22af4ee8ab6e856c8c064d9a49604809cdc1b3e175d2428dc6cac024fcf",
+    "src/compat/dsh-toast.tsx": "f64eba747b094b7415b58eccc4c1aa7dd4678618f1fcabd9e30a25b700d5095f",
+    "src/compat/dsh-tooltip.tsx": "63fb299cf9e9f4303eaf0125046c11fb37d3be6ea888bd2bf12c4650ce66580e",
+    "src/compat/dsh-version.ts": "aaa198797faf80e4e3f5ae05f8c7362973e509ceff590539953816c53b2afa42",
+    "src/css-modules.d.ts": "e28410d74a0d763364c04fa690c2ca2202ad3019c74f8f5205e8dc6cba69c02f",
+    "src/index.ts": "11c0c636541915697fd2ec7f814f4dadd4d7ac9640094ad256ae13c0da08e241",
+    "src/log.ts": "bd2fa949a5f46efc9135ba634ca8a409cfc17b37c8a3810014c08552876400e0",
+    "src/path-identity.ts": "51d6f2bed062f51ee7aa5731c47b3b1748ed345e7fe0f4d1baed8200c2e9b4a9",
+    "src/remote/assembly.ts": "404e0fd9ab99fa09820de8baf1ce78635115fd94618d94656a3c0142b33f67c0",
+    "src/remote/auth-selection.ts": "13e0f38227d151dd41879ad594c10bcb032545e1532fac1af23a465b7274526c",
+    "src/remote/auth.ts": "fcb7f3b423ec2e8f95ffefc511d8db8774327c2323e22bc56382338ac56f3ecb",
+    "src/remote/credentials-types.ts": "392876d98cb1c2e65b8e0e07f254a2a390e8d23b46e571c1f51d229f3d49fcbf",
+    "src/remote/credentials.ts": "126c5fdc9e04c677b49ef4aabaaa188393d0a13c1e882fe7bdfbb3f9fb776798",
+    "src/remote/diff.ts": "dc20bd01f60d563f791b5b2d61fe4ec1f1440a68bd46231db1d92448d1b8e2fb",
+    "src/remote/errors.ts": "e78a12cadd1e865ed650b23a92585d8f7cd0f5a9feb05e426f3795f63b4fd2b9",
+    "src/remote/feature.ts": "a90236241c18d4348edaf8bc06f3d3fbae88d3394d908fccbba3358ea08721b4",
+    "src/remote/git.ts": "8528bac964d55efa29513ac5c453e4160759f57b879c0699d0e0759f4bf5fc67",
+    "src/remote/github-legacy.ts": "4d0446d6ac90fac27e11c930f5ea4bb73dd9934c65966ca2001964fb32ac4b4c",
+    "src/remote/github-model.ts": "18652260ac189060e2805dcfb362677a431f2306ce8ffa3ad016af359d6cef4b",
+    "src/remote/github-scoped.ts": "24fecb756d0c18caf938669879404f34d8d8ff912318d88860aa1ae113f20c38",
+    "src/remote/github.ts": "2cd1baf992030bc3dff15884a304a66bdd19bf719dbf77c54eb9b38bc64ce2c6",
+    "src/remote/gitlab-auth.ts": "bb28cedd6f538e524c03cfda6f33ca24bba3173f2fb8ab410df28b648a0c53b6",
+    "src/remote/gitlab-facts.ts": "82ec71a03cb4cfe49a9aceec1acb57e5f3d366783d3e7efb7de1911edb05e609",
+    "src/remote/gitlab-git.ts": "89f41da9fc6643f0e592d491f66260ef59c49c9efe887ec1e3c8b17e89377604",
+    "src/remote/gitlab-grant.ts": "32f1bfb2724d8416eac30065632379435b24b64a6c033945af7cca19ac3ff68d",
+    "src/remote/gitlab-model.ts": "98f67b23a5623a813680d4abe17ce4a269fa06eed68de3598a4e0813ba762006",
+    "src/remote/gitlab-project.ts": "391b1c442b6b47c8c92548d95d4a42e376f49f995f1dd353740c3426c1cc9bf6",
+    "src/remote/gitlab-read-boundaries.ts": "c9582ec54c4289be10170d77aa6ee4f928990e08eb93132ae8028b5eb50c32c7",
+    "src/remote/grant.ts": "c0773aa9559205e4136ad036b5d5d8df59123f5ef67e43867e29cb9d4bcb769c",
+    "src/remote/http.ts": "3a12d69991738eee85ee85640accc0c33535efaf43a886b9ac4993901f40b625",
+    "src/remote/instance-url.ts": "eaf1b1086d3099d77bd6eabd9c270b54122b78907e62be258eb33e931a2ca06b",
+    "src/remote/instances.ts": "c97ed905c981cd96328385519f280d60aeb1a802196e5d54bbccf5f22c198edd",
+    "src/remote/probe.ts": "93e86c9b23deb1a8e0f5b4f94bb2124cc93cb0c96acc76d136094786fdc74f18",
+    "src/remote/provider.ts": "942898c39607d17d2138f7a53a77b19b38f2507945b9e5970fce4afbfd055bba",
+    "src/remote/registry.ts": "c05920287acf5a4d2462a8f54e3be9662e478a842b18aa61d61926cadecec406",
+    "src/remote/release-oauth.ts": "74f18e76888cef2093b85a7e1ac0497f2339d4c219fb4d0bdc42b7882ebc7844",
+    "src/remote/runtime.ts": "79f0c3ddd206f069220a0b54fe609135df7de5970459e3029c26534f4d2509bf",
+    "src/remote/scoped-git.ts": "3eb4e1431622180894b88addc2aed172dea2ff85602495d5770f3e647cf6b662",
+    "src/remote/settings.ts": "dfbf598e6a955f86293b6d162b1ab83e66630a6848a4c13496d77c58c27e1e75",
+    "src/remote/types.ts": "4267cc6a038cb30ff87c34cf6dc204df2a2724d9b91cdb55865024bb582da77f",
+    "src/service.ts": "6f8b3017e88ab0fe737496cc8929ebe7a09cffa1f21ca0685fa61c5005764e6c",
+    "src/session-directory.ts": "9f10cff4dfd201e5895a43d5ef11fee6c42d458868c089d1aa85ed97c727aa67",
+    "src/status.ts": "83ca076077a9a6123fbcd24a5c26aed9a6c6265fa9cbb64fbb0df732a74e474b",
+    "src/types.ts": "496e60e4c5fe2b26478d07363aca0725e4ce5b4313979bce5e3bea965cf3df05",
+    "src/worktree-feature.ts": "b746439e65e6f0a7110b7d4c40b8c73e5dc00916e514e65a5bb683418d532b57",
+    "src/worktree-settings.ts": "781a8bc94188857dfb48ebd968815b756c137b2cc0b81b3f3ab317ffc67b2026",
+    "src/worktrees.ts": "30debb314174b69e220c8f529a77d207e9257e4c83e5f7265b7ddc029c84d57d",
+    "tests/client-bundle.spec.ts": "3e651a2b70ac69841724f238d3af353035aed1be2bb241fdd4d576dbf8f8de17",
+    "tests/commit-message-settings-card.client.spec.ts": "ba0878cfa6edec1f1c1814fcd04df7337dd07b7c2a4e91b157ca8315630ed77c",
+    "tests/commit-message-settings-card.client.spec.tsx": "c0a536cd6602eaf94b38de358d9636309d1655d955b779af9136b29d80b1f69c",
+    "tests/commit-message.spec.ts": "f2243e6ebbf918dca6f1df461fb2c06f9ac8331b626923229b77395e3837285b",
+    "tests/controller.client.spec.ts": "e064740f5879545c8127af0ad060bb6802250632a44d23c31dc1df0a5a7e1e6b",
+    "tests/css-classes.spec.ts": "1389f597f5efbcb4839a827307ba0bbe77194bc626407205d52d1b79723d40c1",
+    "tests/details-surface.client.spec.tsx": "372ad55bd59dd5112bccad413c3382f2792e5fcabc041f7f7973785f416654c5",
+    "tests/diff-panels.client.spec.tsx": "3d3b7558829ace692f63ebd0401f51061d113a84375e71cd47503e9fdfcec63d",
+    "tests/dsh-compat-wave.spec.ts": "4ec9e5a14a257ade4cc69be29f77bfc41e1e52b5bfc76696c22a2a90d0505dd8",
+    "tests/dsh-diff.client.spec.ts": "23f664bdd7e3b63e3020781e24c72166bb5eb3aa96521a613b2427a102f1f7e0",
+    "tests/dsh-markdown.client.spec.tsx": "e4a2de9d37f1d2c8d78b8be8c8fc19416537f385a8cc825efb94361a415d2b6e",
+    "tests/dsh-tooltip.client.spec.tsx": "e0e10cf93b2fa51783a56b040c7c68a24bd474825aa05a470fe5b3a2eccd76ae",
+    "tests/e2e/accounts.e2e.ts": "1343a36d87cf32ee08ab790c35117baa9980718292130771ebca24c19befb2ce",
+    "tests/e2e/auth.e2e.ts": "5c68677fb733777a6701b9bbbd4ef8482e5e80115e172445fae6f56b677758b9",
+    "tests/e2e/device-login.e2e.ts": "2f82b08b5fc50a6fd5e093281698d56aedf0c7df21feb62dce031604657fb44a",
+    "tests/e2e/gitlab.e2e.ts": "b50ffe594df1ab2f6f2bf2c6de557553806a475b6190beed0a860d4fad8e7d5c",
+    "tests/e2e/index.html": "c93b39851813dd7a2b7cc1517a3cc666a5f67e5282a8474084b1302c268c9624",
+    "tests/e2e/main.tsx": "f4dad87d000b6d50270d54941071e5687c21720b7636725212435ebdc2309430",
+    "tests/e2e/theme.css": "10a8a550eabcdc8bb2d1118be032cdc39eb598e3f79274e79cd0a5a21375b616",
+    "tests/e2e/vite.config.ts": "b77792eff577fed1c0ec4a0a77591c1788849580e4e56191cb251e2e8c0394a8",
+    "tests/error-feedback.client.spec.tsx": "1cd31322664971009e48b085c19afac90b7af77c4fbc69c3aec6965abec85b26",
+    "tests/fixtures/legacy-remote-types.ts": "f108cb89aca2a9b221b0e6eb1ebedf83235542a4651e4f38cd2af0d30bbdf95a",
+    "tests/fixtures/real-history-topo.json": "f76f40d40f3f433887b4739885820c58e0ad1c34c7a229325e456306190203fb",
+    "tests/fixtures/real-history.json": "e5c2cce727efae3efd738c548e8a88d5017943d156c5a6cc950bb9c9a15f7e24",
+    "tests/generation.spec.ts": "076ef47e8c0a164ccbf811647b28a1a382947cc26de3bc143daece2e611a4ec2",
+    "tests/git-branch-control.client.spec.tsx": "7ada7854a0ff742114ac1881c7dc0907d7285ed7de3dbfdca973d8f1fadf66e4",
+    "tests/git-bundle-config-card-fallback.client.spec.tsx": "ab4c454ad699a1189197958e453bf2e582ebcc6bcd19a6f05030da48bc0eecd5",
+    "tests/git-bundle-config-card.client.spec.tsx": "7b301eb267135f0fc8c860943a8143bac4dc5216e4155d631a6977eb26a5e026",
+    "tests/git-diff-adapter.spec.ts": "5dc170768b1f0dd22bc0f02f29a171348abbeab5ea58791ed5edca70cd6382c9",
+    "tests/graph-geometry.client.spec.ts": "b05747d56e0c7b6b606ab438c866bc036d0750cbb8146d2a412cf8870a510de2",
+    "tests/graph-history.client.spec.ts": "7a426f58531df8ac4412611a96f537ab7cf3d1da89173943fb15115feab9d323",
+    "tests/graph-layout.client.spec.ts": "e0a0daba0cc5e50b7afa3bc832eca8642fca412092f5a5095fac3ee906e26d5a",
+    "tests/harness/graph-fixtures.client.ts": "c2c34425c493c27497c2ef36ee6248de9da386798da4d6f7939a0eb8870f949e",
+    "tests/harness/local-subprocess.ts": "4d5ede89e94cf42a681fd6794a09010c82ba85c79f3b932321131fd3496f747e",
+    "tests/harness/sidebar-fake.client.ts": "9a607c461ec3eb55694e46106083df65d59302367f735169ef49e88b446fba89",
+    "tests/host-entry.spec.ts": "4699402cf5c5268be594f50910726b1728e8528cc091bdc7fb126155deac448d",
+    "tests/lifecycle.client.spec.ts": "ca25034b2fce1934cd311ae3d2c89ec831ea00e8b5fcd41b55e3658020eae8d2",
+    "tests/log.spec.ts": "22ada91e9a54305385fa294fbbb0a9f8bfa4cd61b161cc636e3ed9fba26c1f28",
+    "tests/path-identity.spec.ts": "2aa27d6acfd7d9628ed18d215d79425d87808062a4b521da40219fa2ed44ab5b",
+    "tests/ref-badge.client.spec.ts": "3552db93cc8fd0ce1ee408a4b398769770ac7933e9b25e3cbab7a4608a93b725",
+    "tests/remote-accounts-settings.client.spec.tsx": "e6218ff260a440177e72b1b0aac3d10fa4520fb6a393666e04a41118a7ff7f44",
+    "tests/remote-auth-cache.spec.ts": "5e7fc6bb245c04d7c16677961ac5d09a5f356feec312b7ccf8e44fdd0fbd6874",
+    "tests/remote-auth-section.client.spec.tsx": "a8f04749c1a66a5ab2987a35364bfba07149f5bedd1f62e79df074281c669652",
+    "tests/remote-auth.spec.ts": "084be577cb4fee181ebb70337986c71b3a6f5d46b5c56dbefaabbaa8e1f913a2",
+    "tests/remote-client.spec.ts": "59750a0d878451f25562b59e54f771df8f0de067e9a4d001a8f18ada6c8ec02b",
+    "tests/remote-credentials-contract.spec.ts": "1aa096a4ed9083db1adbb96e31b8b000fca23234c45bc1d76b347944ddc65c5f",
+    "tests/remote-device-login.client.spec.ts": "fc5577dbe41ca2293e8fc0ec28ba50aa53d08c9c3b4412ae8fe8d3d1fe070b1e",
+    "tests/remote-endpoints.spec.ts": "57c9f2803db41fb48ae31a59d8975a3f5c6d806117ac3559e1159ab6b4bb2098",
+    "tests/remote-feature.spec.ts": "f2d61f67a5278d130c7eea594331a7d0025d7fd773bab51bff55139f0b61bb53",
+    "tests/remote-git.spec.ts": "239591c296938340f7b56cdc3f43dfa86a6045ac812537e3214abd6b59c23054",
+    "tests/remote-github-reconciliation.client.spec.ts": "eefb03d989267809b514f9344f7ebe73f419ad47bbea0185686b1b29340586fa",
+    "tests/remote-gitlab-auth.spec.ts": "ee78b7f929b94903f3b169fabd0315049cf0841f3c8f113efcc1444ea3059abf",
+    "tests/remote-gitlab-checkout.spec.ts": "53d5bd0e35095b0dd6ff8518799e42c4cc446185979235e06430e811b28ac084",
+    "tests/remote-gitlab-controller.client.spec.ts": "3d3ce5c1202b193cc4f6d1d01be2664fae5af6b4ccde715cec9ca8ebc48e088d",
+    "tests/remote-gitlab-facts.spec.ts": "5f2fc4d2e4a6c993f199bda17363d05785b946e5b51798553213766e39d694d4",
+    "tests/remote-gitlab-grant.spec.ts": "d6919e40d31ec3728dbe217086ff08ed94e699cf786cb7c79e60af6646afb7db",
+    "tests/remote-gitlab-http.spec.ts": "67c44af5e797b7bd4504bc4458b77f673eac9769c16439543c7b9a26117cfc42",
+    "tests/remote-gitlab-markdown.client.spec.tsx": "0abc9824221304e58aef7d6705ab4cd97fd7f3659feb3cc517554d172f01059d",
+    "tests/remote-gitlab-model.spec.ts": "29abc93ede92ddc1021389d54ae36dacee0df874d0c20980901896269f54d6f0",
+    "tests/remote-gitlab-notices.client.spec.ts": "bb54a40c10dc5a7cea16c9f30bb13f2edd42e19fcf298bddec0ec37694b63510",
+    "tests/remote-gitlab-notifications.spec.ts": "8d6467539c06046dd3ffd7be4c5eb06d818a3eff6bb84b67398b76624e27ca90",
+    "tests/remote-gitlab-panel.client.spec.tsx": "f517efaddb44a3c15e2580c15232fb1e1b0b0dcc4cc2fab213f331d7b0f9fdc7",
+    "tests/remote-gitlab-project.spec.ts": "351577f565064454e5a73827b8a4e70dce387ef2ff3adf8aaffa0e52e32d93bf",
+    "tests/remote-gitlab-push.client.spec.ts": "29a9c31fa4eeb1f80d5dbdb6e835ede1bd53e5b3b14837a6070052153709ac71",
+    "tests/remote-gitlab-read-boundaries.spec.ts": "ecf09579f6b8c3d67530116276e83c58fcc730f8fa51d5063a10d2ea5bd59ab9",
+    "tests/remote-gitlab-write-runtime.spec.ts": "bb824791d1b198796483347e689e6a7ff48374ee37541b6587ca5a0d6a0934d6",
+    "tests/remote-gitlab-write.spec.ts": "8b994fba0c4be907d6a653be1b9ee80aa349705c5099d7888a2c9d35f21283b6",
+    "tests/remote-http.spec.ts": "9ac76756ed0520d61484e7d417412b3e49980900f63a24705c6d816abed18882",
+    "tests/remote-instances.spec.ts": "3e94ab39d4c0885efd6c7d02af778bbf87a422ee7987aa1f9f373b073351f021",
+    "tests/remote-markdown.client.spec.tsx": "581a947125f13e7e21eb4b97a4a48e17042473dd86eeffff2e8b4ed73c75d94f",
+    "tests/remote-outcome.client.spec.tsx": "ca55e7437462db3792d7405741b42d0bd69d5d4864d0f1d7327e49019c1bf932",
+    "tests/remote-probe.spec.ts": "b78bd72b7684716ad61ffc6fdaf52808405089871c18f93f194c5d36836dbc1d",
+    "tests/remote-provider.spec.ts": "2a96a6f6d7db797890b53fad062c2b3fa98fd607d4b8fdaab22c74d929c5cd32",
+    "tests/remote-registry.spec.ts": "b358ae138239a831b855ed5aabe1e481659eae09406b8627a3a69d028186d670",
+    "tests/remote-release-oauth.spec.ts": "a2f8cc7d2b1eb515254c894a98a83fcb7522bb9afc2532dcc2df607094d2ac83",
+    "tests/remote-retire.client.spec.tsx": "e6ad4d7f34f1bd37bf7c6a53635e0f9074d6cf5f284e21494b9dd1e7cf937323",
+    "tests/remote-runtime.spec.ts": "09fc941a12286be4d8887134d47e6d32bc853d54ac8ce83daefdccd60f8dbe39",
+    "tests/remote-scoped-client.spec.ts": "6cae2c9993716d1e641743b4921f63bce65142c035e0987c08ab5447992699bd",
+    "tests/remote-scoped-git.spec.ts": "6253e6d3cca8d2650f7b8d2563c46c572f5670fb513cbe7290de7f4b68a1f3cb",
+    "tests/remote-scoped-runtime.spec.ts": "7ff8895ea8006edd1c94111372362cf8883b8ae7f828c33ba418f555280b6771",
+    "tests/remote-surface.client.spec.tsx": "6360a3c22b466ae4d114b68d9f83c231f6dc4fd1c9ba56aa30b38f833375f742",
+    "tests/remote-timeline.spec.ts": "8973c8fab01a325c6d9d90f29527a7b310561a89a3a36f437bff99204dfd95fc",
+    "tests/review-audit.spec.ts": "e44c831e1187108b77b9350e37befe2ce5cb9816ce59a0155df23ae60f036a9a",
+    "tests/rpc-channel.spec.ts": "8e707619e8ec4f7dd60ff801acec78d95664ae29e057c6cdf702ca99d518f509",
+    "tests/service.spec.ts": "a0b9d707e85306afabb0ba5011b3387bc25dcbd29478b89b5333391dc973af4a",
+    "tests/session-directory.spec.ts": "c6532e31ff9598a1100014b3c0c4112d85c2ad0ff5992e5c4b59f9bc4952e92b",
+    "tests/sidebar-migration.client.spec.ts": "c256c2ac17bf08f337c8f06a7a378956364f42a2d196768081bdaa8f7fa9dcad",
+    "tests/status-letter.client.spec.ts": "e4d85d23ad717de436414c64866f9b74b6b7f7c26f08a3770618f46f39fe8e6f",
+    "tests/status.spec.ts": "c4909c31369b228ad95fa6cc93e8eed7ae5acd4a18b0712393610b7e63e60f26",
+    "tests/worktree-create.spec.ts": "4b2973a2a28f54394be42033e3111bc2f5418252bcd17210ccd286481176f6fd",
+    "tests/worktree-endpoints.spec.ts": "6f2ddae4f0b3b8cf318d071c0b52364a183fa5e48766a9da0090cd4c64dcac00",
+    "tests/worktree-feature.client.spec.ts": "97385159b8e92a2776f8142c1160e32fb885528f420ea8ae2d6c340d8d7c3257",
+    "tests/worktree-feature.spec.ts": "37e7b703d743d320e0996112c4f0b7df2f41dd8b9c4fc3d01215eacf5ca3ca4c",
+    "tests/worktrees.spec.ts": "a154c9040cb82e0b1e3b0f1e5ba7cbebff8e199c973bf51f25130737b4a61969"
+  },
+  "limitations": [
+    "No local Linux/Windows run; CI pending.",
+    "No full DSH Web/Desktop profile installation or native enhancement unload run.",
+    "No real remote account acceptance."
+  ],
+  "notes": [
+    "0.2.2-rc.1 passed as an unlisted candidate (DSH_COMPAT_MODE=warn) before promotion.",
+    "The 0.2.2-alpha.3 first candidate failed only the compat gate because the old ranges rejected host copies 4.0.6-alpha.2 / 3.18.6-alpha.2; the formal lane passed after the OR clauses were added.",
+    "Composer tooltips portal where the host Tooltip supports it; the 0.1.5/0.1.6 copies ignore the extra prop.",
+    "The first rc.1 full browser run timed out in the third accounts test; that test passes in isolation and the final full run passed 28/28, so the record uses the final run."
+  ]
+}

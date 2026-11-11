@@ -3,9 +3,10 @@ import type { ReactNode } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import {
-  Button, Input, Menu, Modal, Tooltip,
+  Button, Input, Menu, Modal,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import { IconBranchOutline16, IconCheckOutline16 } from '../compat/dsh-icons.tsx'
+import { ComposerTooltip } from '../compat/dsh-tooltip.tsx'
 import type { MenuEntry } from '@deepseek-ai/dsh-client-ui-primitives'
 import { ComposerToolTrigger } from './ComposerToolTrigger.tsx'
 import { changedPathCount } from './changed-path-count.ts'
@@ -182,7 +183,7 @@ export function GitBranchControl({
         <span className={css.menuHint}>{t('error.local.switchBranch')}</span>
       )}
       <LocalGitErrorToast controller={controller} t={t} />
-      <Tooltip label={changesLabel} side="top" delayMs={200}>
+      <ComposerTooltip label={changesLabel} side="top" delayMs={200}>
         <ComposerToolTrigger
           metric
           label={formatLocale(t('changes.indicatorCompact'), { count })}
@@ -190,7 +191,7 @@ export function GitBranchControl({
           aria-label={changesLabel}
           onClick={openDetails}
         />
-      </Tooltip>
+      </ComposerTooltip>
       <Modal
         open={creating}
         onClose={closeCreate}
