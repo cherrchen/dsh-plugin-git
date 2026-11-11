@@ -4,7 +4,7 @@
 
 ## 适配波次状态
 
-自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.2.2-alpha.2` 的兼容晋级已完成，区间内二十一个已发布精确 prerelease 全部纳入支持。清单写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。
+自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.2.2-rc.1` 的兼容晋级已完成，区间内二十三个已发布精确 prerelease 全部纳入支持。清单写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。
 
 ## 2026-10-28 适配：0.2.1-rc.4 / 0.2.2-alpha.2
 
@@ -70,6 +70,44 @@ git diff dsh-v0.2.1-rc.4 dsh-v0.2.1-rc.5 -- packages/client packages/api package
 
 本地没有重跑 Linux/Windows；CI 中 rc.5 与旧宿主继续使用 Node `22.19.0`，`0.2.2-alpha.2` 车道使用 `24.9.0`，当前分支的 CI 结果仍待运行。完整 DSH Web/Desktop 宿主与真实远程账号不由本地 fixture 签收。
 
+## 2026-11-11 适配：0.2.2-alpha.3 / 0.2.2-rc.1
+
+本轮先比较本地上游标签，再验证 npm 发布包。可复现 diff：
+
+```sh
+git diff dsh-v0.2.2-alpha.2 dsh-v0.2.2-alpha.3 -- packages/client packages/api packages/core/agent packages/core/agent-default-model packages/session/working-directory packages/credentials packages/llm packages/settings packages/subprocess packages/workspace packages/experimental/worktree vendor
+git diff dsh-v0.2.2-alpha.3 dsh-v0.2.2-rc.1 -- packages/client packages/api packages/core/agent packages/core/agent-default-model packages/session/working-directory packages/credentials packages/llm packages/settings packages/subprocess packages/workspace packages/experimental/worktree vendor
+```
+
+上述命令在上游仓库运行。标签对应 commit：alpha.2 为 `f3803c96974ad4a94195fb97e5c637e9c2a3afe3`，alpha.3 为 `05b1cae8db6e674c5685101494d4eec24652424a`，rc.1 为 `66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db`。全仓 diff 分别为 2315 文件（+87654/−27240）与 387 文件（+387/−387）；`alpha.3 → rc.1` 只有发行版本号重发，接缝目录内 111 个 manifest 各改一行。alpha.3 是包含 Client 上下文菜单、Cordis 4.1.0 源码与组合包配置页的真实功能发布，兼容判断覆盖插件实际使用的接缝。
+
+| 接缝 | alpha.2 → alpha.3 与处置 | alpha.3 → rc.1 |
+| --- | --- | --- |
+| Host Git / subprocess / credentials / working-directory | `dsh-subprocess`、`dsh-subprocess-local`、`dsh-credentials`、`dsh-working-directory` 只有版本号重发；`resolveExecutable` / `spawn`、独立 argv 与凭据 key/ref 契约保持 | 同左，继续标准服务注入与缺失能力关闭 |
+| 提交信息 / LLM | `dsh-llm` 的 `GenerateOptions` 改为带 `Purpose` 泛型，默认 `LlmRequestPurpose` 为空映射，`purpose` 因此不可用；插件本就不传 `purpose`，`stream` 的 `text-delta` 与 `currentSelection()` 不变 | 只有版本号重发 |
+| Session / RPC | 投影更新从「一个事件一个键」改为一个已提交事件一帧、`changes[]` 携带多个键；`SessionSummary.cwd` 与 `projectionValues` 形状不变，插件继续用 `useSessions(...).byId[id].cwd` 与 `projectionValues.workingDirectory` | 只有版本号重发 |
+| 侧栏 / 插槽 | 右侧栏 `inject` 增加 `contextMenus`，`openResource` 增加可选 `destination`（`sidebar` / `float`），`SidebarRightTabInfo.panel` 增加必填 `isFloating`；插件只注册 `sidebar.right.pane.tab` / `.title`、调用 `openTab` / `openResource`、从 `useTabInfo()` 只读 `tab`，调用契约不变 | 只有版本号重发 |
+| 设置 | `dsh-client-ui-settings` 新增 `settings.section.icon`；`dsh-settings.configure` 改以 `owner.ctx.fiber` 记账，插件传 `settingsCtx.fiber`，同一 fiber；`configForms.get` 与 volatile 引用语义不变 | 只有版本号重发 |
+| 组合包配置页 | `plugins.bundle.config` / `plugins.item` 仍由 `ui-plugin-manager` 页面声明；插件按 slot 存在性注册，未改 | 只有版本号重发 |
+| Composer / Tooltip | 停靠 composer 的 `.composerSeat` 增加 `will-change: transform`（成为 fixed 后代的包含块）与 `z-index: 9`，宿主在 slot 文档要求 fixed overlay 挂到 document.body；插件在 `conversation.input.left` 的分支变更 Tooltip 经新增 [`src/compat/dsh-tooltip.tsx`](../../src/compat/dsh-tooltip.tsx) 在支持 `portal` 的宿主上传 `portal: true`，0.1.5 / 0.1.6 的 Tooltip 不引用该参数、按签名探测跳过 | 只有版本号重发 |
+| primitives / 图标 / Diff | `Menu` 仅新增可选 `contextual` / `exiting` / `returnFocus` / `disabledReason` 与 `MENU_TRANSITION_MS`、`useMarkdownDelegate`、`MarkdownMenuTarget`、保存图标；插件使用的 `DiffBlock`、`diffTotals`、`MarkdownText`、`Toast`、`Modal`、`Tag`、`Switch`、`Pill` 与全部 Medium glyph 保持导出与 props | 只有版本号重发 |
+| 布局 / dockkit | `ui-layout` 增加移动端抽屉与列样式，`ui-dockkit` 的 tab 菜单增加宿主触发覆盖；均为宿主内部，插件不导入这两个包 | 只有版本号重发 |
+| 共享运行时 | Cordis `4.0.6-alpha.2` / schemastery `3.18.6-alpha.2`；插件追加 `|| ~4.0.6-alpha.2` / `|| ~3.18.6-alpha.2`。Cordis 4.1.0 源码在本段落地（事件 `waterfall` 的单次 `next()`、Fiber `committed` / `provisions` / `effectiveConfig`、`internal/update` 与 `internal/config` 签名），插件只用公开 `ctx.effect` / `ctx.inject` / `ctx.get` / `ctx.provide` 与 `settings.configure`，不订阅内部事件或读取 Fiber 内部结构 | 正式版 Cordis `4.1.0` / schemastery `3.19.0` 落在 `>=4.0.2 <5` 与 `>=3.18.2 <4` 基础范围内，无需新增 OR |
+| Node / 安装树 | 两个版本均声明 Node `>=24.9.0`；CI 的 0.2.2 车道统一用 Node `24.9.0`，旧宿主保持 `22.19.0`。升级脚本从发布 manifest 固定 Cordis `4.0.6-alpha.2` / include `1.0.11-alpha.2` / loader `1.0.7-alpha.2` / group `1.0.6-alpha.2` / timer `1.1.8-alpha.2` / cosmokit `1.8.7-alpha.2`、schemastery `3.18.6-alpha.2`；rc.1 车道固定 `4.1.0` / `1.1.0` / `1.1.0` / `1.1.0` / `1.2.0` / `1.9.0` / `3.19.0` | 同左 |
+
+**未进入 peer OR 的新包。** `@deepseek-ai/dsh-client-ui-context-menu` 从 `0.2.2-alpha.3` 起才发布，是 `dsh-client-ui-sidebar-right` 发布 bundle 的运行时导入、但上游只写成 devDependency；宿主组合自带该客户端包，插件经 sidebar-right 的 `dsh.client.inject` 传递取得它。插件源码不导入该包，也不能把它写进覆盖旧版本的 peer OR，否则旧宿主的 `app-boot` 预检失败。`ui-plugin-manager` 的配置 slot 与 `settings.section.icon` 同理只是宿主新增能力。
+
+**候选与晋级。** `0.2.2-rc.1` 在未列入清单时以 `DSH_COMPAT_MODE=warn` 通过 bootstrap、upgrade、install、peer、compat、test（1042）、docs、build、artifact 与 pack 全部门禁。`0.2.2-alpha.3` 的首轮候选在 compat 门禁失败，原因正是旧声明不接受宿主声明的精确副本 `4.0.6-alpha.2` / `3.18.6-alpha.2`；补上两条 OR 子句后正式车道全绿。随后将两版本写入唯一清单与 `engines.dsh`，并对全部二十三个精确版本重跑正式矩阵。
+
+开发 pin 与锁文件保持 `0.2.0-rc.2`。2026-11-11 在 macOS arm64 / Node `24.18.0` / pnpm `11.7.0` 完成正式矩阵；逐车道退出码、vendor pin、测试摘要、日志与包哈希、最终源码指纹见[本轮机器证据](dsh-adaptation-20261111.json)。
+
+| 验证组 | 结果 |
+| --- | --- |
+| 全部二十三个精确版本 | 全部通过冻结 bootstrap、适用的 upgrade/install、peer/compat/test/docs/build/artifact/pack；正式门禁未使用 warn |
+| 新增两个版本与开发 pin | 每车道 1044 项单测、7 项 artifact 检查通过；开发 pin 与 rc.1 隔离浏览器各 28 项 |
+
+本地没有重跑 Linux/Windows；CI 中 0.2.2 的三条车道使用 Node `24.9.0`，更早宿主继续使用 `22.19.0`，当前分支的 CI 结果仍待运行。完整 DSH Web/Desktop 宿主与真实远程账号不由本地 fixture 签收。
+
 ## 已验证并承诺支持的版本
 
 唯一版本清单位于 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)：
@@ -95,16 +133,18 @@ git diff dsh-v0.2.1-rc.4 dsh-v0.2.1-rc.5 -- packages/client packages/api package
 - `0.2.1-rc.4`
 - `0.2.1-rc.5`
 - `0.2.2-alpha.2`
+- `0.2.2-alpha.3`
+- `0.2.2-rc.1`
 
 每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。`engines.dsh` 声明与 peer OR 完全相同的精确 OR：自 `0.2.1-alpha.4` 起宿主准入预检在该字段存在时只读它，更早宿主继续读 peer OR；`pnpm compat:check` 强制两者与唯一清单一致。开发依赖与提交锁文件统一 pin 到 `0.2.0-rc.2`。主 CI 使用冻结锁文件与 `pnpm peers check` 验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行 peer 检查、兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。清单按版本顺序排列并只增不减，已承诺版本不会被后续晋级移除；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
 本地可用 `node scripts/run-dsh-matrix.mjs --offline <仓库外新目录>` 按唯一清单逐车道复制当前源码、沿用 `upgrade-dsh.mjs`、冻结安装和正式门禁，记录每车道退出码与日志。离线模式只读取公开版本元数据，安装及其 Node 脚本禁止网络，并使用独立 store/cache；缺失的离线元数据或包会使该车道保持未验证。需要联网安装时，须另获授权后显式使用 `--online-install`，不改变主工作树 pin/锁文件。`compat:check` 的声明检查不能替代这些车道。
 
-跨版本运行时：0.1.5-rc.2 至 0.1.6-alpha.2 使用 Cordis `4.0.2` / schemastery `3.18.2`；0.1.7-alpha.1 使用 `4.0.3` / `3.18.3`；0.1.7-alpha.2 至 0.2.0-rc.2 使用 `4.0.4` / `3.18.4`；0.2.1-alpha.1 与 0.2.1-alpha.2 使用 `4.0.5-alpha.1` / `3.18.5-alpha.1`；0.2.1-alpha.3 至 0.2.1-alpha.5 使用 `4.0.5-alpha.2` / `3.18.5-alpha.2`；0.2.1-rc.1 至 0.2.1-rc.5 改用正式版 `4.0.5` / `3.18.5`；0.2.2-alpha.2 使用 `4.0.6-alpha.1` / `3.18.6-alpha.1`，由新增 `|| ~4.0.6-alpha.1` / `|| ~3.18.6-alpha.1` 接受。0.2.1 宿主声明的 prerelease 下限分别由 peer `|| ~4.0.5-alpha.1 || ~4.0.5-alpha.2` 与 dependency `|| ~3.18.5-alpha.1 || ~3.18.5-alpha.2` 接受；rc 车道的正式版副本落在 `>=4.0.2 <5` 与 `>=3.18.2 <4` 基础范围内，无需新增 OR 子句；开发 pin 保持 `0.2.0-rc.2`。0.1.5-rc.3 把 Cordis 与 schemastery 从 caret 改写为精确 `4.0.2` / `3.18.2`，与 rc.2 是同一对副本；`scripts/upgrade-dsh.mjs` 与 `scripts/check-dsh-compat.mjs` 的下限解析把 caret、波浪号与精确 pin 统一按声明下限处理。
+跨版本运行时：0.1.5-rc.2 至 0.1.6-alpha.2 使用 Cordis `4.0.2` / schemastery `3.18.2`；0.1.7-alpha.1 使用 `4.0.3` / `3.18.3`；0.1.7-alpha.2 至 0.2.0-rc.2 使用 `4.0.4` / `3.18.4`；0.2.1-alpha.1 与 0.2.1-alpha.2 使用 `4.0.5-alpha.1` / `3.18.5-alpha.1`；0.2.1-alpha.3 至 0.2.1-alpha.5 使用 `4.0.5-alpha.2` / `3.18.5-alpha.2`；0.2.1-rc.1 至 0.2.1-rc.5 改用正式版 `4.0.5` / `3.18.5`；0.2.2-alpha.2 使用 `4.0.6-alpha.1` / `3.18.6-alpha.1`，由新增 `|| ~4.0.6-alpha.1` / `|| ~3.18.6-alpha.1` 接受；0.2.2-alpha.3 使用 `4.0.6-alpha.2` / `3.18.6-alpha.2`，由追加的 `|| ~4.0.6-alpha.2` / `|| ~3.18.6-alpha.2` 接受；0.2.2-rc.1 使用正式版 `4.1.0` / `3.19.0`，落在基础范围内。0.2.1 宿主声明的 prerelease 下限分别由 peer `|| ~4.0.5-alpha.1 || ~4.0.5-alpha.2` 与 dependency `|| ~3.18.5-alpha.1 || ~3.18.5-alpha.2` 接受；rc 车道的正式版副本落在 `>=4.0.2 <5` 与 `>=3.18.2 <4` 基础范围内，无需新增 OR 子句；开发 pin 保持 `0.2.0-rc.2`。0.1.5-rc.3 把 Cordis 与 schemastery 从 caret 改写为精确 `4.0.2` / `3.18.2`，与 rc.2 是同一对副本；`scripts/upgrade-dsh.mjs` 与 `scripts/check-dsh-compat.mjs` 的下限解析把 caret、波浪号与精确 pin 统一按声明下限处理。
 
 
 `dsh-client-ui-primitives` 的发布 bundle 导入 `diff`，但上游没有将其声明为运行时依赖。本插件将 `diff`（`>=9 <10`）声明为 peer。alpha.2 的 bundle 还导入 `simple-icons@16.31.0`，同样未声明运行时依赖；本插件将 `simple-icons`（`>=16.31.0 <17`）声明为 peer，并以 `16.31.0` 做开发依赖 pin。这样严格依赖解析器也能满足上游 bundle 的导入。
 
-`@deepseek-ai/dsh-credentials` 是唯一不随全量清单取范围的 peer：本功能完整 `ctx.credentials` seam 的已验证子集自 `0.2.0-rc.2` 起，其 peer OR 只覆盖 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts) 中 `CREDENTIALS_SEAM_DSH_RELEASES` 声明的 canonical 子集（`0.2.0-rc.2` 至 `0.2.2-alpha.2`），并标记 `peerDependenciesMeta.optional`；`pnpm compat:check` 按该子集校验。更早开发车道通过安装 hook 省略根包的 optional peer 开发依赖，构建/测试安装树没有该包：宿主仍能安装、加载本插件并运行本地 Git，远程平台边界把缺失 seam 结构性探测为 `credentials-missing` 的 `off`（见[远程平台 RPC](remote-platform-rpc.md)），不会要求安装不存在的版本。
+`@deepseek-ai/dsh-credentials` 是唯一不随全量清单取范围的 peer：本功能完整 `ctx.credentials` seam 的已验证子集自 `0.2.0-rc.2` 起，其 peer OR 只覆盖 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts) 中 `CREDENTIALS_SEAM_DSH_RELEASES` 声明的 canonical 子集（`0.2.0-rc.2` 至 `0.2.2-rc.1`），并标记 `peerDependenciesMeta.optional`；`pnpm compat:check` 按该子集校验。更早开发车道通过安装 hook 省略根包的 optional peer 开发依赖，构建/测试安装树没有该包：宿主仍能安装、加载本插件并运行本地 Git，远程平台边界把缺失 seam 结构性探测为 `credentials-missing` 的 `off`（见[远程平台 RPC](remote-platform-rpc.md)），不会要求安装不存在的版本。
 
 ## 0.1.5-rc.3 接口差异评估
 
@@ -275,7 +315,7 @@ Git Client 从 primitives 的公开入口复用 `DiffBlock`，不导入官方 `u
 5. `pnpm-lock.yaml` 的 `packages` 段里，每个 `@deepseek-ai/dsh-*` 是否都等于该 pin；出现任何其他版本即失败；
 6. 已安装的 `@deepseek-ai/dsh-settings` 所声明的 Cordis 与 schemastery caret 或波浪号下限，是否就是当前解析到的精确版本，且本包的 Cordis peer 与 schemastery 依赖范围接受这个副本。
 
-第 6 项挡住「DSH 包是旧版本、Cordis / schemastery 却被漂到新版本」的安装。那种树上类型检查和单测可以通过，真实宿主加载插件时仍会失败。schemastery 依赖保持 `>=3.18.2 <4`，并另有一条 `|| ~3.18.5-alpha.1` 以接受 0.2.1 候选宿主的 prerelease 副本；Cordis peer 同样在 `>=4.0.2 <5` 之外接受 `~4.0.5-alpha.1`。仓库用 `pnpm-workspace.yaml` 的 `overrides` 把当前车道钉到该版本声明的精确副本；Cordis 由开发依赖的精确版本钉住。升级脚本在切换车道时同时改这两处，波浪号下限里的 prerelease 也算精确 pin。
+第 6 项挡住「DSH 包是旧版本、Cordis / schemastery 却被漂到新版本」的安装。那种树上类型检查和单测可以通过，真实宿主加载插件时仍会失败。schemastery 依赖保持 `>=3.18.2 <4`，并另列 `|| ~3.18.5-alpha.1 || ~3.18.5-alpha.2 || ~3.18.6-alpha.1 || ~3.18.6-alpha.2` 以接受 0.2.1 / 0.2.2 候选宿主的 prerelease 副本；Cordis peer 同样在 `>=4.0.2 <5` 之外接受 `~4.0.5-alpha.1`、`~4.0.5-alpha.2`、`~4.0.6-alpha.1` 与 `~4.0.6-alpha.2`。仓库用 `pnpm-workspace.yaml` 的 `overrides` 把当前车道钉到该版本声明的精确副本；Cordis 由开发依赖的精确版本钉住。升级脚本在切换车道时同时改这两处，波浪号下限里的 prerelease 也算精确 pin。
 
 主 CI 使用已提交锁文件中的开发 pin，冻结安装后运行兼容门禁、测试、文档检查、构建与 artifact 检查，并保留 pnpm 11 默认的 24 小时发布冷却。开发 pin 若发布未满 24 小时，把该 pin 在锁文件中的精确 `@deepseek-ai/dsh-*` 版本写入 `pnpm-workspace.yaml` 的 `minimumReleaseAgeExclude`，并整表替换旧 pin，让冻结安装能解析已提交锁文件。pnpm 11.7 对同一个包名只认第一条 `name@version`，追加新 pin 不会覆盖旧条目。这不是给未列入清单、也不是给混装的 prerelease 开白名单。`.github/workflows/upgrade.yml` 通过 `scripts/check-dsh-compat.mjs --list-non-default` 从唯一版本清单中动态生成非开发 pin 的矩阵，避免再复制维护版本数组。每个车道切换至对应精确版本后非冻结安装；该 job 设置 `pnpm_config_minimum_release_age=0`，因为这条车道要安装刚发布的 prerelease，豁免不写入 `pnpm-workspace.yaml`。随后运行同一组门禁。两条工作流均不会静默改变支持清单。
 
