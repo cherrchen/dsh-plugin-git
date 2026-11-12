@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [0.2.10] — 2026-11-12
+
 ### Changed
 
 - 将 DSH 兼容范围扩展至 `0.2.2-alpha.3` 与 `0.2.2-rc.1`（含可选 credentials seam），接受其 Cordis `4.0.6-alpha.2` / `4.1.0` 与 schemastery `3.18.6-alpha.2` / `3.19.0` 副本。见[兼容评估](docs/reference/dsh-compatibility.md)。
@@ -211,7 +213,8 @@
 - 可选的 `ctx.inject(['desktop'], ...)` child fiber，使用 `shell.showItemInFolder`、`shell.openPath` 与 `notification.show`。
 - `docs/` 文档库、`pnpm docs:check` 机器校验、`version:set` 脚本、tag 触发的 release 工作流、双语 README 配对及其 `README.i18n.yaml` hash 记录。
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.9...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.10...HEAD
+[0.2.10]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.6...v0.2.7
