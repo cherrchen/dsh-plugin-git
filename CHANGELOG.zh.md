@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 将 DSH 兼容范围扩展至 `0.2.2-rc.3`：该版本只新增两个 `upload-outline` primitives 图标，新增的 `workspace.picker` / `sidebar.session.action` 插槽与对话导入 bundle 都在本插件表面之外；Cordis `4.1.0` / schemastery `3.19.0` 副本仍落在既有声明范围内，`Menu` 锚点接口不变。见[兼容评估](docs/reference/dsh-compatibility.md)。
+
 ## [0.2.10] — 2026-11-12
 
 ### Changed
