@@ -6,6 +6,10 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Changed
+
+- Extend DSH compatibility to `0.2.2-rc.3`, an additive release: the only plugin-facing change is two new `upload-outline` primitives glyphs, while its new `workspace.picker` / `sidebar.session.action` slots and the chat-import bundle stay outside this plugin's surface. Its Cordis `4.1.0` / schemastery `3.19.0` copies still fall inside the declared ranges and the `Menu` anchor interface is unchanged. See the [compatibility assessment](docs/reference/dsh-compatibility.md).
+
 ## [0.2.10] — 2026-11-12
 
 ### Changed
