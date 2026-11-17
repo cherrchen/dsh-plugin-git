@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [0.2.11] — 2026-11-17
+
 ### Changed
 
 - 将 DSH 兼容范围扩展至 `0.2.2-rc.3`：该版本只新增两个 `upload-outline` primitives 图标，新增的 `workspace.picker` / `sidebar.session.action` 插槽与对话导入 bundle 都在本插件表面之外；Cordis `4.1.0` / schemastery `3.19.0` 副本仍落在既有声明范围内，`Menu` 锚点接口不变。见[兼容评估](docs/reference/dsh-compatibility.md)。
@@ -217,7 +219,8 @@
 - 可选的 `ctx.inject(['desktop'], ...)` child fiber，使用 `shell.showItemInFolder`、`shell.openPath` 与 `notification.show`。
 - `docs/` 文档库、`pnpm docs:check` 机器校验、`version:set` 脚本、tag 触发的 release 工作流、双语 README 配对及其 `README.i18n.yaml` hash 记录。
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.10...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.11...HEAD
+[0.2.11]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.10...v0.2.11
 [0.2.10]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.7...v0.2.8

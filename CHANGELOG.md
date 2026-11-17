@@ -6,6 +6,8 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.2.11] — 2026-11-17
+
 ### Changed
 
 - Extend DSH compatibility to `0.2.2-rc.3`, an additive release: the only plugin-facing change is two new `upload-outline` primitives glyphs, while its new `workspace.picker` / `sidebar.session.action` slots and the chat-import bundle stay outside this plugin's surface. Its Cordis `4.1.0` / schemastery `3.19.0` copies still fall inside the declared ranges and the `Menu` anchor interface is unchanged. See the [compatibility assessment](docs/reference/dsh-compatibility.md).
@@ -217,7 +219,8 @@ First tagged version: one portable Host service, one Client bundle, and an optio
 - Optional `ctx.inject(['desktop'], ...)` child fiber using `shell.showItemInFolder`, `shell.openPath`, and `notification.show`.
 - Documentation library under `docs/`, the `pnpm docs:check` machine check, the `version:set` script, a tag-triggered release workflow, the bilingual README pair, and its `README.i18n.yaml` hash record.
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.10...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.11...HEAD
+[0.2.11]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.10...v0.2.11
 [0.2.10]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.7...v0.2.8
