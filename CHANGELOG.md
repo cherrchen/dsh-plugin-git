@@ -6,6 +6,8 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.2.13] — 2026-11-18
+
 ### Fixed
 
 - Restore Git repository discovery, the branch selector, and Git sidebar views on newer DSH hosts where `/git/discover` returned HTTP 405.
@@ -229,7 +231,8 @@ First tagged version: one portable Host service, one Client bundle, and an optio
 - Optional `ctx.inject(['desktop'], ...)` child fiber using `shell.showItemInFolder`, `shell.openPath`, and `notification.show`.
 - Documentation library under `docs/`, the `pnpm docs:check` machine check, the `version:set` script, a tag-triggered release workflow, the bilingual README pair, and its `README.i18n.yaml` hash record.
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.12...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.13...HEAD
+[0.2.13]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.12...v0.2.13
 [0.2.12]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.11...v0.2.12
 [0.2.11]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.10...v0.2.11
 [0.2.10]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.9...v0.2.10

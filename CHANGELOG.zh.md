@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [0.2.13] — 2026-11-18
+
 ### Fixed
 
 - 修复新版 DSH 宿主上 `/git/discover` 返回 HTTP 405 的问题，恢复 Git 仓库发现、分支选择器和 Git 侧栏视图。
@@ -229,7 +231,8 @@
 - 可选的 `ctx.inject(['desktop'], ...)` child fiber，使用 `shell.showItemInFolder`、`shell.openPath` 与 `notification.show`。
 - `docs/` 文档库、`pnpm docs:check` 机器校验、`version:set` 脚本、tag 触发的 release 工作流、双语 README 配对及其 `README.i18n.yaml` hash 记录。
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.12...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.13...HEAD
+[0.2.13]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.12...v0.2.13
 [0.2.12]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.11...v0.2.12
 [0.2.11]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.10...v0.2.11
 [0.2.10]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.9...v0.2.10
