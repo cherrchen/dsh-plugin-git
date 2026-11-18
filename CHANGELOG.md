@@ -6,6 +6,10 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Fixed
+
+- Restore Git repository discovery, the branch selector, and Git sidebar views on newer DSH hosts where `/git/discover` returned HTTP 405.
+
 ## [0.2.12] — 2026-11-18
 
 ### Changed

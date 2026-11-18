@@ -18,6 +18,7 @@ import {
   validateCommitMessageSettings,
   type CommitMessageSettings,
 } from './commit-message-settings.ts'
+import { connectionRpcFor } from './compat/dsh-connection-rpc.ts'
 import { markVolatile, readVolatile } from './compat/dsh-schema.ts'
 import { GitRemoteUnavailableError, remoteCapability } from './remote/feature.ts'
 import { asCredentialService } from './remote/credentials.ts'
@@ -148,25 +149,15 @@ export function apply(ctx: Context, config: Config): void {
     directory = boundDirectory
     return () => { if (directory === boundDirectory) directory = undefined }
   })
-  // Soft: a profile without a web server (headless, sdk) has no browser to
-  // serve, and the service is unaffected.
-  //
-  // `webServer` MUST be in the dependency list so this callback only runs once
-  // the route table exists, and the service MUST be read off `ctx.root`:
-  // `connection.rpc.handle` resolves `webServer` as a property of the context
-  // the service was READ from, and cordis property resolution from a plugin
-  // fiber can only see that fiber's own injected services — a sibling row's
-  // `webServer` is invisible, the registration dies with `cannot get property
-  // "webServer" without inject`, and every client request then falls through
-  // to the static SPA fallback as HTTP 405. Reading at the root (what the
-  // upstream connection tests do) resolves against the shared service store.
+  // The channel follows the lifetime of both providers. Headless profiles
+  // keep the portable Git service while this child fiber waits for webServer.
   ctx.inject(['connection', 'webServer'], (connectionCtx) => {
-    const connection = connectionCtx.root.get('connection')
+    const connection = connectionCtx.get('connection')
     if (connection === undefined) {
       ctx.logger?.warn('dsh-plugin-git: connection resolved without the service; the RPC adapter is not mounted')
       return
     }
-    return connection.rpc.handle('/git', async (endpoint, payload, signal) => {
+    return connectionRpcFor(connectionCtx, connection).handle('/git', async (endpoint, payload, signal) => {
       try {
         return { ok: true, value: await invoke(service, generation, worktree, directory, remote, endpoint, payload, signal) }
       } catch (error) {

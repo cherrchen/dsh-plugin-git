@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- 修复新版 DSH 宿主上 `/git/discover` 返回 HTTP 405 的问题，恢复 Git 仓库发现、分支选择器和 Git 侧栏视图。
+
 ## [0.2.12] — 2026-11-18
 
 ### Changed

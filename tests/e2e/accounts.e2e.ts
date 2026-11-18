@@ -9,7 +9,12 @@ async function openAccounts(page: Page, lang = 'en') {
   await page.route('**/*', route => new URL(route.request().url()).hostname === '127.0.0.1' ? route.continue() : route.abort())
   await page.route('**/avatars.githubusercontent.com/**', route => route.fulfill({ status: 200, contentType: 'image/png', body: AVATAR }))
   await page.setViewportSize({ width: 800, height: 700 })
-  await page.goto(`/?scenario=accounts&lang=${lang}`)
+  // Navigation can finish while the fixture server is still creating the Git repository.
+  const [fixture] = await Promise.all([
+    page.waitForResponse(response => response.url().endsWith('/__test/fixture') && response.request().method() === 'POST'),
+    page.goto(`/?scenario=accounts&lang=${lang}`),
+  ])
+  expect(fixture.status(), 'accounts fixture creation').toBe(200)
   await expect(page.getByText(lang === 'en' ? 'Platform accounts' : '平台账号', { exact: true })).toBeVisible()
   await expect(page.getByRole('listitem')).toHaveCount(3)
 }
