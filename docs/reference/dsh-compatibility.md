@@ -4,7 +4,7 @@
 
 ## 适配波次状态
 
-自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.2.2-rc.3` 的兼容晋级覆盖区间内二十五个精确上游发行版，全部纳入支持清单。清单写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。`0.2.2-rc.3` 是一次新增实验能力的小版本，其发布包已于 2026-11-13 上架 npm，插件接缝只剩新增图标，发布包验证与逐车道证据见下文 `0.2.2-rc.3` 的适配记录。
+自 `dsh-v0.1.5-rc.2` 至 `dsh-v0.2.2-rc.4` 的兼容晋级覆盖区间内二十六个精确上游发行版，全部纳入支持清单。清单写入 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)，`pnpm compat:check` 与升级 CI 矩阵覆盖除开发 pin 外的全部非默认版本。跨版本行为由 [`src/compat/`](../../src/compat) 内的结构探测承担；下文各节保留晋级时的接口差异评估记录。`0.2.2-rc.4` 是一次围绕 DeepSeek 内容安全审核的小版本，其发布包已于 2026-11-17 上架 npm，插件接缝只剩 LLM 失败码增量，发布包验证与逐车道证据见下文 `0.2.2-rc.4` 的适配记录。
 
 ## 2026-10-28 适配：0.2.1-rc.4 / 0.2.2-alpha.2
 
@@ -159,6 +159,31 @@ git diff dsh-v0.2.2-rc.2 dsh-v0.2.2-rc.3 -- packages/client packages/api package
 
 **逐车道与浏览器证据。** 隔离矩阵的 `0.2.2-rc.3` 车道在 macOS arm64 / Node `24.18.0` / pnpm `11.7.0` 上以 `--online-install` 重建安装树并完成 bootstrap、upgrade、install、`pnpm peers check`、`compat:check`、测试、文档检查、构建、artifact 与 pack 全部门禁：80 个测试文件、1047 项单测与 7 项 artifact 检查通过；车道安装的开发依赖 pin 为 `0.2.2-rc.3`，宿主运行时钉到 Cordis `4.1.0` / loader `1.1.0` / include `1.1.0` / group `1.1.0` / timer `1.2.0` / cosmokit `1.9.0` / schemastery `3.19.0`，打包产物 `dsh-electron-dsh-plugin-git-0.2.10.tgz` 的 sha256 为 `62cd2a8e0eb0fb1e007b2bb78700cec0df4b517479774c4fc440cb5dd701678f`。开发 pin `0.2.0-rc.2` 上本地运行 `pnpm compat:check`、`pnpm test`（80 个文件、1047 项）、`pnpm docs:check`（64 个 Markdown 文件、960 个链接）、`pnpm build`、`pnpm test:artifact`（7）与 `pnpm pack` 通过。本轮没有 `src/` 代码改动；主 CI 在开发 pin 上于 macOS、Ubuntu 与 Windows 运行 `pnpm test:e2e` 浏览器 fixture 并全部通过，但没有在 `0.2.2-rc.3` 车道上重跑该 fixture（矩阵工作流只跑单元、文档、构建与产物门禁）。完整 DSH Web/Desktop 组合与真实远程账号不由本地签收。CI 的升级矩阵对唯一清单里的二十五个精确版本复跑 bootstrap、upgrade、install、peers、compat、测试、文档检查、构建、artifact 与 pack，全部通过；其中 `verify (0.2.2-rc.3)` 车道使用 Node `24.9.0`。
 
+## 2026-11-18 适配：0.2.2-rc.4
+
+本轮先比较本地上游标签，再验证 npm 发布包。可复现 diff：
+
+```sh
+git diff dsh-v0.2.2-rc.3 dsh-v0.2.2-rc.4 -- packages/client packages/api packages/core/agent packages/core/agent-default-model packages/session/working-directory packages/credentials packages/llm packages/settings packages/subprocess packages/workspace packages/experimental/worktree packages/fs vendor
+```
+
+上述命令在上游仓库运行。标签对应 commit：rc.3 为 `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`，rc.4 为 `3f321d32bfe382212a8ed8785c1d47a5a300aa23`。全仓 diff 为 395 文件（+579/−429），插件接缝目录内 117 文件（+153/−117），其中 110 个只有 manifest 版本号重发，`vendor/` 无变化。这是一次围绕 DeepSeek 内容安全审核的小版本：`llm-deepseek` 把 DeepSeek 的 `refusal` 停止原因由 `MALFORMED_RESPONSE` 改为 `CONTENT_REFUSED`，并在失败前上报已计费 usage，上游同时补了一篇升级指南；另修正实验性 liveshare 隧道 worker 在 Electron 宿主下的 Node 模式。兼容判断只覆盖插件实际使用的接缝。
+
+| 接缝 | rc.3 → rc.4 与处置 |
+| --- | --- |
+| 提交信息 / LLM | `dsh-llm` 只在 `LLM_FAILURE_CODES` 新增 `CONTENT_REFUSED` 一行，`GenerateOptions`、`LlmRuntime.stream`、`Message` / `MessageId` / `TextBlock`、`text-delta` 与 `finish` 调用不变；`dsh-agent-default-model` 只有版本号重发。插件不导入失败码枚举、也不按码分支：RPC 适配层把任意生成错误映射为 `git/internal` 并透出错误消息，因此拒绝流改为 `CONTENT_REFUSED` 后仍走既有失败路径，无需 `src/compat/` 分支。 |
+| Client 包 / 插槽 | `ui-conversation`、`ui-session`、`ui-settings`、`ui-settings-plugins`、`ui-sidebar-right`、`ui-renderer`、`ui-slots`、`ui-primitives`、`client-connection`、`client-locale`、`client-resources` 与 `api-session-controller` 均只有 manifest 版本号重发；`Menu` 锚点接口与插件使用的 primitives / glyph 导出不变，`openTab` / `openResource`、`useSessions(...byId[id].cwd)`、`configForms.get` 调用不变。 |
+| Host Git / subprocess / 凭据 / 设置 / 工作区 | `dsh-subprocess`、`dsh-subprocess-local`、`dsh-credentials`、`dsh-settings`、`dsh-workspace`、`dsh-fs`、`dsh-working-directory` 与 `experimental/worktree` 只有版本号重发；`resolveExecutable` / `spawn`、独立 argv、凭据 key/ref 契约与 worktree 结构探测均未改。 |
+| liveshare 隧道 worker | 实验包修正 Electron 宿主下 worker 的 `ELECTRON_RUN_AS_NODE` 继承；插件不导入、不注册该包，处置为无动作。 |
+| 共享运行时 | Cordis `4.1.0`、cosmokit `1.9.0`、schemastery `3.19.0` 与 rc.3 相同（`vendor/` 无 diff），落在 `>=4.0.2 <5` / `>=3.18.2 <4` 基础范围内，不新增 OR 子句。 |
+| Node / 安装树 | rc.4 仍声明 Node `>=24.9.0`；`0.2.2-rc.4` 加入 `0.2.2` 的 Node `24.9.0` 车道名单，旧宿主继续使用 `22.19.0`。 |
+
+**未进入 peer OR 的新包。** rc.3 → rc.4 的插件 peer 集合没有新增或删除；新增实验能力的承接包由宿主组合自带，插件不导入。
+
+**发布包验证。** `@deepseek-ai/dsh@0.2.2-rc.4` 于 2026-11-17 上架 npm（UTC 17:03，dist-tag `next`，`latest` 仍为 `0.2.2-rc.1`），本插件声明的十七个 DSH peer（含可选 `dsh-credentials`）均在同一波次发布。逐个下载 rc.3 与 rc.4 的发布 tarball 逐文件比对（36 个 tarball 的 sha1 与 sha512 全部与 registry `dist` 摘要一致）：十八个包中十六个除 `package.json` 的版本号与同批 DSH pin 外零差异；`dsh-client-ui-primitives` 整包除 manifest 外逐字节相同，`Menu` 声明与 rc.3 完全一致（`lib/` 中 `getAnchorRect` 仍为 0 处，仍读 `anchorRef` / `anchorPoint`），插件使用的 12 个值导出、6 个类型导出与 9 个 glyph 全部保留；`dsh-api-session-controller` 的 `lib/typert.host.js` 未再变化。`dsh-llm` 是唯一有代码差异的 peer：只在 `LLM_FAILURE_CODES` 新增 `CONTENT_REFUSED`（`lib/index.js`、`lib/types/error.d.ts`、`lib/types/error.js`、`src/error.ts` 各一行，另两个 sourcemap 重算），插件导入的 `GenerateOptions` / `LlmRuntime` / `Message` / `MessageId` / `TextBlock` 全部存在，十八个包的运行时与类型导出集合零增删。`@deepseek-ai/dsh` 自身的 `lib/` 26 个文件一致，只新增 `docs/upgrade-guide/v0.2.2-rc.3/deepseek-refusal-code/` 的两篇指南并更新指南索引，运行时依赖仍为 91 个、包集合未变。十八个包声明的 cordis `~4.1.0` / schemastery `~3.19.0` 下限与 rc.3 完全相同。
+
+**逐车道与浏览器证据。** 隔离矩阵的 `0.2.2-rc.4` 车道在 macOS arm64 / Node `24.18.0` / pnpm `11.7.0` 上以 `--online-install` 重建安装树并完成 bootstrap、upgrade、install、`pnpm peers check`、`compat:check`、测试、文档检查、构建、artifact 与 pack 全部门禁：80 个测试文件、1047 项单测与 7 项 artifact 检查通过；车道安装的开发依赖 pin 为 `0.2.2-rc.4`，宿主运行时钉到 Cordis `4.1.0` / loader `1.1.0` / include `1.1.0` / group `1.1.0` / timer `1.2.0` / cosmokit `1.9.0` / schemastery `3.19.0`，打包产物 `dsh-electron-dsh-plugin-git-0.2.11.tgz` 的 sha256 为 `d06d036458ac802c68518f0176d71b0beb352261c717e168174d15e0c80bdfda`。开发 pin `0.2.0-rc.2` 上本地运行 `pnpm compat:check`、`pnpm test`（80 个文件、1047 项）、`pnpm docs:check`（64 个 Markdown 文件、968 个链接）、`pnpm build`、`pnpm test:artifact`（7）与 `pnpm pack` 通过。本轮没有 `src/` 代码改动；主 CI 在开发 pin 上于 macOS、Ubuntu 与 Windows 运行 `pnpm test:e2e` 浏览器 fixture 与三条验收回放并全部通过，但没有在 `0.2.2-rc.4` 车道上重跑该 fixture（矩阵工作流只跑单元、文档、构建与产物门禁）；完整 DSH Web/Desktop 组合与真实远程账号不由本地签收。CI 的升级矩阵对唯一清单里的二十六个精确版本复跑 bootstrap、upgrade、install、peers、compat、测试、文档检查、构建、artifact 与 pack，全部通过；其中 `verify (0.2.2-rc.4)` 车道使用 Node `24.9.0`。
+
 ## 已验证并承诺支持的版本
 
 唯一版本清单位于 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts)：
@@ -188,16 +213,17 @@ git diff dsh-v0.2.2-rc.2 dsh-v0.2.2-rc.3 -- packages/client packages/api package
 - `0.2.2-rc.1`
 - `0.2.2-rc.2`
 - `0.2.2-rc.3`
+- `0.2.2-rc.4`
 
-每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。`engines.dsh` 声明与 peer OR 完全相同的精确 OR：自 `0.2.1-alpha.4` 起宿主准入预检在该字段存在时只读它，更早宿主继续读 peer OR；`pnpm compat:check` 强制两者与唯一清单一致。开发依赖与提交锁文件统一 pin 到 `0.2.0-rc.2`。`0.2.2-rc.3` 已写入清单、peer OR 与 `engines.dsh`，其发布包验证与逐车道证据记录在上一节。主 CI 使用冻结锁文件与 `pnpm peers check` 验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行 peer 检查、兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。清单按版本顺序排列并只增不减，已承诺版本不会被后续晋级移除；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
+每个 `@deepseek-ai/dsh-*` peer dependency 使用由清单生成的精确 OR 范围。`engines.dsh` 声明与 peer OR 完全相同的精确 OR：自 `0.2.1-alpha.4` 起宿主准入预检在该字段存在时只读它，更早宿主继续读 peer OR；`pnpm compat:check` 强制两者与唯一清单一致。开发依赖与提交锁文件统一 pin 到 `0.2.0-rc.2`。`0.2.2-rc.4` 已写入清单、peer OR 与 `engines.dsh`，其发布包验证与逐车道证据记录在上一节。主 CI 使用冻结锁文件与 `pnpm peers check` 验证此开发 pin；DSH 兼容矩阵 CI 从唯一清单选取其余受支持版本，逐版本重新解析依赖并运行 peer 检查、兼容检查、测试、文档检查、构建与 artifact 检查。手动 dispatch 可将矩阵指向一个尚未承诺支持的精确 prerelease，以候选模式验证。清单按版本顺序排列并只增不减，已承诺版本不会被后续晋级移除；兼容代码按服务和导出结构选择旧、新接口，不按版本号分支。
 本地可用 `node scripts/run-dsh-matrix.mjs --offline <仓库外新目录>` 按唯一清单逐车道复制当前源码、沿用 `upgrade-dsh.mjs`、冻结安装和正式门禁，记录每车道退出码与日志。离线模式只读取公开版本元数据，安装及其 Node 脚本禁止网络，并使用独立 store/cache；缺失的离线元数据或包会使该车道保持未验证。需要联网安装时，须另获授权后显式使用 `--online-install`，不改变主工作树 pin/锁文件。`compat:check` 的声明检查不能替代这些车道。
 
-跨版本运行时：0.1.5-rc.2 至 0.1.6-alpha.2 使用 Cordis `4.0.2` / schemastery `3.18.2`；0.1.7-alpha.1 使用 `4.0.3` / `3.18.3`；0.1.7-alpha.2 至 0.2.0-rc.2 使用 `4.0.4` / `3.18.4`；0.2.1-alpha.1 与 0.2.1-alpha.2 使用 `4.0.5-alpha.1` / `3.18.5-alpha.1`；0.2.1-alpha.3 至 0.2.1-alpha.5 使用 `4.0.5-alpha.2` / `3.18.5-alpha.2`；0.2.1-rc.1 至 0.2.1-rc.5 改用正式版 `4.0.5` / `3.18.5`；0.2.2-alpha.2 使用 `4.0.6-alpha.1` / `3.18.6-alpha.1`，由新增 `|| ~4.0.6-alpha.1` / `|| ~3.18.6-alpha.1` 接受；0.2.2-alpha.3 使用 `4.0.6-alpha.2` / `3.18.6-alpha.2`，由追加的 `|| ~4.0.6-alpha.2` / `|| ~3.18.6-alpha.2` 接受；0.2.2-rc.1 至 0.2.2-rc.3 使用同一对正式版 `4.1.0` / `3.19.0`，落在基础范围内。0.2.1 宿主声明的 prerelease 下限分别由 peer `|| ~4.0.5-alpha.1 || ~4.0.5-alpha.2` 与 dependency `|| ~3.18.5-alpha.1 || ~3.18.5-alpha.2` 接受；rc 车道的正式版副本落在 `>=4.0.2 <5` 与 `>=3.18.2 <4` 基础范围内，无需新增 OR 子句；开发 pin 保持 `0.2.0-rc.2`。0.1.5-rc.3 把 Cordis 与 schemastery 从 caret 改写为精确 `4.0.2` / `3.18.2`，与 rc.2 是同一对副本；`scripts/upgrade-dsh.mjs` 与 `scripts/check-dsh-compat.mjs` 的下限解析把 caret、波浪号与精确 pin 统一按声明下限处理。
+跨版本运行时：0.1.5-rc.2 至 0.1.6-alpha.2 使用 Cordis `4.0.2` / schemastery `3.18.2`；0.1.7-alpha.1 使用 `4.0.3` / `3.18.3`；0.1.7-alpha.2 至 0.2.0-rc.2 使用 `4.0.4` / `3.18.4`；0.2.1-alpha.1 与 0.2.1-alpha.2 使用 `4.0.5-alpha.1` / `3.18.5-alpha.1`；0.2.1-alpha.3 至 0.2.1-alpha.5 使用 `4.0.5-alpha.2` / `3.18.5-alpha.2`；0.2.1-rc.1 至 0.2.1-rc.5 改用正式版 `4.0.5` / `3.18.5`；0.2.2-alpha.2 使用 `4.0.6-alpha.1` / `3.18.6-alpha.1`，由新增 `|| ~4.0.6-alpha.1` / `|| ~3.18.6-alpha.1` 接受；0.2.2-alpha.3 使用 `4.0.6-alpha.2` / `3.18.6-alpha.2`，由追加的 `|| ~4.0.6-alpha.2` / `|| ~3.18.6-alpha.2` 接受；0.2.2-rc.1 至 0.2.2-rc.4 使用同一对正式版 `4.1.0` / `3.19.0`，落在基础范围内。0.2.1 宿主声明的 prerelease 下限分别由 peer `|| ~4.0.5-alpha.1 || ~4.0.5-alpha.2` 与 dependency `|| ~3.18.5-alpha.1 || ~3.18.5-alpha.2` 接受；rc 车道的正式版副本落在 `>=4.0.2 <5` 与 `>=3.18.2 <4` 基础范围内，无需新增 OR 子句；开发 pin 保持 `0.2.0-rc.2`。0.1.5-rc.3 把 Cordis 与 schemastery 从 caret 改写为精确 `4.0.2` / `3.18.2`，与 rc.2 是同一对副本；`scripts/upgrade-dsh.mjs` 与 `scripts/check-dsh-compat.mjs` 的下限解析把 caret、波浪号与精确 pin 统一按声明下限处理。
 
 
 `dsh-client-ui-primitives` 的发布 bundle 导入 `diff`，但上游没有将其声明为运行时依赖。本插件将 `diff`（`>=9 <10`）声明为 peer。alpha.2 的 bundle 还导入 `simple-icons@16.31.0`，同样未声明运行时依赖；本插件将 `simple-icons`（`>=16.31.0 <17`）声明为 peer，并以 `16.31.0` 做开发依赖 pin。这样严格依赖解析器也能满足上游 bundle 的导入。
 
-`@deepseek-ai/dsh-credentials` 是唯一不随全量清单取范围的 peer：本功能完整 `ctx.credentials` seam 的已验证子集自 `0.2.0-rc.2` 起，其 peer OR 只覆盖 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts) 中 `CREDENTIALS_SEAM_DSH_RELEASES` 声明的 canonical 子集（`0.2.0-rc.2` 至 `0.2.2-rc.3`），并标记 `peerDependenciesMeta.optional`；`pnpm compat:check` 按该子集校验。更早开发车道通过安装 hook 省略根包的 optional peer 开发依赖，构建/测试安装树没有该包：宿主仍能安装、加载本插件并运行本地 Git，远程平台边界把缺失 seam 结构性探测为 `credentials-missing` 的 `off`（见[远程平台 RPC](remote-platform-rpc.md)），不会要求安装不存在的版本。
+`@deepseek-ai/dsh-credentials` 是唯一不随全量清单取范围的 peer：本功能完整 `ctx.credentials` seam 的已验证子集自 `0.2.0-rc.2` 起，其 peer OR 只覆盖 [`src/compat/dsh-version.ts`](../../src/compat/dsh-version.ts) 中 `CREDENTIALS_SEAM_DSH_RELEASES` 声明的 canonical 子集（`0.2.0-rc.2` 至 `0.2.2-rc.4`），并标记 `peerDependenciesMeta.optional`；`pnpm compat:check` 按该子集校验。更早开发车道通过安装 hook 省略根包的 optional peer 开发依赖，构建/测试安装树没有该包：宿主仍能安装、加载本插件并运行本地 Git，远程平台边界把缺失 seam 结构性探测为 `credentials-missing` 的 `off`（见[远程平台 RPC](remote-platform-rpc.md)），不会要求安装不存在的版本。
 
 ## 0.1.5-rc.3 接口差异评估
 

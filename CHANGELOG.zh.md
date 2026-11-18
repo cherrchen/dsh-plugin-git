@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 将 DSH 兼容范围扩展至 `0.2.2-rc.4`：该版本围绕 DeepSeek 内容安全审核，`dsh-llm` 新增 `CONTENT_REFUSED` 失败码，DeepSeek adapter 在 `refusal` 停止原因上先上报已计费 usage 再以此码失败（此前报 `MALFORMED_RESPONSE`），实验性 liveshare 隧道 worker 继承宿主 Electron Node 模式。提交信息生成不分类 LLM 失败码，拒绝仍走既有通用失败路径；其余消费包均为 manifest 版本号重发，Cordis `4.1.0` / schemastery `3.19.0` 副本仍落在既有声明范围内，`Menu` 锚点接口不变。见[兼容评估](docs/reference/dsh-compatibility.md)。
+
 ## [0.2.11] — 2026-11-17
 
 ### Changed
