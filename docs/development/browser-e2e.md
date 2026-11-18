@@ -18,6 +18,8 @@ Linux CI 安装浏览器时使用 `pnpm exec playwright install --with-deps chro
 
 可以设置 `DSH_E2E_OUTPUT_DIR` 为仓库外的绝对路径，以保存失败截图和 trace 而不覆盖主工作树内的测试产物。
 
+账号设置用例先等待 `POST /__test/fixture` 成功，再断言页面内容。浏览器导航完成时临时 Git 仓库可能仍在初始化，提前检查页面会在较慢的 runner 上误报「平台账号」缺失。
+
 ## CI 跨平台验收
 
 [主 CI](../../.github/workflows/ci.yml) 在 PR（含 Draft）和 main push 上，以开发 pin 分别运行 `ubuntu-latest`、`windows-latest`、`macos-latest`，失败不取消其他系统。每条车道执行冻结安装、兼容门禁、完整单测、A1/A2/A3 验收探针、Chromium E2E、文档检查、构建、artifact 检查和打包。Git fixture 统一关闭 autocrlf；命令失败分类使用真实 Git 的损坏配置 fixture，避免依赖 POSIX shell。浏览器使用 list + HTML reporter，报告与失败 trace 按系统分别保留 14 天。

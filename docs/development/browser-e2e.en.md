@@ -18,6 +18,8 @@ Entry points are `playwright.config.ts` and `tests/e2e/auth.e2e.ts`. Playwright 
 
 Set `DSH_E2E_OUTPUT_DIR` to an absolute path outside the repository to keep failure screenshots and traces without overwriting working-tree test artifacts.
 
+The account settings tests wait for a successful `POST /__test/fixture` before checking page content. Browser navigation can finish while the temporary Git repository is still being initialized, so checking the page early can report a missing “Platform accounts” heading on slower runners.
+
 Device-login cases in `tests/e2e/device-login.e2e.ts` cover GitHub/GitLab automatic code requests, one mocked native browser open per attempt, code copying, reopening the dialog, success, denial, expiry, cancellation and manual continuation after native failure/unload. Advanced cleanup is collapsed by default and supports keyboard expansion. Mock native calls capture URLs/codes without using the real system browser or clipboard; this does not verify the actual Desktop provider.
 
 ## Cross-platform CI acceptance
