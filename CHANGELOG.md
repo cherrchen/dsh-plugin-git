@@ -6,6 +6,10 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Changed
+
+- Extend DSH compatibility to `0.2.2-rc.4`, a content-safety release: `dsh-llm` adds the `CONTENT_REFUSED` failure code that the DeepSeek adapter now reports for a `refusal` stop reason (previously `MALFORMED_RESPONSE`) after yielding the billed usage; the experimental liveshare tunnel worker inherits the Host's Electron Node mode. Commit-message generation classifies no LLM failure code, so a refusal still surfaces through the generic generation-failure path, every other consumed package is a manifest-only re-issue, its Cordis `4.1.0` / schemastery `3.19.0` copies stay inside the declared ranges, and the `Menu` anchor interface is unchanged. See the [compatibility assessment](docs/reference/dsh-compatibility.md).
+
 ## [0.2.11] — 2026-11-17
 
 ### Changed
