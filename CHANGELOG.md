@@ -6,6 +6,10 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Changed
+
+- Extend DSH compatibility to `0.2.2-rc.5`, a web-search release: the shipped composition no longer pins `web.searchProvider`, `dsh-web` selects the search provider per model route (DeepSeek Messages search on the DeepSeek routes, the DeepSeek Search API elsewhere), the settings page labels that as Automatic, and `web-search-deepseek` now accepts per-item snippets. This plugin does not import the web seam, every package it consumes is a manifest-only re-issue, its Cordis `4.1.0` / schemastery `3.19.0` copies stay inside the declared ranges, and the `Menu` anchor interface is unchanged. See the [compatibility assessment](docs/reference/dsh-compatibility.md).
+
 ## [0.2.13] — 2026-11-18
 
 ### Fixed
