@@ -6,6 +6,8 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.2.12] — 2026-11-18
+
 ### Changed
 
 - Extend DSH compatibility to `0.2.2-rc.4`, a content-safety release: `dsh-llm` adds the `CONTENT_REFUSED` failure code that the DeepSeek adapter now reports for a `refusal` stop reason (previously `MALFORMED_RESPONSE`) after yielding the billed usage; the experimental liveshare tunnel worker inherits the Host's Electron Node mode. Commit-message generation classifies no LLM failure code, so a refusal still surfaces through the generic generation-failure path, every other consumed package is a manifest-only re-issue, its Cordis `4.1.0` / schemastery `3.19.0` copies stay inside the declared ranges, and the `Menu` anchor interface is unchanged. See the [compatibility assessment](docs/reference/dsh-compatibility.md).
@@ -223,7 +225,8 @@ First tagged version: one portable Host service, one Client bundle, and an optio
 - Optional `ctx.inject(['desktop'], ...)` child fiber using `shell.showItemInFolder`, `shell.openPath`, and `notification.show`.
 - Documentation library under `docs/`, the `pnpm docs:check` machine check, the `version:set` script, a tag-triggered release workflow, the bilingual README pair, and its `README.i18n.yaml` hash record.
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.11...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.12...HEAD
+[0.2.12]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.11...v0.2.12
 [0.2.11]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.10...v0.2.11
 [0.2.10]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.8...v0.2.9

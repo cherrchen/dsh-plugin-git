@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [0.2.12] — 2026-11-18
+
 ### Changed
 
 - 将 DSH 兼容范围扩展至 `0.2.2-rc.4`：该版本围绕 DeepSeek 内容安全审核，`dsh-llm` 新增 `CONTENT_REFUSED` 失败码，DeepSeek adapter 在 `refusal` 停止原因上先上报已计费 usage 再以此码失败（此前报 `MALFORMED_RESPONSE`），实验性 liveshare 隧道 worker 继承宿主 Electron Node 模式。提交信息生成不分类 LLM 失败码，拒绝仍走既有通用失败路径；其余消费包均为 manifest 版本号重发，Cordis `4.1.0` / schemastery `3.19.0` 副本仍落在既有声明范围内，`Menu` 锚点接口不变。见[兼容评估](docs/reference/dsh-compatibility.md)。
@@ -223,7 +225,8 @@
 - 可选的 `ctx.inject(['desktop'], ...)` child fiber，使用 `shell.showItemInFolder`、`shell.openPath` 与 `notification.show`。
 - `docs/` 文档库、`pnpm docs:check` 机器校验、`version:set` 脚本、tag 触发的 release 工作流、双语 README 配对及其 `README.i18n.yaml` hash 记录。
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.11...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.12...HEAD
+[0.2.12]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.11...v0.2.12
 [0.2.11]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.10...v0.2.11
 [0.2.10]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.9...v0.2.10
 [0.2.9]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.8...v0.2.9
