@@ -6,6 +6,8 @@ All notable changes to this package are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.2.14] — 2026-11-19
+
 ### Changed
 
 - Extend DSH compatibility to `0.2.2-rc.5`, a web-search release: the shipped composition no longer pins `web.searchProvider`, `dsh-web` selects the search provider per model route (DeepSeek Messages search on the DeepSeek routes, the DeepSeek Search API elsewhere), the settings page labels that as Automatic, and `web-search-deepseek` now accepts per-item snippets. This plugin does not import the web seam, every package it consumes is a manifest-only re-issue, its Cordis `4.1.0` / schemastery `3.19.0` copies stay inside the declared ranges, and the `Menu` anchor interface is unchanged. See the [compatibility assessment](docs/reference/dsh-compatibility.md).
@@ -235,7 +237,8 @@ First tagged version: one portable Host service, one Client bundle, and an optio
 - Optional `ctx.inject(['desktop'], ...)` child fiber using `shell.showItemInFolder`, `shell.openPath`, and `notification.show`.
 - Documentation library under `docs/`, the `pnpm docs:check` machine check, the `version:set` script, a tag-triggered release workflow, the bilingual README pair, and its `README.i18n.yaml` hash record.
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.13...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.14...HEAD
+[0.2.14]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.13...v0.2.14
 [0.2.13]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.12...v0.2.13
 [0.2.12]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.11...v0.2.12
 [0.2.11]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.10...v0.2.11

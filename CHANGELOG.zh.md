@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [0.2.14] — 2026-11-19
+
 ### Changed
 
 - 将 DSH 兼容范围扩展至 `0.2.2-rc.5`：该版本围绕网页搜索，交付组合不再固定 `web.searchProvider`，改由 `dsh-web` 按模型路由选择搜索提供方（DeepSeek 路由使用 Messages 搜索，其他路由使用 DeepSeek Search API），设置页把该状态标为自动选择，`web-search-deepseek` 接受结果项自带的摘要。本插件不导入网页接缝，所消费的包均为 manifest 版本号重发，Cordis `4.1.0` / schemastery `3.19.0` 副本仍落在既有声明范围内，`Menu` 锚点接口不变。见[兼容评估](docs/reference/dsh-compatibility.md)。
@@ -235,7 +237,8 @@
 - 可选的 `ctx.inject(['desktop'], ...)` child fiber，使用 `shell.showItemInFolder`、`shell.openPath` 与 `notification.show`。
 - `docs/` 文档库、`pnpm docs:check` 机器校验、`version:set` 脚本、tag 触发的 release 工作流、双语 README 配对及其 `README.i18n.yaml` hash 记录。
 
-[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.13...HEAD
+[Unreleased]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.14...HEAD
+[0.2.14]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.13...v0.2.14
 [0.2.13]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.12...v0.2.13
 [0.2.12]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.11...v0.2.12
 [0.2.11]: https://github.com/cherrchen/dsh-plugin-git/compare/v0.2.10...v0.2.11
