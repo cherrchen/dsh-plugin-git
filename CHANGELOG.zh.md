@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- 将 DSH 兼容范围扩展至 `0.2.2-rc.5`：该版本围绕网页搜索，交付组合不再固定 `web.searchProvider`，改由 `dsh-web` 按模型路由选择搜索提供方（DeepSeek 路由使用 Messages 搜索，其他路由使用 DeepSeek Search API），设置页把该状态标为自动选择，`web-search-deepseek` 接受结果项自带的摘要。本插件不导入网页接缝，所消费的包均为 manifest 版本号重发，Cordis `4.1.0` / schemastery `3.19.0` 副本仍落在既有声明范围内，`Menu` 锚点接口不变。见[兼容评估](docs/reference/dsh-compatibility.md)。
+
 ## [0.2.13] — 2026-11-18
 
 ### Fixed
